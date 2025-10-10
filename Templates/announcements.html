@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcements - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="static/assets/css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link active">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" data-logout>
+        <span>↪</span>
+        <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Announcements</h1>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="announcement-search" placeholder="Search Announcements">
+        </div>
+        <button class="btn btn--primary" data-modal-open="create-announcement-modal">
+          + Create Announcement
+        </button>
+      </div>
+
+      <div class="announcements-section">
+        <h2>Past Announcements</h2>
+        <div class="announcements-list">
+          <article class="announcement-card">
+            <h3>Welcome to FIDE World Cup 2025</h3>
+            <div class="announcement-meta">
+              <span class="announcement-date">Oct 28, 2025</span>
+              <span class="announcement-author">Admin</span>
+            </div>
+            <p class="announcement-body">Welcome to Goa for the 2025 FIDE World Cup! Please check your schedules and transportation details. Opening ceremony will be held on Oct 30 at 6 PM.</p>
+          </article>
+
+          <article class="announcement-card">
+            <h3>Match Schedule Update</h3>
+            <div class="announcement-meta">
+              <span class="announcement-date">Oct 30, 2025</span>
+              <span class="announcement-author">Admin</span>
+            </div>
+            <p class="announcement-body">Round 1 matches will begin at 10:00 AM sharp. Players are requested to arrive 30 minutes early for check-in procedures.</p>
+          </article>
+
+          <article class="announcement-card">
+            <h3>Goa Sightseeing Tour</h3>
+            <div class="announcement-meta">
+              <span class="announcement-date">Nov 2, 2025</span>
+              <span class="announcement-author">Admin</span>
+            </div>
+            <p class="announcement-body">Optional sightseeing tour to Baga Beach and Fort Aguada on Nov 5. Register at the front desk by Nov 3.</p>
+          </article>
+
+          <article class="announcement-card">
+            <h3>Practice Sessions Available</h3>
+            <div class="announcement-meta">
+              <span class="announcement-date">Oct 29, 2025</span>
+              <span class="announcement-author">Admin</span>
+            </div>
+            <p class="announcement-body">Practice halls are now open from 8 AM to 8 PM daily. Book your slots through the player dashboard.</p>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Announcement Modal -->
+  <div id="create-announcement-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create Announcement</h2>
+        <button class="modal-close" data-modal-close>&times;</button>
+      </div>
+      <form id="create-announcement-form" class="modal-body">
+        <div class="form-group">
+          <label for="announcement-title">Title</label>
+          <input type="text" id="announcement-title" name="title" placeholder="e.g., New Venue Announcement" required>
+        </div>
+        <div class="form-group">
+          <label for="announcement-audience">Announcement for</label>
+          <select id="announcement-audience" name="audience" multiple>
+            <option value="all">All Players</option>
+            <option value="2346">#2346 - Nishant Kumar</option>
+            <option value="2347">#2347 - Jack Wilson</option>
+            <option value="2348">#2348 - Elena Lopez</option>
+            <option value="2349">#2349 - Maria Garcia</option>
+            <option value="2350">#2350 - Peter Thompson</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="announcement-details">Announcement Details</label>
+          <textarea id="announcement-details" name="details" placeholder="e.g., Tournament details and updates" rows="5" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Announcement Status</label>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" name="statusActive" value="Active" checked>
+              Active
+            </label>
+            <label>
+              <input type="checkbox" name="statusKnocked" value="Knocked Out" checked>
+              Knocked Out
+            </label>
+            <label>
+              <input type="checkbox" name="statusDeparted" value="Departed" checked>
+              Departed
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn--primary">Create Announcement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="tpl-announcement">
+    <article class="announcement-card">
+      <h3></h3>
+      <div class="announcement-meta">
+        <span class="announcement-date"></span>
+        <span class="announcement-author">Admin</span>
+      </div>
+      <p class="announcement-body"></p>
+    </article>
+  </template>
+
+  <script type="module" src="static/assets/js/app.js"></script>
+</body>
+</html>

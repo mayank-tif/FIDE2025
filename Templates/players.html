@@ -1,0 +1,373 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Players - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="static/assets/css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link active">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" data-logout>
+        <span>↪</span>
+        <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Manage Players</h1>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="player-search" placeholder="Search Players">
+        </div>
+        <button class="btn btn--primary" data-modal-open="add-player-modal">
+          + Add Player
+        </button>
+      </div>
+      <div class="table-container">
+        <table id="players-table" data-page-size="10">
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Player Name</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Country</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-id="2346" data-status="Active" data-email="nishant@example.com" data-country="India" data-name="Nishant Kumar" data-age="32" data-gender="Male">
+              <td class="avatar" data-initials="NK">NK</td>
+              <td class="name">Nishant Kumar</td>
+              <td class="age">32</td>
+              <td class="gender">Male</td>
+              <td class="country">India</td>
+              <td class="email">nishant@example.com</td>
+              <td class="status"><span class="badge badge--active">Active</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2347" data-status="Departed" data-email="jack@example.com" data-country="USA" data-name="Jack Wilson" data-age="45" data-gender="Male">
+              <td class="avatar" data-initials="JW">JW</td>
+              <td class="name">Jack Wilson</td>
+              <td class="age">45</td>
+              <td class="gender">Male</td>
+              <td class="country">USA</td>
+              <td class="email">jack@example.com</td>
+              <td class="status"><span class="badge badge--departed">Departed</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2348" data-status="Knocked Out" data-email="elena@example.com" data-country="Colombia" data-name="Elena Lopez" data-age="29" data-gender="Female">
+              <td class="avatar" data-initials="EL">EL</td>
+              <td class="name">Elena Lopez</td>
+              <td class="age">29</td>
+              <td class="gender">Female</td>
+              <td class="country">Colombia</td>
+              <td class="email">elena@example.com</td>
+              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2349" data-status="Active" data-email="maria@example.com" data-country="Mexico" data-name="Maria Garcia" data-age="27" data-gender="Female">
+              <td class="avatar" data-initials="MG">MG</td>
+              <td class="name">Maria Garcia</td>
+              <td class="age">27</td>
+              <td class="gender">Female</td>
+              <td class="country">Mexico</td>
+              <td class="email">maria@example.com</td>
+              <td class="status"><span class="badge badge--active">Active</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2350" data-status="Departed" data-email="peter@example.com" data-country="Canada" data-name="Peter Thompson" data-age="50" data-gender="Male">
+              <td class="avatar" data-initials="PT">PT</td>
+              <td class="name">Peter Thompson</td>
+              <td class="age">50</td>
+              <td class="gender">Male</td>
+              <td class="country">Canada</td>
+              <td class="email">peter@example.com</td>
+              <td class="status"><span class="badge badge--departed">Departed</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2351" data-status="Knocked Out" data-email="henry@example.com" data-country="Australia" data-name="Henry Brown" data-age="41" data-gender="Male">
+              <td class="avatar" data-initials="HB">HB</td>
+              <td class="name">Henry Brown</td>
+              <td class="age">41</td>
+              <td class="gender">Male</td>
+              <td class="country">Australia</td>
+              <td class="email">henry@example.com</td>
+              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2352" data-status="Active" data-email="zara@example.com" data-country="Singapore" data-name="Zara Tan" data-age="36" data-gender="Female">
+              <td class="avatar" data-initials="ZT">ZT</td>
+              <td class="name">Zara Tan</td>
+              <td class="age">36</td>
+              <td class="gender">Female</td>
+              <td class="country">Singapore</td>
+              <td class="email">zara@example.com</td>
+              <td class="status"><span class="badge badge--active">Active</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2353" data-status="Departed" data-email="amira@example.com" data-country="Egypt" data-name="Amira Malik" data-age="28" data-gender="Female">
+              <td class="avatar" data-initials="AM">AM</td>
+              <td class="name">Amira Malik</td>
+              <td class="age">28</td>
+              <td class="gender">Female</td>
+              <td class="country">Egypt</td>
+              <td class="email">amira@example.com</td>
+              <td class="status"><span class="badge badge--departed">Departed</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2354" data-status="Active" data-email="sofia@example.com" data-country="Spain" data-name="Sofia Rodriguez" data-age="30" data-gender="Female">
+              <td class="avatar" data-initials="SR">SR</td>
+              <td class="name">Sofia Rodriguez</td>
+              <td class="age">30</td>
+              <td class="gender">Female</td>
+              <td class="country">Spain</td>
+              <td class="email">sofia@example.com</td>
+              <td class="status"><span class="badge badge--active">Active</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2355" data-status="Knocked Out" data-email="kenta@example.com" data-country="Japan" data-name="Kenta Yamamoto" data-age="35" data-gender="Male">
+              <td class="avatar" data-initials="KY">KY</td>
+              <td class="name">Kenta Yamamoto</td>
+              <td class="age">35</td>
+              <td class="gender">Male</td>
+              <td class="country">Japan</td>
+              <td class="email">kenta@example.com</td>
+              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2356" data-status="Departed" data-email="sara@example.com" data-country="Bangladesh" data-name="Sara Hossain" data-age="31" data-gender="Female">
+              <td class="avatar" data-initials="SH">SH</td>
+              <td class="name">Sara Hossain</td>
+              <td class="age">31</td>
+              <td class="gender">Female</td>
+              <td class="country">Bangladesh</td>
+              <td class="email">sara@example.com</td>
+              <td class="status"><span class="badge badge--departed">Departed</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="player-pagination"></div>
+    </main>
+  </div>
+
+  <!-- Add Player Modal -->
+  <div id="add-player-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Player</h2>
+        <button class="modal-close" data-modal-close>&times;</button>
+      </div>
+      <form id="add-player-form" class="modal-body">
+        <div class="form-group">
+          <label for="player-name">Player Name</label>
+          <input type="text" id="player-name" name="name" placeholder="e.g., Magnus Carlsen" required>
+        </div>
+        <div class="form-group">
+          <label for="player-fide-id">Player FIDE ID</label>
+          <input type="text" id="player-fide-id" name="fideId" placeholder="e.g., #1234" required>
+        </div>
+        <div class="form-group">
+          <label for="player-age">Age</label>
+          <input type="number" id="player-age" name="age" placeholder="e.g., 28" required>
+        </div>
+        <div class="form-group">
+          <label for="player-gender">Gender</label>
+          <select id="player-gender" name="gender" required>
+            <option value="">Select</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="player-country">Country</label>
+          <select id="player-country" name="country" required>
+            <option value="">Select</option>
+            <option value="India">India</option>
+            <option value="USA">USA</option>
+            <option value="Colombia">Colombia</option>
+            <option value="Mexico">Mexico</option>
+            <option value="Canada">Canada</option>
+            <option value="Australia">Australia</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Egypt">Egypt</option>
+            <option value="Spain">Spain</option>
+            <option value="Japan">Japan</option>
+            <option value="Bangladesh">Bangladesh</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="player-email">Email</label>
+          <input type="email" id="player-email" name="email" placeholder="e.g., magnus@example.com" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn--primary">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Player Modal -->
+  <div id="edit-player-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Player</h2>
+        <button class="modal-close" data-modal-close>&times;</button>
+      </div>
+      <form id="edit-player-form" class="modal-body">
+        <input type="hidden" id="edit-player-id" name="id">
+        <div class="form-group">
+          <label for="edit-player-name">Player Name</label>
+          <input type="text" id="edit-player-name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-player-age">Age</label>
+          <input type="number" id="edit-player-age" name="age" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-player-gender">Gender</label>
+          <select id="edit-player-gender" name="gender" required>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-player-country">Country</label>
+          <select id="edit-player-country" name="country" required>
+            <option value="India">India</option>
+            <option value="USA">USA</option>
+            <option value="Colombia">Colombia</option>
+            <option value="Mexico">Mexico</option>
+            <option value="Canada">Canada</option>
+            <option value="Australia">Australia</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Egypt">Egypt</option>
+            <option value="Spain">Spain</option>
+            <option value="Japan">Japan</option>
+            <option value="Bangladesh">Bangladesh</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-player-email">Email</label>
+          <input type="email" id="edit-player-email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-player-status">Status</label>
+          <select id="edit-player-status" name="status" required>
+            <option value="Active">Active</option>
+            <option value="Departed">Departed</option>
+            <option value="Knocked Out">Knocked Out</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn--primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="tpl-player-row">
+    <tr data-id="" data-status="" data-email="" data-country="" data-name="" data-age="" data-gender="">
+      <td class="avatar" data-initials=""></td>
+      <td class="name"></td>
+      <td class="age"></td>
+      <td class="gender"></td>
+      <td class="country"></td>
+      <td class="email"></td>
+      <td class="status"><span class="badge"></span></td>
+      <td class="actions">
+        <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
+        <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+        <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+      </td>
+    </tr>
+  </template>
+
+  <script type="module" src="static/assets/js/app.js"></script>
+</body>
+</html>

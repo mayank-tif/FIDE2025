@@ -1,0 +1,322 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Profile - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="static/assets/css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link active">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" data-logout>
+        <span>↪</span>
+        <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="profile-page">
+    <div class="profile-header">
+      <button class="btn-back" onclick="window.location.href='players.html'">← Back</button>
+      <h1 id="profile-player-name">Player Name</h1>
+      <div class="profile-tabs">
+        <button class="tab-btn active" data-tab="profile">Profile</button>
+        <button class="tab-btn" data-tab="transportation">Transportation</button>
+        <button class="tab-btn" data-tab="hotels">Hotels</button>
+        <button class="tab-btn" data-tab="matches">Matches Tracker</button>
+      </div>
+    </div>
+
+    <!-- Profile Tab -->
+    <div id="tab-profile" class="tab-content active">
+      <div class="profile-card">
+        <div class="profile-photo-section">
+          <div class="profile-avatar" id="profile-avatar" data-initials="NK">NK</div>
+          <button class="btn btn--secondary" id="upload-photo-btn">Upload Photo</button>
+          <input type="file" id="upload-photo-input" accept="image/*" style="display: none;">
+          <small>JPG, PNG max 2MB</small>
+        </div>
+        <form id="profile-form" class="profile-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profile-name">Name</label>
+              <input type="text" id="profile-name" name="name" value="Nishant Kumar" required>
+            </div>
+            <div class="form-group">
+              <label for="profile-age">Age</label>
+              <input type="number" id="profile-age" name="age" value="32" required>
+            </div>
+            <div class="form-group">
+              <label for="profile-gender">Gender</label>
+              <select id="profile-gender" name="gender" required>
+                <option value="Male" selected>Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profile-country">Country</label>
+              <select id="profile-country" name="country" required>
+                <option value="India" selected>India</option>
+                <option value="USA">USA</option>
+                <option value="Colombia">Colombia</option>
+                <option value="Mexico">Mexico</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="Singapore">Singapore</option>
+                <option value="Egypt">Egypt</option>
+                <option value="Spain">Spain</option>
+                <option value="Japan">Japan</option>
+                <option value="Bangladesh">Bangladesh</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="profile-email">Email</label>
+              <input type="email" id="profile-email" name="email" value="nishant@example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="profile-status">Status</label>
+              <select id="profile-status" name="status" required>
+                <option value="In Progress" selected>In Progress</option>
+                <option value="Active">Active</option>
+                <option value="Departed">Departed</option>
+                <option value="Knocked Out">Knocked Out</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <button type="button" class="btn btn--secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Transportation Tab -->
+    <div id="tab-transportation" class="tab-content">
+      <div class="profile-card">
+        <h3>Add Transportation Details</h3>
+        <form id="transport-form" class="profile-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="transport-pickup">Pick-Up Location</label>
+              <input type="text" id="transport-pickup" name="pickup" placeholder="e.g., Airport Terminal 2" required>
+            </div>
+            <div class="form-group">
+              <label for="transport-dropoff">Drop-Off Location</label>
+              <input type="text" id="transport-dropoff" name="dropoff" placeholder="e.g., Hotel Grand Royale" required>
+            </div>
+            <div class="form-group">
+              <label for="transport-details">Cab/Shuttle Details</label>
+              <input type="text" id="transport-details" name="details" placeholder="e.g., Silver Cab - XL123" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="transport-type">Transportation Type</label>
+              <select id="transport-type" name="type" required>
+                <option value="">Select</option>
+                <option value="Airport">Airport</option>
+                <option value="Hotel">Hotel</option>
+                <option value="Match">Match</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="transport-remarks">Remarks</label>
+              <input type="text" id="transport-remarks" name="remarks" placeholder="Enter any additional details">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <button type="button" class="btn btn--secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="profile-card">
+        <h3>Transportation Details</h3>
+        <ul id="transport-log" class="item-log">
+        </ul>
+      </div>
+    </div>
+
+    <!-- Hotels Tab -->
+    <div id="tab-hotels" class="tab-content">
+      <div class="profile-card">
+        <h3>Add Hotel Details</h3>
+        <form id="hotel-form" class="profile-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hotel-pickup">Pick-Up Location</label>
+              <input type="text" id="hotel-pickup" name="pickup" placeholder="e.g., Airport Terminal 2" required>
+            </div>
+            <div class="form-group">
+              <label for="hotel-dropoff">Drop-Off Location</label>
+              <input type="text" id="hotel-dropoff" name="dropoff" placeholder="e.g., Hotel Grand Royale" required>
+            </div>
+            <div class="form-group">
+              <label for="hotel-details">Cab/Shuttle Details</label>
+              <input type="text" id="hotel-details" name="details" placeholder="e.g., Silver Cab - XL123" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hotel-type">Transportation Type</label>
+              <select id="hotel-type" name="type" required>
+                <option value="">Select</option>
+                <option value="Airport">Airport</option>
+                <option value="Hotel">Hotel</option>
+                <option value="Match">Match</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="hotel-remarks">Remarks</label>
+              <input type="text" id="hotel-remarks" name="remarks" placeholder="Enter any additional details">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <button type="button" class="btn btn--secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="profile-card">
+        <h3>Hotel Details</h3>
+        <ul id="hotel-log" class="item-log">
+        </ul>
+      </div>
+    </div>
+
+    <!-- Matches Tracker Tab -->
+    <div id="tab-matches" class="tab-content">
+      <div class="profile-card">
+        <h3>Add Matches Tracker Details</h3>
+        <form id="match-form" class="profile-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="match-pickup">Pick-Up Location</label>
+              <input type="text" id="match-pickup" name="pickup" placeholder="e.g., Airport Terminal 2" required>
+            </div>
+            <div class="form-group">
+              <label for="match-dropoff">Drop-Off Location</label>
+              <input type="text" id="match-dropoff" name="dropoff" placeholder="e.g., Hotel Grand Royale" required>
+            </div>
+            <div class="form-group">
+              <label for="match-details">Cab/Shuttle Details</label>
+              <input type="text" id="match-details" name="details" placeholder="e.g., Silver Cab - XL123" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="match-type">Transportation Type</label>
+              <select id="match-type" name="type" required>
+                <option value="">Select</option>
+                <option value="Airport">Airport</option>
+                <option value="Hotel">Hotel</option>
+                <option value="Match">Match</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="match-remarks">Remarks</label>
+              <input type="text" id="match-remarks" name="remarks" placeholder="Enter any additional details">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <button type="button" class="btn btn--secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="profile-card">
+        <h3>Matches Tracker Details</h3>
+        <ul id="match-log" class="item-log">
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <template id="tpl-transport-item">
+    <li class="item-entry" data-pickup="" data-dropoff="" data-type="" data-details="" data-remarks="" data-status="">
+      <div class="item-line">
+        <div>
+          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
+        </div>
+        <span class="badge badge--completed">Completed</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button>
+      </div>
+    </li>
+  </template>
+
+  <template id="tpl-hotel-item">
+    <li class="item-entry">
+      <div class="item-line">
+        <div>
+          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
+        </div>
+        <span class="badge badge--completed">Completed</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn--small btn--edit" data-action="edit-hotel">Edit</button>
+      </div>
+    </li>
+  </template>
+
+  <template id="tpl-match-item">
+    <li class="item-entry">
+      <div class="item-line">
+        <div>
+          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
+        </div>
+        <span class="badge badge--completed">Completed</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn--small btn--edit" data-action="edit-match">Edit</button>
+      </div>
+    </li>
+  </template>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="static/assets/js/app.js"></script>
+</body>
+</html>

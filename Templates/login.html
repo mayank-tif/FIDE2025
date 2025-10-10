@@ -1,0 +1,83 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Admin - FIDE World Cup 2025</title>
+    <link rel="stylesheet" href="static/assets/css/app.css" />
+  </head>
+  <body class="login-page">
+   
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-card-image">
+          <img
+            src="{% static 'assets/images/chess.svg' %}"
+            alt="Chess Pieces"
+            class="chess-image"
+          />
+        </div>
+        <div class="login-header">
+          <h1>FIDE World Cup 2025</h1>
+          <h2>Admin Portal</h2>
+        </div>
+        <form id="login-form" class="login-form" method="post">
+            {% csrf_token %}
+          <div class="form-group">
+            <label for="username">Admin Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter admin username"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="password"> Admin Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn--primary btn--block btn--login">Sign In</button>
+          <div class="error-message" id="error_message" style="display: none">
+              Wrong Username or Password
+            </div>
+            <div class="error-message" id="error_message1" style="display: block">
+              {{message}}
+            </div>
+            {% if msg == "expired" %}
+            <div class="error-message" id="error_message1" style="display: block">
+              Session expired!!
+            </div>
+            {% endif %}
+        </form>
+      </div>
+    </div>
+    {% comment %} <script type="module" src="static/assets/js/app.js"></script> {% endcomment %}
+    <script type="text/JavaScript">
+       document
+        .getElementById("login-form")
+        .addEventListener("submit", function (event) {
+
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const errorMessage = document.getElementById("error_message");
+          const errorMessage1 = document.getElementById("error_message1");
+
+          if (username === "" || password === "") {
+            event.preventDefault();
+            errorMessage.style.display = "block"; // Show error message
+            errorMessage1.style.display = "none";
+          }
+
+        });
+    </script>
+  </body>
+  
+</html>

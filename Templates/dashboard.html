@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - FIDE World Cup 2025</title>
+  {% comment %} <link rel="stylesheet" href="static/assets/css/app.css"> {% endcomment %}
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link active">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" onclick="window.location.href='{% url 'logout' %}'">
+          <span>↪</span>
+          <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+      </div>
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Players</div>
+            <div class="stat-value">100</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <div class="stat-label">Active Players</div>
+            <div class="stat-value">45</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-info">
+            <div class="stat-label">Pending Complaints</div>
+            <div class="stat-value">12</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📢</div>
+          <div class="stat-info">
+            <div class="stat-label">Announcements</div>
+            <div class="stat-value">4</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  {% comment %} <script type="module" src="static/assets/js/app.js"></script> {% endcomment %}
+  <script>
+
+  </script>
+</body>
+</html>

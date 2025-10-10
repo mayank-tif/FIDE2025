@@ -1,0 +1,327 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="static/assets/css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link active">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" data-logout>
+        <span>↪</span>
+        <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Manage Users</h1>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="user-search" placeholder="Search Users">
+        </div>
+        <button class="btn btn--primary" data-modal-open="add-user-modal">
+          + Add User
+        </button>
+      </div>
+      <div class="table-container">
+        <table id="users-table" data-page-size="10">
+          <thead>
+            <tr>
+              <th>Users</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Department</th>
+              <th>Admin Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-id="1" data-name="Nishant Kumar" data-email="nishant@example.com" data-phone="328-555-0174" data-department="Transport" data-role="Editor">
+              <td>Nishant Kumar</td>
+              <td>nishant@example.com</td>
+              <td>328-555-0174</td>
+              <td>Transport</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="2" data-name="Jack Wilson" data-email="jack@example.com" data-phone="328-555-0185" data-department="Hotel" data-role="Viewer">
+              <td>Jack Wilson</td>
+              <td>jack@example.com</td>
+              <td>328-555-0185</td>
+              <td>Hotel</td>
+              <td><span class="badge badge--viewer">Viewer</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="3" data-name="Elena Lopez" data-email="elena@example.com" data-phone="328-555-0129" data-department="Matches" data-role="Restricted">
+              <td>Elena Lopez</td>
+              <td>elena@example.com</td>
+              <td>328-555-0129</td>
+              <td>Matches</td>
+              <td><span class="badge badge--restricted">Restricted</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="4" data-name="Maria Garcia" data-email="maria@example.com" data-phone="328-555-0165" data-department="Ticketing" data-role="Editor">
+              <td>Maria Garcia</td>
+              <td>maria@example.com</td>
+              <td>328-555-0165</td>
+              <td>Ticketing</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="5" data-name="Peter Thompson" data-email="peter@example.com" data-phone="328-555-0147" data-department="Marketing" data-role="Viewer">
+              <td>Peter Thompson</td>
+              <td>peter@example.com</td>
+              <td>328-555-0147</td>
+              <td>Marketing</td>
+              <td><span class="badge badge--viewer">Viewer</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="6" data-name="Henry Brown" data-email="henry@example.com" data-phone="328-555-0173" data-department="Security" data-role="Restricted">
+              <td>Henry Brown</td>
+              <td>henry@example.com</td>
+              <td>328-555-0173</td>
+              <td>Security</td>
+              <td><span class="badge badge--restricted">Restricted</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="7" data-name="Zara Tan" data-email="zara@example.com" data-phone="328-555-0148" data-department="Medical" data-role="Editor">
+              <td>Zara Tan</td>
+              <td>zara@example.com</td>
+              <td>328-555-0148</td>
+              <td>Medical</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="8" data-name="Amira Malik" data-email="amira@example.com" data-phone="328-555-0191" data-department="Catering" data-role="Viewer">
+              <td>Amira Malik</td>
+              <td>amira@example.com</td>
+              <td>328-555-0191</td>
+              <td>Catering</td>
+              <td><span class="badge badge--viewer">Viewer</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="9" data-name="Sofia Rodriguez" data-email="sofia@example.com" data-phone="328-555-0119" data-department="Media" data-role="Editor">
+              <td>Sofia Rodriguez</td>
+              <td>sofia@example.com</td>
+              <td>328-555-0119</td>
+              <td>Media</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="10" data-name="Kenta Yamamoto" data-email="kenta@example.com" data-phone="328-555-0138" data-department="Volunteer" data-role="Restricted">
+              <td>Kenta Yamamoto</td>
+              <td>kenta@example.com</td>
+              <td>328-555-0138</td>
+              <td>Volunteer</td>
+              <td><span class="badge badge--restricted">Restricted</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="11" data-name="Sara Hossain" data-email="sara@example.com" data-phone="328-555-0192" data-department="Technology" data-role="Viewer">
+              <td>Sara Hossain</td>
+              <td>sara@example.com</td>
+              <td>328-555-0192</td>
+              <td>Technology</td>
+              <td><span class="badge badge--viewer">Viewer</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="12" data-name="Leo Chang" data-email="leo@example.com" data-phone="328-555-0156" data-department="Finance" data-role="Editor">
+              <td>Leo Chang</td>
+              <td>leo@example.com</td>
+              <td>328-555-0156</td>
+              <td>Finance</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="13" data-name="Nina Patel" data-email="nina@example.com" data-phone="328-555-0198" data-department="Research" data-role="Viewer">
+              <td>Nina Patel</td>
+              <td>nina@example.com</td>
+              <td>328-555-0198</td>
+              <td>Research</td>
+              <td><span class="badge badge--viewer">Viewer</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="14" data-name="Omar Al-Farsi" data-email="omar@example.com" data-phone="328-555-0121" data-department="Logistics" data-role="Restricted">
+              <td>Omar Al-Farsi</td>
+              <td>omar@example.com</td>
+              <td>328-555-0121</td>
+              <td>Logistics</td>
+              <td><span class="badge badge--restricted">Restricted</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+            <tr data-id="15" data-name="Tanya Singh" data-email="tanya@example.com" data-phone="328-555-0189" data-department="Development" data-role="Editor">
+              <td>Tanya Singh</td>
+              <td>tanya@example.com</td>
+              <td>328-555-0189</td>
+              <td>Development</td>
+              <td><span class="badge badge--editor">Editor</span></td>
+              <td class="actions">
+                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="user-pagination"></div>
+    </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="add-user-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New User</h2>
+        <button class="modal-close" data-modal-close>&times;</button>
+      </div>
+      <form id="add-user-form" class="modal-body">
+        <div class="form-group">
+          <label for="user-name">User's Name</label>
+          <input type="text" id="user-name" name="name" placeholder="e.g., User 1" required>
+        </div>
+        <div class="form-group">
+          <label for="user-email">Email</label>
+          <input type="email" id="user-email" name="email" placeholder="e.g., user1@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="user-phone">Phone</label>
+          <input type="tel" id="user-phone" name="phone" placeholder="e.g., +1 234 567 8901" required>
+        </div>
+        <div class="form-group">
+          <label for="user-password">Password</label>
+          <input type="password" id="user-password" name="password" placeholder="At least 8 characters, 1 uppercase, 1 number" required>
+          <small class="form-hint">Min 8 characters, 1 uppercase, 1 number</small>
+        </div>
+        <div class="form-group">
+          <label for="user-confirm-password">Confirm Password</label>
+          <input type="password" id="user-confirm-password" name="confirmPassword" placeholder="Re-enter your password" required>
+        </div>
+        <div class="form-group">
+          <label for="user-role">Role</label>
+          <select id="user-role" name="role" required>
+            <option value="">Select</option>
+            <option value="Editor">Editor</option>
+            <option value="Viewer">Viewer</option>
+            <option value="Restricted">Restricted</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="user-department">Department</label>
+          <select id="user-department" name="department" required>
+            <option value="">Select</option>
+            <option value="Transport">Transport</option>
+            <option value="Hotel">Hotel</option>
+            <option value="Matches">Matches</option>
+            <option value="Ticketing">Ticketing</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Security">Security</option>
+            <option value="Medical">Medical</option>
+            <option value="Catering">Catering</option>
+            <option value="Media">Media</option>
+            <option value="Volunteer">Volunteer</option>
+            <option value="Technology">Technology</option>
+            <option value="Finance">Finance</option>
+            <option value="Research">Research</option>
+            <option value="Logistics">Logistics</option>
+            <option value="Development">Development</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn--primary">Add User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="tpl-user-row">
+    <tr data-id="" data-name="" data-email="" data-phone="" data-department="" data-role="">
+      <td class="name"></td>
+      <td class="email"></td>
+      <td class="phone"></td>
+      <td class="department"></td>
+      <td class="role"><span class="badge"></span></td>
+      <td class="actions">
+        <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
+        <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
+      </td>
+    </tr>
+  </template>
+
+  <script type="module" src="static/assets/js/app.js"></script>
+</body>
+</html>

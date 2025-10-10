@@ -1,0 +1,165 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Complaints - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="static/assets/css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+        <!-- <div>
+          <div class="brand-title">FIDE WORLD CUP</div>
+          <div class="brand-subtitle">GOA 2025</div>
+        </div> -->
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-link">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="players.html" class="nav-link">
+          <span class="nav-icon">👥</span>
+          <span>Players</span>
+        </a>
+        <a href="complaints.html" class="nav-link active">
+          <span class="nav-icon">📋</span>
+          <span>Complaints</span>
+        </a>
+        <a href="announcements.html" class="nav-link">
+          <span class="nav-icon">📢</span>
+          <span>Announcements</span>
+        </a>
+        <a href="users.html" class="nav-link">
+          <span class="nav-icon">🛡️</span>
+          <span>Users</span>
+        </a>
+      </nav>
+      <button class="btn btn--logout" data-logout>
+        <span>↪</span>
+        <span>Logout</span>
+      </button>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Manage Complaints</h1>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="complaint-search" placeholder="Search Complaints">
+        </div>
+      </div>
+
+      <div class="complaints-list">
+        <article class="complaint-card" data-id="C001" data-status="In Progress">
+          <div class="complaint-header">
+            <h3>#C001</h3>
+            <div class="complaint-meta">
+              <span class="player-name">Nishant Kumar</span>
+              <span class="issue-type">Issue Type</span>
+              <span class="complaint-date">Oct 30, 2025</span>
+            </div>
+            <select class="status-select" data-complaint-id="C001">
+              <option value="Pending">Pending</option>
+              <option value="In Progress" selected>In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="complaint-body">
+            <p class="complaint-description">Issue with cab AC not working properly on Oct 30. The driver was informed but no action was taken.</p>
+            <div class="remarks-section">
+              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C001"></textarea>
+              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C001">Send Remarks</button>
+            </div>
+            <div class="remarks-list" data-complaint-id="C001"></div>
+          </div>
+          <div class="complaint-footer">
+            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C001">Save</button>
+          </div>
+        </article>
+
+        <article class="complaint-card" data-id="C002" data-status="Resolved">
+          <div class="complaint-header">
+            <h3>#C002</h3>
+            <div class="complaint-meta">
+              <span class="player-name">Nishant Kumar</span>
+              <span class="issue-type">Issue Type</span>
+              <span class="complaint-date">Oct 30, 2025</span>
+            </div>
+            <select class="status-select" data-complaint-id="C002">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved" selected>Resolved</option>
+            </select>
+          </div>
+          <div class="complaint-body">
+            <p class="complaint-description">Room service delayed by 2 hours. Requested breakfast at 8 AM, received at 10 AM.</p>
+            <div class="admin-reply">
+              <strong>Admin Reply:</strong> We apologize for the inconvenience. A refund has been issued and the hotel staff has been notified.
+            </div>
+          </div>
+        </article>
+
+        <article class="complaint-card" data-id="C004" data-status="Pending">
+          <div class="complaint-header">
+            <h3>#C004</h3>
+            <div class="complaint-meta">
+              <span class="player-name">Nishant Kumar</span>
+              <span class="issue-type">Issue Type</span>
+              <span class="complaint-date">Oct 30, 2025</span>
+            </div>
+            <select class="status-select" data-complaint-id="C004">
+              <option value="Pending" selected>Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="complaint-body">
+            <p class="complaint-description">Booked the chess match hall for a community tournament. All amenities requested are confirmed.</p>
+            <div class="remarks-section">
+              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C004"></textarea>
+              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C004">Send Remarks</button>
+            </div>
+            <div class="remarks-list" data-complaint-id="C004"></div>
+          </div>
+          <div class="complaint-footer">
+            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C004">Save</button>
+          </div>
+        </article>
+
+        <article class="complaint-card" data-id="C003" data-status="Pending">
+          <div class="complaint-header">
+            <h3>#C003</h3>
+            <div class="complaint-meta">
+              <span class="player-name">Nishant Kumar</span>
+              <span class="issue-type">Issue Type</span>
+              <span class="complaint-date">Oct 30, 2025</span>
+            </div>
+            <select class="status-select" data-complaint-id="C003">
+              <option value="Pending" selected>Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="complaint-body">
+            <p class="complaint-description">Had a delay with the shuttle service to the airport. Waiting for feedback from management.</p>
+            <div class="remarks-section">
+              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C003"></textarea>
+              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C003">Send Remarks</button>
+            </div>
+            <div class="remarks-list" data-complaint-id="C003"></div>
+          </div>
+          <div class="complaint-footer">
+            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C003">Save</button>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="static/assets/js/app.js"></script>
+</body>
+</html>
