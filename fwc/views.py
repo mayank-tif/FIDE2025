@@ -23,7 +23,7 @@ from django.conf import settings
 from datetime import datetime
 
 
-per_page = 2
+per_page = 50
 
 
 class View_platformlogin(TemplateView):
@@ -70,7 +70,7 @@ class View_platformlogin(TemplateView):
             return render(request,"login.html",{"message": "Please provide both username and password ({e})", "status": False})
 
 class PlatformLogoutView(View):
-    def get(self, request):
+    def post(self, request):
         logout(request)
         return redirect(reverse('login'))
     
@@ -268,16 +268,22 @@ class PlayerProfile(View):
     def get(self, request, player_id):
         player = get_object_or_404(Players, id=player_id, status_flag=1)
         countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
+        TransportationTypes = TransportationType.objects.filter(status_flag=1).order_by("Name")
         print("status", player.status)
-        return render(request, self.template_name, {"player": player, "countries": countries})
+        return render(request, self.template_name, {
+            "player": player, 
+            "countries": countries, 
+            "TransportationTypes": TransportationTypes})
     
     
 class UpdatePlayerProfile(View):
     def post(self, request):
         player_id = request.POST.get("player_id")
         player = get_object_or_404(Players, id=player_id, status_flag=1)
+        print("request.POST", request.POST)
 
         player.name = request.POST.get("name")
+        player.fide_id = int(request.POST.get("fideId"))
         player.age = request.POST.get("age")
         player.gender = request.POST.get("gender")
         player.email = request.POST.get("email")
@@ -294,3 +300,67 @@ class UpdatePlayerProfile(View):
             data["profile_pic_url"] = player.image.url
 
         return JsonResponse(data)
+    
+    
+class PlayerTransportView(View):
+    
+    def get(self, request, player_id, *args, **kwargs):
+        transports = PlayerTransportationDetails.objects.filter(playerId_id=player_id)
+        data = []
+        for t in transports:
+            data.append({
+                "id": t.id,
+                "pickup_location": t.pickup_location,
+                "drop_location": t.drop_location,
+                "details": t.details,
+                "transportation_type": t.transportationTypeId.id,
+                "transportation_type_name": t.transportationTypeId.Name,
+                "remarks": t.remarks,
+                "status": t.status,
+                "created_on": t.created_on.strftime("%Y-%m-%d %H:%M:%S"),
+            })
+        return JsonResponse(data, safe=False)
+
+    def post(self, request, *args, **kwargs):
+        """Create or update a transport record"""
+        try:
+            data = request.POST
+            transport_id = data.get("id")
+            player_id = data.get("player_id")
+            pickup = data.get("pickup_location")
+            dropoff = data.get("drop_location")
+            details = data.get("details")
+            transport_type_id = data.get("transportation_type")
+            remarks = data.get("remarks")
+            status = data.get("status", PlayerTransportationDetails.STATUS_PENDING)
+
+            # Get TransportationType object
+            transport_type_obj = TransportationType.objects.get(id=transport_type_id)
+
+            if transport_id:  # Update existing record
+                transport = PlayerTransportationDetails.objects.get(id=transport_id)
+                transport.pickup_location = pickup
+                transport.drop_location = dropoff
+                transport.details = details
+                transport.transportationTypeId = transport_type_obj
+                transport.remarks = remarks
+                transport.status = status
+                transport.updated_on = timezone.now()
+                transport.updated_by = request.session.get("loginid")
+                transport.save()
+            else:  # Create new
+                PlayerTransportationDetails.objects.create(
+                    playerId_id=player_id,
+                    pickup_location=pickup,
+                    drop_location=dropoff,
+                    details=details,
+                    transportationTypeId=transport_type_obj,
+                    remarks=remarks,
+                    status=status,
+                    created_by=request.session.get("loginid")
+                )
+
+            return JsonResponse({"success": True})
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})

@@ -29,6 +29,8 @@ urlpatterns = [
     path('players/', PlayerView.as_view(), name='players'),
     path('player/<int:player_id>/', PlayerProfile.as_view(), name='PlayerProfile'),
     path('update-player-profile/', UpdatePlayerProfile.as_view(), name='update_player_profile'),
+    path('player/<int:player_id>/transport/', PlayerTransportView.as_view(), name='get_player_transport'),
+    path('player/transport/save/', PlayerTransportView.as_view(), name='save_player_transport'),
 
 ]
 

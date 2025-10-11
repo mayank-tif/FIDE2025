@@ -13,7 +13,7 @@
     <main class="main-content">
       <div class="profile-page">
     <div class="profile-header">
-      <button class="btn-back" onclick="window.location.href='players.html'">← Back</button>
+      {% comment %} <button class="btn-back" onclick="window.location.href='players.html'">← Back</button> {% endcomment %}
       <h1 id="profile-player-name">{{ player.name }}</h1>
       <div class="profile-tabs">
         <button class="tab-btn active" data-tab="profile">Profile</button>
@@ -29,8 +29,8 @@
         <div class="profile-photo-section">
           <div class="profile-avatar" id="profile-avatar" data-initials="{{ player.name|slice:":2" }}">
             {% if player.image %}
-            <img id="avatar-img" src="{{ player.image.url }}" alt="Profile Photo">
-        {% endif %}
+              <img id="avatar-img" src="{{ player.image.url }}" alt="Profile Photo">
+            {% endif %}
           </div>
           <button class="btn btn--secondary" id="upload-photo-btn">Upload Photo</button>
           <input type="file" id="upload-photo-input" accept="image/*" style="display: none;">
@@ -41,6 +41,10 @@
             <div class="form-group">
               <label for="profile-name">Name</label>
               <input type="text" id="profile-name" name="name" value="{{ player.name }}" required>
+            </div>
+            <div class="form-group">
+              <label for="profile-name">FIDE ID</label>
+              <input type="text" id="fide_id" name="fide_id" value="{{ player.fide_id }}" required>
             </div>
             <div class="form-group">
               <label for="profile-age">Age</label>
@@ -113,10 +117,20 @@
               <label for="transport-type">Transportation Type</label>
               <select id="transport-type" name="type" required>
                 <option value="">Select</option>
-                <option value="Airport">Airport</option>
-                <option value="Hotel">Hotel</option>
-                <option value="Match">Match</option>
-                <option value="Other">Other</option>
+                {% for type in TransportationTypes %}
+                      <option value="{{ type.id }}">
+                          {{ type.Name }}
+                      </option>
+                  {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="status-type">Status</label>
+              <select id="status-type" name="status" required>
+                <option value="">Select</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_TRANSIT">In Transit</option>
+                <option value="COMPLETED">Completed</option>
               </select>
             </div>
             <div class="form-group">
@@ -281,26 +295,135 @@
       </div>
     </main>
   </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const transportForm = document.getElementById("transport-form");
+    const transportLog = document.getElementById("transport-log");
+    const transportTemplate = document.getElementById("tpl-transport-item");
+    const csrfToken = "{{ csrf_token }}";
+    const playerId = "{{ player.id }}";
 
-  {% comment %} <script type="module" src="{% static 'assets/js/app.js' %}"></script> {% endcomment %}
+    let editTransportId = null; // To track if we are editing an existing record
+
+    // Fetch existing transportation data for this player
+    function loadTransportData() {
+        fetch(`/player/${playerId}/transport/`) // create this API in Django
+        .then(res => res.json())
+        .then(data => {
+            transportLog.innerHTML = ""; // clear existing list
+            data.forEach(item => {
+                const li = transportTemplate.content.cloneNode(true).querySelector("li");
+                li.dataset.id = item.id;
+                li.dataset.pickup = item.pickup_location;
+                li.dataset.dropoff = item.drop_location;
+                li.dataset.type = item.transportation_type;
+                li.dataset.details = item.details;
+                li.dataset.remarks = item.remarks;
+                li.dataset.status = item.status;
+
+                li.querySelector("strong").textContent = item.transportation_type_name;
+                li.querySelector(".details").textContent = item.details;
+                li.querySelector(".route").textContent = `${item.pickup_location} → ${item.drop_location}`;
+                li.querySelector(".datetime").textContent = new Date(item.created_on).toLocaleString();
+                li.querySelector(".badge").textContent = item.status;
+
+                // Edit button
+                li.querySelector(".btn--edit").addEventListener("click", () => {
+                    editTransportId = item.id;
+                    transportForm["pickup"].value = item.pickup_location;
+                    transportForm["dropoff"].value = item.drop_location;
+                    transportForm["details"].value = item.details;
+                    transportForm["type"].value = item.transportation_type;
+                    transportForm["remarks"].value = item.remarks;
+                    transportForm["status"].value = item.status;
+                });
+
+                transportLog.appendChild(li);
+            });
+        });
+    }
+
+    loadTransportData();
+
+    // Handle form submission for add/edit
+    transportForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("player_id", playerId);
+        formData.append("pickup_location", transportForm["pickup"].value);
+        formData.append("drop_location", transportForm["dropoff"].value);
+        formData.append("details", transportForm["details"].value);
+        formData.append("transportation_type", transportForm["type"].value);
+        formData.append("remarks", transportForm["remarks"].value);
+        formData.append("status", transportForm["status"].value)
+        if (editTransportId) formData.append("id", editTransportId);
+
+        fetch("{% url 'save_player_transport' %}", {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfToken },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Transportation details saved!");
+                transportForm.reset();
+                editTransportId = null;
+                loadTransportData(); // reload updated list
+            } else {
+                alert("Error saving transportation data.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Something went wrong.");
+        });
+    });
+});
+</script>
+
 
   <script>
 document.addEventListener("DOMContentLoaded", function() {
     const profileForm = document.getElementById("profile-form");
     const uploadBtn = document.getElementById("upload-photo-btn");
     const uploadInput = document.getElementById("upload-photo-input");
+    const avatarDiv = document.getElementById("profile-avatar");
     const csrfToken = "{{ csrf_token }}";
-    const playerId = "{{ player.id }}"; // Send this in form data
+    const playerId = "{{ player.id }}";
 
     // Open file picker
     uploadBtn.addEventListener("click", () => uploadInput.click());
+
+    // Preview selected image instantly
+    uploadInput.addEventListener("change", function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Remove existing img if any
+                let existingImg = document.getElementById("avatar-img");
+                if (existingImg) {
+                    existingImg.src = e.target.result;
+                } else {
+                    const img = document.createElement("img");
+                    img.id = "avatar-img";
+                    img.src = e.target.result;
+                    img.alt = "Profile Photo";
+                    avatarDiv.appendChild(img);
+                }
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
 
     profileForm.addEventListener("submit", function(e) {
         e.preventDefault();
 
         const formData = new FormData();
-        formData.append("player_id", playerId); // Add player ID here
+        formData.append("player_id", playerId);
         formData.append("name", profileForm.name.value);
+        formData.append("fideId", profileForm.fide_id.value);
         formData.append("age", profileForm.age.value);
         formData.append("gender", profileForm.gender.value);
         formData.append("country", profileForm.country.value);
@@ -311,20 +434,16 @@ document.addEventListener("DOMContentLoaded", function() {
             formData.append("profile_pic", uploadInput.files[0]);
         }
 
-        fetch("{% url 'update_player_profile' %}", {  // No ID in URL now
+        fetch("{% url 'update_player_profile' %}", {
             method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken
-            },
+            headers: { "X-CSRFToken": csrfToken },
             body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 alert("Profile updated successfully!");
-                if (data.profile_pic_url) {
-                    document.getElementById("profile-avatar").style.backgroundImage = `url(${data.profile_pic_url})`;
-                }
+                window.location.reload(true);
             } else {
                 alert("Error updating profile. Please try again.");
             }
@@ -336,6 +455,27 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tabs = document.querySelectorAll(".tab-btn");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            // Remove 'active' from all tabs and contents
+            tabs.forEach(t => t.classList.remove("active"));
+            tabContents.forEach(c => c.classList.remove("active"));
+
+            // Add 'active' to clicked tab and corresponding content
+            tab.classList.add("active");
+            const tabId = "tab-" + tab.dataset.tab;
+            document.getElementById(tabId).classList.add("active");
+        });
+    });
+});
+</script>
+
 
 </body>
 </html>

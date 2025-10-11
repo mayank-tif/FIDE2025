@@ -25,8 +25,11 @@
       <span>Users</span>
     </a>
   </nav>
-  <button class="btn btn--logout" data-logout-url="{% url 'logout' %}">
-    <span>↪</span>
-    <span>Logout</span>
-  </button>
+   <form method="post" action="{% url 'logout' %}" class="logout-form">
+    {% csrf_token %}
+    <button type="submit" class="btn btn--logout">
+      <span>↪</span>
+      <span>Logout</span>
+    </button>
+  </form>
 </aside>

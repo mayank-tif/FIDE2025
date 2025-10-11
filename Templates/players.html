@@ -29,7 +29,7 @@
           <thead>
             <tr>
               <th>S.No.</th>
-              {% comment %} <th>Photo</th> {% endcomment %}
+              <th>Photo</th>
               <th>Player Name</th>
               <th>Age</th>
               <th>Gender</th>
@@ -243,9 +243,15 @@
                   if (response.data.length > 0) {
                       response.data.forEach((player, index) => {
                           let serialNo = (currentPage - 1) * response.pagination.per_page + index + 1;
+                          let imgHtml = player.image_url 
+    ? `<div class="avatar-wrapper"><img src="${player.image_url}" alt="${player.name}" class="player-avatar"></div>`
+    : `<div class="avatar-wrapper"><div class="avatar-initials">${player.name ? player.name.slice(0,2).toUpperCase() : "P"}</div></div>`;
+
+
                           let row = `
                               <tr data-id="${player.id}">
                                   <td>${serialNo}</td>
+                                  <td class="avatar">${imgHtml}</td>
                                   <td>${player.name|| ''}</td>
                                   <td>${player.age|| ''}</td>
                                   <td>${player.gender|| ''}</td>
