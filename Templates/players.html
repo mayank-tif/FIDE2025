@@ -365,7 +365,6 @@
                   },
                   success: function (response) {
                       if (response.success) {
-                          alert(response.message);
                           $("#add-player-form")[0].reset();
                           $("#add-player-modal").removeClass("active");
                           fetchPlayers();
@@ -430,7 +429,6 @@
                  },
                  success: function (response) {
                      if (response.success) {
-                         alert(response.message);
                          $("#edit-player-modal").removeClass("active");
                          fetchPlayers();
                      } else {
@@ -458,7 +456,6 @@
                 },
                 success: function (response) {
                     if (response.success) {
-                        alert("Player deleted successfully");
                         fetchPlayers();
                     } else {
                         alert(response.error || "Failed to delete player");
