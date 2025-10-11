@@ -12,11 +12,11 @@
       <span class="nav-icon">👥</span>
       <span>Players</span>
     </a>
-    <a  class="nav-link {% if request.resolver_match.url_name == 'complaints' %}active{% endif %}">
+    <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
       <span class="nav-icon">📋</span>
       <span>Complaints</span>
     </a>
-    <a  class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
+    <a href="{% url 'announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
       <span class="nav-icon">📢</span>
       <span>Announcements</span>
     </a>

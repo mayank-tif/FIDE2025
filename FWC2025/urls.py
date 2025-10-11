@@ -31,6 +31,9 @@ urlpatterns = [
     path('update-player-profile/', UpdatePlayerProfile.as_view(), name='update_player_profile'),
     path('player/<int:player_id>/transport/', PlayerTransportView.as_view(), name='get_player_transport'),
     path('player/transport/save/', PlayerTransportView.as_view(), name='save_player_transport'),
+    path('complaints/', ComplaintListView.as_view(), name='complaint_list'),
+    path('complaints/<int:complaint_id>/update/', ComplaintUpdateView.as_view(), name='complaint_update'),
+    path('announcements/', AnnouncementListView.as_view(), name='announcements')
 
 ]
 

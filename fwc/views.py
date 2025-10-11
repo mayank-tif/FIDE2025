@@ -21,6 +21,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from datetime import datetime
+from django.db.models import Prefetch
 
 
 per_page = 50
@@ -364,3 +365,115 @@ class PlayerTransportView(View):
 
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
+        
+
+
+class ComplaintListView(View):
+    """Displays all complaints and their conversation threads with search and pagination"""
+    def get(self, request):
+        search_query = request.GET.get("q", "")
+
+        # Prefetch conversations with sender info, ordered latest first
+        complaints_qs = PlayerComplaint.objects.select_related("player").prefetch_related(
+            Prefetch(
+                "conversations",
+                queryset=PlayerComplaintConversation.objects.select_related("sender_player", "sender_user").order_by("-created_on")
+            )
+        ).all().order_by("-created_on")
+
+        # Apply search filter if query exists
+        if search_query:
+            complaints_qs = complaints_qs.filter(player__name__icontains=search_query)
+
+        # Pagination: 5 complaints per page
+        paginator = Paginator(complaints_qs, per_page)
+        page_number = request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+
+        # Debug prints
+        for c in page_obj:
+            print(f"Complaint #{c.id} by player: {c.player.name}")
+            for convo in c.conversations.all():
+                player_name = convo.sender_player.name if convo.sender_player else None
+                user_name = convo.sender_user.name if convo.sender_user else None
+                print(f"  Conversation #{convo.id} - Player: {player_name}, User: {user_name}, Message: {convo.message}")
+
+        return render(request, "complaints.html", {
+            "complaints": page_obj,
+            "search_query": search_query,
+            "page_obj": page_obj,
+        })
+
+
+class ComplaintUpdateView(View):
+    """Handles AJAX updates — status change or adding remarks"""
+
+    def post(self, request, complaint_id):
+        complaint = get_object_or_404(PlayerComplaint, id=complaint_id)
+        action = request.POST.get("action")
+
+        if action == "update_status":
+            new_status = request.POST.get("status")
+            complaint.status = new_status
+            complaint.save()
+            return JsonResponse({"success": True, "message": "Status updated successfully."})
+
+        elif action == "add_remark":
+            message = request.POST.get("message")
+            sender = MstUserLogins.objects.get(id=request.session.get("loginid"), status_flag=1)
+            PlayerComplaintConversation.objects.create(complaint=complaint, sender_user=sender, message=message)
+            return JsonResponse({"success": True, "message": "Remark added successfully."})
+
+        return JsonResponse({"success": False, "message": "Invalid action."})
+    
+
+class AnnouncementListView(View):
+    def get(self, request):
+        search_query = request.GET.get("q", "")
+
+        announcements = Announcements.objects.select_related("created_by").all().order_by("-created_on")
+        if search_query:
+            announcements = announcements.filter(title__icontains=search_query)
+
+        paginator = Paginator(announcements, per_page)  # 5 per page
+        page_number = request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+
+        players = Players.objects.filter(status_flag=1).order_by("name")  # For dropdown
+
+        return render(request, "announcements.html", {
+            "page_obj": page_obj,
+            "players": players,
+            "search_query": search_query
+        })
+
+    def post(self, request):
+        """Create new announcement and assign recipients"""
+        title = request.POST.get("title")
+        details = request.POST.get("details")
+        audience_ids = request.POST.getlist("audience")  # list of player IDs
+        current_user = request.session.get("loginid")
+        print("title", title, "details", details, "audience_ids", audience_ids, "current_user", current_user)   
+        logged_user=MstUserLogins.objects.get(id=current_user)
+
+        announcement = Announcements.objects.create(
+            title=title,
+            details=details,
+            created_by=logged_user,
+            created_on=timezone.now()
+        )
+
+        # Assign recipients
+        if "all" in audience_ids:
+            recipients = Players.objects.filter(status_flag=1)
+        else:
+            recipients = Players.objects.filter(id__in=audience_ids)
+
+        # Add recipients in bulk
+        AnnouncementRecipients.objects.bulk_create([
+            AnnouncementRecipients(announcement=announcement, player=p, sent_on=timezone.now())
+            for p in recipients
+        ])
+
+        return redirect("announcements")  # Redirect back to list
+

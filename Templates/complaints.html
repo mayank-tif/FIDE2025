@@ -9,157 +9,136 @@
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
-        <!-- <div>
-          <div class="brand-title">FIDE WORLD CUP</div>
-          <div class="brand-subtitle">GOA 2025</div>
-        </div> -->
-      </div>
-      <nav class="sidebar-nav">
-        <a href={% url "home" %} class="nav-link">
-          <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
-        </a>
-        <a href={% url "players" %} class="nav-link">
-          <span class="nav-icon">👥</span>
-          <span>Players</span>
-        </a>
-        <a href="complaints.html" class="nav-link active">
-          <span class="nav-icon">📋</span>
-          <span>Complaints</span>
-        </a>
-        <a href="announcements.html" class="nav-link">
-          <span class="nav-icon">📢</span>
-          <span>Announcements</span>
-        </a>
-        <a href="users.html" class="nav-link">
-          <span class="nav-icon">🛡️</span>
-          <span>Users</span>
-        </a>
-      </nav>
-      <button class="btn btn--logout" data-logout>
-        <span>↪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
+    {% include 'sidebar.html' %}
     <main class="main-content">
       <div class="page-header">
         <h1>Manage Complaints</h1>
       </div>
       <div class="toolbar">
         <div class="search-box">
-          <input type="text" id="complaint-search" placeholder="Search Complaints">
+          <input type="text" id="complaint-search" placeholder="Search Complaints" value="{{ search_query }}">
         </div>
       </div>
-
       <div class="complaints-list">
-        <article class="complaint-card" data-id="C001" data-status="In Progress">
+        {% for c in complaints %}
+        <article class="complaint-card" data-id="{{ c.id }}" data-status="{{ c.status }}">
           <div class="complaint-header">
-            <h3>#C001</h3>
+            <h3>#C{{ c.id }}</h3>
             <div class="complaint-meta">
-              <span class="player-name">Nishant Kumar</span>
-              <span class="issue-type">Issue Type</span>
-              <span class="complaint-date">Oct 30, 2025</span>
+              <span class="player-name">{{ c.player.name }}</span>
+              <span class="complaint-date">{{ c.created_on|date:"M d, Y" }}</span>
             </div>
-            <select class="status-select" data-complaint-id="C001">
-              <option value="Pending">Pending</option>
-              <option value="In Progress" selected>In Progress</option>
-              <option value="Resolved">Resolved</option>
+            <select class="status-select" data-complaint-id="{{ c.id }}">
+              {% for value, label in c.STATUS_CHOICES %}
+                <option value="{{ value }}" {% if c.status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
             </select>
           </div>
+        
           <div class="complaint-body">
-            <p class="complaint-description">Issue with cab AC not working properly on Oct 30. The driver was informed but no action was taken.</p>
+            <p class="complaint-description">{{ c.description }}</p>
+            {% if c.status != 'RESOLVED' %}
             <div class="remarks-section">
-              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C001"></textarea>
-              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C001">Send Remarks</button>
+              <textarea class="remarks-input" placeholder="Write remarks..." data-complaint-id="{{ c.id }}"></textarea>
+              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="{{ c.id }}">Send</button>
             </div>
-            <div class="remarks-list" data-complaint-id="C001"></div>
-          </div>
-          <div class="complaint-footer">
-            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C001">Save</button>
-          </div>
-        </article>
+            {% endif %}
 
-        <article class="complaint-card" data-id="C002" data-status="Resolved">
-          <div class="complaint-header">
-            <h3>#C002</h3>
-            <div class="complaint-meta">
-              <span class="player-name">Nishant Kumar</span>
-              <span class="issue-type">Issue Type</span>
-              <span class="complaint-date">Oct 30, 2025</span>
-            </div>
-            <select class="status-select" data-complaint-id="C002">
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved" selected>Resolved</option>
-            </select>
-          </div>
-          <div class="complaint-body">
-            <p class="complaint-description">Room service delayed by 2 hours. Requested breakfast at 8 AM, received at 10 AM.</p>
-            <div class="admin-reply">
-              <strong>Admin Reply:</strong> We apologize for the inconvenience. A refund has been issued and the hotel staff has been notified.
-            </div>
+            {% if c.conversations.all %}
+                {% for convo in c.conversations.all %}
+                  <div class="admin-reply" data-complaint-id="{{ c.id }}">
+                    <div class="remark-item">
+                      <strong>
+                        {% if convo.sender_player %}
+                          {{ convo.sender_player.name }}
+                        {% elif convo.sender_user %}
+                          {{ convo.sender_user.name }}
+                        {% else %}
+                          Unknown
+                        {% endif %}
+                      </strong>
+                      ({{ convo.created_on|date:"M d, Y H:i" }}):
+                      <p>{{ convo.message }}</p>
+                    </div>
+                  </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-remarks">No remarks yet.</p>
+            {% endif %}      
           </div>
         </article>
+  {% empty %}
+    <div class="no-complaints-card">
+      <div class="no-complaints-icon">📭</div>
+      <h3>No Complaints Found</h3>
+      <p>There are currently no complaints submitted by any players.</p>
+    </div>
+  {% endfor %}
+  </div>
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}">Previous</a>
+    {% endif %}
+  
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}">Next</a>
+    {% endif %}
+  </div>
 
-        <article class="complaint-card" data-id="C004" data-status="Pending">
-          <div class="complaint-header">
-            <h3>#C004</h3>
-            <div class="complaint-meta">
-              <span class="player-name">Nishant Kumar</span>
-              <span class="issue-type">Issue Type</span>
-              <span class="complaint-date">Oct 30, 2025</span>
-            </div>
-            <select class="status-select" data-complaint-id="C004">
-              <option value="Pending" selected>Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
-          <div class="complaint-body">
-            <p class="complaint-description">Booked the chess match hall for a community tournament. All amenities requested are confirmed.</p>
-            <div class="remarks-section">
-              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C004"></textarea>
-              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C004">Send Remarks</button>
-            </div>
-            <div class="remarks-list" data-complaint-id="C004"></div>
-          </div>
-          <div class="complaint-footer">
-            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C004">Save</button>
-          </div>
-        </article>
 
-        <article class="complaint-card" data-id="C003" data-status="Pending">
-          <div class="complaint-header">
-            <h3>#C003</h3>
-            <div class="complaint-meta">
-              <span class="player-name">Nishant Kumar</span>
-              <span class="issue-type">Issue Type</span>
-              <span class="complaint-date">Oct 30, 2025</span>
-            </div>
-            <select class="status-select" data-complaint-id="C003">
-              <option value="Pending" selected>Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
-          <div class="complaint-body">
-            <p class="complaint-description">Had a delay with the shuttle service to the airport. Waiting for feedback from management.</p>
-            <div class="remarks-section">
-              <textarea class="remarks-input" placeholder="Write remarks here..." data-complaint-id="C003"></textarea>
-              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="C003">Send Remarks</button>
-            </div>
-            <div class="remarks-list" data-complaint-id="C003"></div>
-          </div>
-          <div class="complaint-footer">
-            <button class="btn btn--primary" data-action="save-complaint" data-complaint-id="C003">Save</button>
-          </div>
-        </article>
-      </div>
     </main>
   </div>
-  <script type="module" src="{% static 'assets/js/app.js' %}"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    // Enter key press in search input
+    document.getElementById("complaint-search").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const query = e.target.value.trim();
+        window.location.href = `?q=${encodeURIComponent(query)}`;
+      }
+    });
+
+    // Update complaint status
+    document.querySelectorAll(".status-select").forEach(select => {
+      select.addEventListener("change", () => {
+        const id = select.dataset.complaintId;
+        const status = select.value;
+        fetch(`/complaints/${id}/update/`, {
+          method: "POST",
+          headers: { "X-CSRFToken": "{{ csrf_token }}" },
+          body: new URLSearchParams({ action: "update_status", status })
+        }).then(res => res.json()).then(data => {
+          alert(data.message)
+          window.location.reload();
+        });
+      });
+    });
+
+    // Send remark
+    document.querySelectorAll("[data-action='send-remark']").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.complaintId;
+        const textarea = document.querySelector(`.remarks-input[data-complaint-id='${id}']`);
+        const message = textarea.value.trim();
+        if (!message) return alert("Please enter a remark.");
+
+        fetch(`/complaints/${id}/update/`, {
+          method: "POST",
+          headers: { "X-CSRFToken": "{{ csrf_token }}" },
+          body: new URLSearchParams({ action: "add_remark", message })
+        })
+        .then(res => res.json())
+        .then(data => {
+          alert(data.message);
+          window.location.reload();
+        });
+      });
+    });
+  });
+  </script>
 </body>
 </html>

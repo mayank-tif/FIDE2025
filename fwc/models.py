@@ -72,7 +72,7 @@ class CityMst(models.Model):
     city_id = models.AutoField(primary_key=True)
     city_name = models.CharField(max_length=50)
     city_code = models.CharField(max_length=50, null=True)
-    state_id = models.ForeignKey(StateMst, on_delete=models.CASCADE, null=True)
+    state_id = models.ForeignKey(StateMst, on_delete=models.DO_NOTHING, null=True)
     created_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
 
@@ -101,7 +101,7 @@ class MstUserLogins(models.Model):
     email = models.CharField(max_length=50, null=True)
     loginname = models.CharField(max_length=20)
     securepassword = models.CharField(max_length=200, null=True)
-    roleid = models.ForeignKey(MstRole, on_delete=models.CASCADE, null=True, db_column='roleId')
+    roleid = models.ForeignKey(MstRole, on_delete=models.DO_NOTHING, null=True, db_column='roleId')
     cityid = models.IntegerField(null=True)
     stateid = models.IntegerField(null=True)
     countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=False, db_column='countryId')
@@ -243,13 +243,11 @@ class PlayerComplaint(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    player = models.ForeignKey(Players, on_delete=models.CASCADE, db_column='playerId')
-    subject = models.CharField(max_length=255)
+    player = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     created_on = models.DateTimeField(default=timezone.now)
-    updated_on = models.DateTimeField(auto_now=True)
-    created_by = models.IntegerField(null=True)
+    updated_on = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
     status_flag = models.IntegerField(default=1)
 
@@ -262,9 +260,9 @@ class PlayerComplaint(models.Model):
 
 class PlayerComplaintConversation(models.Model):
     id = models.AutoField(primary_key=True)
-    complaint = models.ForeignKey(PlayerComplaint, on_delete=models.CASCADE,related_name='conversations', db_column='complaintId')
-    sender_player = models.ForeignKey(Players, on_delete=models.SET_NULL,null=True, blank=True, db_column='senderPlayerId')
-    sender_user = models.ForeignKey(MstUserLogins, on_delete=models.SET_NULL,null=True, blank=True, db_column='senderUserId')
+    complaint = models.ForeignKey(PlayerComplaint, on_delete=models.DO_NOTHING,related_name='conversations', db_column='complaintId')
+    sender_player = models.ForeignKey(Players, on_delete=models.DO_NOTHING,null=True, blank=True, db_column='senderPlayerId')
+    sender_user = models.ForeignKey(MstUserLogins, on_delete=models.DO_NOTHING,null=True, blank=True, db_column='senderUserId')
     message = models.TextField()
     created_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
@@ -281,9 +279,9 @@ class Announcements(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255)
     details = models.TextField()
-    created_by = models.ForeignKey(MstUserLogins, on_delete=models.SET_NULL,null=True, blank=True, db_column='createdBy')
+    created_by = models.ForeignKey(MstUserLogins, on_delete=models.DO_NOTHING,null=True, blank=True, db_column='createdBy')
     created_on = models.DateTimeField(default=timezone.now)
-    updated_on = models.DateTimeField(auto_now=True)
+    updated_on = models.DateTimeField(null=True)
     status_flag = models.IntegerField(default=1)
 
     class Meta:
@@ -296,10 +294,8 @@ class Announcements(models.Model):
     
 class AnnouncementRecipients(models.Model):
     id = models.AutoField(primary_key=True)
-    announcement = models.ForeignKey(Announcements, on_delete=models.CASCADE,related_name='recipients', db_column='announcementId')
-    player = models.ForeignKey(Players, on_delete=models.CASCADE, db_column='playerId')
-    is_read = models.BooleanField(default=False)
-    read_on = models.DateTimeField(null=True, blank=True)
+    announcement = models.ForeignKey(Announcements, on_delete=models.DO_NOTHING,related_name='recipients', db_column='announcementId')
+    player = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     sent_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
 
