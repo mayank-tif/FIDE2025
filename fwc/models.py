@@ -180,3 +180,135 @@ class Players(models.Model):
     class Meta:
         unique_together = (('email',),)
         db_table = 'Players'
+        
+        
+class TransportationType(models.Model):
+    id = models.AutoField(primary_key=True)
+    Name = models.CharField(max_length=100)
+    status_flag = models.IntegerField(default=1)
+    created_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+
+    def __str__(self):
+        return self.Name
+    
+    class Meta:
+        db_table = 'TransportationType'
+        
+        
+class PlayerTransportationDetails(models.Model):
+    STATUS_IN_TRANSIT = "IN_TRANSIT"
+    STATUS_COMPLETED = "COMPLETED"
+    STATUS_PENDING = "PENDING"
+
+    STATUS_CHOICES = [
+        (STATUS_IN_TRANSIT, "In Transit"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_PENDING, "Pending"),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    playerId = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
+    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
+    pickup_location = models.CharField(max_length=500)
+    drop_location = models.CharField(max_length=500)
+    details = models.CharField(max_length=500)
+    remarks = models.CharField(max_length=500)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT)
+    created_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+
+    def __str__(self):
+        return f"{self.playerId.name} - {self.pickup_location} to {self.drop_location}"
+    
+    class Meta:
+        db_table = 'PlayerTransportationDetails'
+        
+
+class PlayerComplaint(models.Model):
+    STATUS_OPEN = "OPEN"
+    STATUS_IN_PROGRESS = "IN_PROGRESS"
+    STATUS_RESOLVED = "RESOLVED"
+    STATUS_CLOSED = "CLOSED"
+
+    STATUS_CHOICES = [
+        (STATUS_OPEN, "Open"),
+        (STATUS_IN_PROGRESS, "In Progress"),
+        (STATUS_RESOLVED, "Resolved"),
+        (STATUS_CLOSED, "Closed"),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    player = models.ForeignKey(Players, on_delete=models.CASCADE, db_column='playerId')
+    subject = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(auto_now=True)
+    created_by = models.IntegerField(null=True)
+    updated_by = models.IntegerField(null=True)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'PlayerComplaint'
+
+    def __str__(self):
+        return f"{self.player.name} - {self.subject} ({self.status})"
+
+
+class PlayerComplaintConversation(models.Model):
+    id = models.AutoField(primary_key=True)
+    complaint = models.ForeignKey(PlayerComplaint, on_delete=models.CASCADE,related_name='conversations', db_column='complaintId')
+    sender_player = models.ForeignKey(Players, on_delete=models.SET_NULL,null=True, blank=True, db_column='senderPlayerId')
+    sender_user = models.ForeignKey(MstUserLogins, on_delete=models.SET_NULL,null=True, blank=True, db_column='senderUserId')
+    message = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'PlayerComplaintConversation'
+
+    def __str__(self):
+        return f"{self.complaint.id}"
+    
+    
+
+class Announcements(models.Model):
+    id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255)
+    details = models.TextField()
+    created_by = models.ForeignKey(MstUserLogins, on_delete=models.SET_NULL,null=True, blank=True, db_column='createdBy')
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(auto_now=True)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'Announcements'
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+    
+    
+    
+class AnnouncementRecipients(models.Model):
+    id = models.AutoField(primary_key=True)
+    announcement = models.ForeignKey(Announcements, on_delete=models.CASCADE,related_name='recipients', db_column='announcementId')
+    player = models.ForeignKey(Players, on_delete=models.CASCADE, db_column='playerId')
+    is_read = models.BooleanField(default=False)
+    read_on = models.DateTimeField(null=True, blank=True)
+    sent_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'AnnouncementRecipients'
+        unique_together = ('announcement', 'player')  # Avoid duplicates
+
+    def __str__(self):
+        return f"Announcement '{self.announcement.title}' sent to {self.player.name}"
+
+
+
