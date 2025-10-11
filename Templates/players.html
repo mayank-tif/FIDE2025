@@ -5,62 +5,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Players - FIDE World Cup 2025</title>
-  <link rel="stylesheet" href="static/assets/css/app.css">
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
-        <!-- <div>
-          <div class="brand-title">FIDE WORLD CUP</div>
-          <div class="brand-subtitle">GOA 2025</div>
-        </div> -->
-      </div>
-      <nav class="sidebar-nav">
-        <a href="dashboard.html" class="nav-link">
-          <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
-        </a>
-        <a href="players.html" class="nav-link active">
-          <span class="nav-icon">👥</span>
-          <span>Players</span>
-        </a>
-        <a href="complaints.html" class="nav-link">
-          <span class="nav-icon">📋</span>
-          <span>Complaints</span>
-        </a>
-        <a href="announcements.html" class="nav-link">
-          <span class="nav-icon">📢</span>
-          <span>Announcements</span>
-        </a>
-        <a href="users.html" class="nav-link">
-          <span class="nav-icon">🛡️</span>
-          <span>Users</span>
-        </a>
-      </nav>
-      <button class="btn btn--logout" data-logout>
-        <span>↪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
+    {% include 'sidebar.html' %}
     <main class="main-content">
       <div class="page-header">
         <h1>Manage Players</h1>
       </div>
       <div class="toolbar">
-        <div class="search-box">
-          <input type="text" id="player-search" placeholder="Search Players">
+        <div class="search-box" id="tableSearchContainer">
+          {% comment %} <input type="text" id="player-search" placeholder="Search Players"> {% endcomment %}
         </div>
         <button class="btn btn--primary" data-modal-open="add-player-modal">
           + Add Player
         </button>
       </div>
       <div class="table-container">
-        <table id="players-table" data-page-size="10">
+        {% csrf_token %}
+        <table id="players-table" data-page-size="10" class="table table-bordered table-striped">
           <thead>
             <tr>
-              <th>Photo</th>
+              <th>S.No.</th>
+              {% comment %} <th>Photo</th> {% endcomment %}
               <th>Player Name</th>
               <th>Age</th>
               <th>Gender</th>
@@ -71,164 +40,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr data-id="2346" data-status="Active" data-email="nishant@example.com" data-country="India" data-name="Nishant Kumar" data-age="32" data-gender="Male">
-              <td class="avatar" data-initials="NK">NK</td>
-              <td class="name">Nishant Kumar</td>
-              <td class="age">32</td>
-              <td class="gender">Male</td>
-              <td class="country">India</td>
-              <td class="email">nishant@example.com</td>
-              <td class="status"><span class="badge badge--active">Active</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2347" data-status="Departed" data-email="jack@example.com" data-country="USA" data-name="Jack Wilson" data-age="45" data-gender="Male">
-              <td class="avatar" data-initials="JW">JW</td>
-              <td class="name">Jack Wilson</td>
-              <td class="age">45</td>
-              <td class="gender">Male</td>
-              <td class="country">USA</td>
-              <td class="email">jack@example.com</td>
-              <td class="status"><span class="badge badge--departed">Departed</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2348" data-status="Knocked Out" data-email="elena@example.com" data-country="Colombia" data-name="Elena Lopez" data-age="29" data-gender="Female">
-              <td class="avatar" data-initials="EL">EL</td>
-              <td class="name">Elena Lopez</td>
-              <td class="age">29</td>
-              <td class="gender">Female</td>
-              <td class="country">Colombia</td>
-              <td class="email">elena@example.com</td>
-              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2349" data-status="Active" data-email="maria@example.com" data-country="Mexico" data-name="Maria Garcia" data-age="27" data-gender="Female">
-              <td class="avatar" data-initials="MG">MG</td>
-              <td class="name">Maria Garcia</td>
-              <td class="age">27</td>
-              <td class="gender">Female</td>
-              <td class="country">Mexico</td>
-              <td class="email">maria@example.com</td>
-              <td class="status"><span class="badge badge--active">Active</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2350" data-status="Departed" data-email="peter@example.com" data-country="Canada" data-name="Peter Thompson" data-age="50" data-gender="Male">
-              <td class="avatar" data-initials="PT">PT</td>
-              <td class="name">Peter Thompson</td>
-              <td class="age">50</td>
-              <td class="gender">Male</td>
-              <td class="country">Canada</td>
-              <td class="email">peter@example.com</td>
-              <td class="status"><span class="badge badge--departed">Departed</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2351" data-status="Knocked Out" data-email="henry@example.com" data-country="Australia" data-name="Henry Brown" data-age="41" data-gender="Male">
-              <td class="avatar" data-initials="HB">HB</td>
-              <td class="name">Henry Brown</td>
-              <td class="age">41</td>
-              <td class="gender">Male</td>
-              <td class="country">Australia</td>
-              <td class="email">henry@example.com</td>
-              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2352" data-status="Active" data-email="zara@example.com" data-country="Singapore" data-name="Zara Tan" data-age="36" data-gender="Female">
-              <td class="avatar" data-initials="ZT">ZT</td>
-              <td class="name">Zara Tan</td>
-              <td class="age">36</td>
-              <td class="gender">Female</td>
-              <td class="country">Singapore</td>
-              <td class="email">zara@example.com</td>
-              <td class="status"><span class="badge badge--active">Active</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2353" data-status="Departed" data-email="amira@example.com" data-country="Egypt" data-name="Amira Malik" data-age="28" data-gender="Female">
-              <td class="avatar" data-initials="AM">AM</td>
-              <td class="name">Amira Malik</td>
-              <td class="age">28</td>
-              <td class="gender">Female</td>
-              <td class="country">Egypt</td>
-              <td class="email">amira@example.com</td>
-              <td class="status"><span class="badge badge--departed">Departed</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2354" data-status="Active" data-email="sofia@example.com" data-country="Spain" data-name="Sofia Rodriguez" data-age="30" data-gender="Female">
-              <td class="avatar" data-initials="SR">SR</td>
-              <td class="name">Sofia Rodriguez</td>
-              <td class="age">30</td>
-              <td class="gender">Female</td>
-              <td class="country">Spain</td>
-              <td class="email">sofia@example.com</td>
-              <td class="status"><span class="badge badge--active">Active</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2355" data-status="Knocked Out" data-email="kenta@example.com" data-country="Japan" data-name="Kenta Yamamoto" data-age="35" data-gender="Male">
-              <td class="avatar" data-initials="KY">KY</td>
-              <td class="name">Kenta Yamamoto</td>
-              <td class="age">35</td>
-              <td class="gender">Male</td>
-              <td class="country">Japan</td>
-              <td class="email">kenta@example.com</td>
-              <td class="status"><span class="badge badge--knocked">Knocked Out</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2356" data-status="Departed" data-email="sara@example.com" data-country="Bangladesh" data-name="Sara Hossain" data-age="31" data-gender="Female">
-              <td class="avatar" data-initials="SH">SH</td>
-              <td class="name">Sara Hossain</td>
-              <td class="age">31</td>
-              <td class="gender">Female</td>
-              <td class="country">Bangladesh</td>
-              <td class="email">sara@example.com</td>
-              <td class="status"><span class="badge badge--departed">Departed</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="view" title="View Profile">👁️</button>
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
           </tbody>
         </table>
+        <nav id="paginationControls" class="pagination-container">
+            <ul class="pagination"></ul>
+        </nav>
       </div>
-      <div class="pagination" id="player-pagination"></div>
+      
     </main>
   </div>
 
@@ -265,17 +83,9 @@
           <label for="player-country">Country</label>
           <select id="player-country" name="country" required>
             <option value="">Select</option>
-            <option value="India">India</option>
-            <option value="USA">USA</option>
-            <option value="Colombia">Colombia</option>
-            <option value="Mexico">Mexico</option>
-            <option value="Canada">Canada</option>
-            <option value="Australia">Australia</option>
-            <option value="Singapore">Singapore</option>
-            <option value="Egypt">Egypt</option>
-            <option value="Spain">Spain</option>
-            <option value="Japan">Japan</option>
-            <option value="Bangladesh">Bangladesh</option>
+            {% for country in countries %}
+               <option value="{{ country.country_id }}">{{ country.country_name }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="form-group">
@@ -304,6 +114,10 @@
           <input type="text" id="edit-player-name" name="name" required>
         </div>
         <div class="form-group">
+          <label for="edit-player-fide-id">Player FIDE ID</label>
+          <input type="text" id="edit-player-fide-id" name="fideId" placeholder="e.g., #1234" required>
+        </div>
+        <div class="form-group">
           <label for="edit-player-age">Age</label>
           <input type="number" id="edit-player-age" name="age" required>
         </div>
@@ -318,17 +132,10 @@
         <div class="form-group">
           <label for="edit-player-country">Country</label>
           <select id="edit-player-country" name="country" required>
-            <option value="India">India</option>
-            <option value="USA">USA</option>
-            <option value="Colombia">Colombia</option>
-            <option value="Mexico">Mexico</option>
-            <option value="Canada">Canada</option>
-            <option value="Australia">Australia</option>
-            <option value="Singapore">Singapore</option>
-            <option value="Egypt">Egypt</option>
-            <option value="Spain">Spain</option>
-            <option value="Japan">Japan</option>
-            <option value="Bangladesh">Bangladesh</option>
+            <option value="">Select</option>
+            {% for country in countries %}
+               <option value="{{ country.country_id }}">{{ country.country_name }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="form-group">
@@ -338,14 +145,14 @@
         <div class="form-group">
           <label for="edit-player-status">Status</label>
           <select id="edit-player-status" name="status" required>
-            <option value="Active">Active</option>
-            <option value="Departed">Departed</option>
-            <option value="Knocked Out">Knocked Out</option>
+            <option value="ACTIVE">Active</option>
+            <option value="DEPARTED">Departed</option>
+            <option value="KNOCKED_OUT">Knocked Out</option>
           </select>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
-          <button type="submit" class="btn btn--primary">Save Changes</button>
+          <button type="submit" class="btn btn--primary editPlayerForm">Save Changes</button>
         </div>
       </form>
     </div>
@@ -367,7 +174,296 @@
       </td>
     </tr>
   </template>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <script type="module" src="static/assets/js/app.js"></script>
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+
+  {% comment %} <script type="module" src="{% static 'assets/js/app.js' %}"></script> {% endcomment %}
+
+  <script>
+
+      let currentPage = 1;
+
+      function reinitializeDataTable(tableId) {
+        let tableSelector = `#${tableId}`;
+
+        // Check if the table exists
+        if ($(tableSelector).length) {
+            // If DataTable already exists, clear and redraw
+            if ($.fn.DataTable.isDataTable(tableSelector)) {
+                $(tableSelector).DataTable();
+            } else {
+                // Initialize DataTable only if it does not exist
+                $(tableSelector).DataTable({
+                    paging: false,
+                    ordering: true,
+                    info: false,
+                    destroy: true,
+                    dom: '<"top"f>rt<"bottom"lp><"clear">',
+                    initComplete: function () {
+                        // Move the search box to our toolbar container
+                        $(`#${tableId}_filter`).appendTo("#tableSearchContainer");
+                    }
+                });
+            }
+        }
+      }
+
+      function getStatusBadge(status) {
+          switch(status) {
+              case "Active":
+                  return '<span class="badge badge--active">Active</span>';
+              case "Departed":
+                  return '<span class="badge badge--departed">Departed</span>';
+              case "Knocked Out":
+                  return '<span class="badge badge--knocked">Knocked Out</span>';
+              default:
+                  return `<span class="badge">${status}</span>`;
+          }
+      }
+
+
+      function fetchPlayers() {
+          let csrfToken = $("input[name='csrfmiddlewaretoken']").val();      
+
+          $.ajax({
+              url: "{% url 'players' %}",
+              data: { action: "fetch", page: currentPage },
+              method: "POST",
+              headers: {
+                  "X-CSRFToken": csrfToken
+              },
+              success: function(response) {
+                  $("#players-table tbody").empty();      
+
+                  if (response.data.length > 0) {
+                      response.data.forEach((player, index) => {
+                          let serialNo = (currentPage - 1) * response.pagination.per_page + index + 1;
+                          let row = `
+                              <tr data-id="${player.id}">
+                                  <td>${serialNo}</td>
+                                  <td>${player.name|| ''}</td>
+                                  <td>${player.age|| ''}</td>
+                                  <td>${player.gender|| ''}</td>
+                                  <td>${player.country|| ''}</td>
+                                  <td>${player.email|| ''}</td>
+                                  <td class="status">${getStatusBadge(player.status)}</td>
+                                  <td>
+                                      <button class="profileView btn-icon" data-action="view" title="View Profile" data-id="${player.id}">👁️</button>
+                                      <button class="edit-btn btn-icon" data-action="edit" title="Edit" data-id="${player.id}">✏️</button>
+                                      <button class="delete-btn btn-icon" data-action="delete" title="Delete" data-id="${player.id}">🗑️</button>
+                                  </td>
+                              </tr>
+                          `;
+                          $("#players-table tbody").append(row);
+                      });
+                      reinitializeDataTable("players-table");
+                  } else {
+                      $("#players-table tbody").append('<tr><td colspan="6">No players found</td></tr>');
+                  }      
+
+                  // Update pagination controls
+                  updatePagination(
+                      response.pagination.current_page,
+                      response.pagination.total_pages,
+                      response.pagination.page_list,
+                      response.pagination.has_prev,
+                      response.pagination.has_next
+                  );
+                  currentPage = response.pagination.current_page;
+              }
+          });
+      }
+
+      function updatePagination(currentPage, totalPages, newPageList, hasPrevious, hasNext) {
+        let paginationHtml = '<ul class="pagination">';
+    
+        // First & Previous buttons
+        if (hasPrevious) {
+            paginationHtml += `<li><a href="javascript:void(0);" class="page-btn" data-page="1" aria-label="First"><span aria-hidden="true">First</span></a></li>`;
+            paginationHtml += `<li><a href="javascript:void(0);" class="page-btn" data-page="${currentPage - 1}" aria-label="Previous"><span aria-hidden="true">Previous</span></a></li>`;
+        }
+    
+        // Page number links
+        if (totalPages > 1) {
+            newPageList.forEach(page => {
+                let activeClass = currentPage === page ? "active" : "";
+                paginationHtml += `<li class="${activeClass}"><a href="javascript:void(0);" class="page-btn" data-page="${page}">${page}</a></li>`;
+            });
+        }
+    
+        // Next & Last buttons
+        if (hasNext) {
+            paginationHtml += `<li><a href="javascript:void(0);" class="page-btn" data-page="${currentPage + 1}" aria-label="Next"><span aria-hidden="true">Next</span></a></li>`;
+            paginationHtml += `<li><a href="javascript:void(0);" class="page-btn" data-page="${totalPages}" aria-label="Last"><span aria-hidden="true">Last</span></a></li>`;
+        }
+    
+        paginationHtml += '</ul>';
+        $("#paginationControls").html(paginationHtml);
+      }
+    
+      // Handle click event for pagination buttons
+      $(document).on("click", ".page-btn", function () {
+        let newPage = $(this).data("page");
+        currentPage = newPage;
+        fetchPlayers();
+      });
+
+      $(document).ready(function() {
+          fetchPlayers();
+
+          $(document).on("click", ".profileView", function() {
+              const playerId = $(this).data("id"); 
+              const url = `/player/${playerId}/`;  // matches your urls.py pattern
+              window.open(url, "_blank"); // open in new tab
+          });
+
+
+
+          $(document).on("click", "[data-modal-open]", function() {
+              const modalId = $(this).data("modal-open");
+              $("#" + modalId).addClass("active");
+          });
+
+          $(document).on("click", "[data-modal-close], .modal", function(e) {
+              if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
+                  $(this).closest(".modal").removeClass("active");
+              }
+          });
+
+          $("#add-player-form").on("submit", function (e) {
+              e.preventDefault();
+              csrfmiddlewaretoken = $("input[name='csrfmiddlewaretoken']").val()
+              data = {
+                action: "add",
+                name: $("#player-name").val(),
+                email: $("#player-email").val(),
+                gender: $("#player-gender").val(),
+                age: $("#player-age").val(),
+                country: $("#player-country").val(),
+                fideId: $("#player-fide-id").val(),
+                csrfmiddlewaretoken: csrfmiddlewaretoken
+
+              }
+
+              $.ajax({
+                  url: "{% url 'players' %}",
+                  type: "POST",
+                  data: data,
+                  headers: {
+                      "X-CSRFToken": csrfmiddlewaretoken
+                  },
+                  success: function (response) {
+                      if (response.success) {
+                          alert(response.message);
+                          $("#add-player-form")[0].reset();
+                          $("#add-player-modal").removeClass("active");
+                          fetchPlayers();
+                      } else {
+                          alert(response.error || "Failed to add player");
+                      }
+                  },
+                  error: function (xhr) {
+                      console.error("Error adding player:", xhr.responseText);
+                  }
+              });
+           });
+
+          
+          // EDIT PLAYER (get details)
+        
+           $(document).on("click", ".edit-btn", function () {
+             const playerId = $(this).data("id");
+             $.ajax({
+                 url: "{% url 'players' %}",
+                 type: "POST",
+                 data: {
+                     action: "get-player-details",
+                     playerId: playerId,
+                     page: 1,
+                     csrfmiddlewaretoken: $("input[name='csrfmiddlewaretoken']").val()
+                 },
+                 success: function (response) {
+                     const player = response.data;
+                     if (!player) return alert("Player not found");
+                     $("#edit-player-id").val(player.id);
+                     $("#edit-player-name").val(player.name);
+                     $("#edit-player-email").val(player.email);
+                     $("#edit-player-gender").val(player.gender);
+                     $("#edit-player-country").val(player.country);
+                     $("#edit-player-age").val(player.age);
+                     $("#edit-player-status").val(player.status);
+                     $("#edit-player-fide-id").val(player.fideId);
+                     // Open the modal (custom modal)
+                     $("#edit-player-modal").addClass("active");
+                 }
+             });
+           });
+        
+           // SAVE EDITED PLAYER
+           $("#edit-player-form").on("submit", function (e) {
+             e.preventDefault();
+             $.ajax({
+                 url: "{% url 'players' %}",
+                 type: "POST",
+                 data: {
+                     action: "edit",
+                     id: $("#edit-player-id").val(),
+                     name: $("#edit-player-name").val(),
+                     email: $("#edit-player-email").val(),
+                     gender: $("#edit-player-gender").val(),
+                     country: $("#edit-player-country").val(),
+                     age: $("#edit-player-age").val(),
+                     status: $("#edit-player-status").val(),
+                     fideId : $("#edit-player-fide-id").val(),
+                     csrfmiddlewaretoken: $("input[name='csrfmiddlewaretoken']").val()
+                 },
+                 success: function (response) {
+                     if (response.success) {
+                         alert(response.message);
+                         $("#edit-player-modal").removeClass("active");
+                         fetchPlayers();
+                     } else {
+                         alert(response.error || "Failed to update player");
+                     }
+                 },
+                 error: function (xhr) {
+                     console.error("Error updating player:", xhr.responseText);
+                 }
+             });
+           });
+        
+           // DELETE PLAYER (confirmation modal)
+           $(document).on("click", ".delete-btn", function () {
+            const playerId = $(this).data("id");
+            if (!confirm("Are you sure you want to delete this player?")) return;
+
+            $.ajax({
+                url: "{% url 'players' %}",
+                type: "POST",
+                data: {
+                    action: "delete",
+                    id: playerId,
+                    csrfmiddlewaretoken: $("input[name='csrfmiddlewaretoken']").val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        alert("Player deleted successfully");
+                        fetchPlayers();
+                    } else {
+                        alert(response.error || "Failed to delete player");
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error deleting player:", xhr.responseText);
+                }
+            });
+           });
+      });
+    </script>
 </body>
 </html>

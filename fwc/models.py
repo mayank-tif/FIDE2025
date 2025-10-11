@@ -83,7 +83,52 @@ class CityMst(models.Model):
         db_table = 'CityMst'
     
 
-class MstUserLogins(models.Model):
+class MstUserLogins(models.Model):    
+    GENDER_MALE = "MALE"
+    GENDER_FEMALE = "FEMALE"
+    GENDER_OTHER = "OTHER"
+
+    GENDER_CHOICES = [
+        (GENDER_MALE, "Male"),
+        (GENDER_FEMALE, "Female"),
+        (GENDER_OTHER, "Other"),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    age = models.IntegerField(null=True)
+    name = models.CharField(max_length=500, null=True)
+    address = models.CharField(max_length=250, null=True)
+    email = models.CharField(max_length=50, null=True)
+    loginname = models.CharField(max_length=20)
+    securepassword = models.CharField(max_length=200, null=True)
+    roleid = models.ForeignKey(MstRole, on_delete=models.CASCADE, null=True, db_column='roleId')
+    cityid = models.IntegerField(null=True)
+    stateid = models.IntegerField(null=True)
+    countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=False, db_column='countryId')
+    mobilenumber = models.CharField(max_length=15, null=True)
+    deactivated_by = models.IntegerField(null=True)
+    status_flag = models.IntegerField(default=1)
+    gender = models.CharField(max_length=10,choices=GENDER_CHOICES,null=True,blank=True)
+    deactivated_on = models.DateTimeField(null=True)
+    last_log_id = models.IntegerField(null=True)
+    profile_pic = models.CharField(max_length=100, null=True)
+    created_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+    department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, null=True, db_column='departmentId')
+
+    def __str__(self):
+        return self.loginname
+    
+    class Meta:
+        # unique_together = (('loginname',),)
+        db_table = 'UserLogins'
+        
+        
+        
+        
+class Players(models.Model):
     STATUS_ACTIVE = "ACTIVE"
     STATUS_DEPARTED = "DEPARTED"
     STATUS_KNOCKED_OUT = "KNOCKED_OUT"
@@ -113,7 +158,6 @@ class MstUserLogins(models.Model):
     email = models.CharField(max_length=50, null=True)
     loginname = models.CharField(max_length=20)
     securepassword = models.CharField(max_length=200, null=True)
-    roleid = models.ForeignKey(MstRole, on_delete=models.CASCADE, null=True, db_column='roleId')
     cityid = models.IntegerField(null=True)
     stateid = models.IntegerField(null=True)
     countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=False, db_column='countryId')
@@ -129,11 +173,10 @@ class MstUserLogins(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
-    department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, null=True, db_column='departmentId')
 
     def __str__(self):
         return self.loginname
     
     class Meta:
-        unique_together = (('loginname',),)
-        db_table = 'UserLogins'
+        unique_together = (('email',),)
+        db_table = 'Players'

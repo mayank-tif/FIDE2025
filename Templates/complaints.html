@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Complaints - FIDE World Cup 2025</title>
-  <link rel="stylesheet" href="static/assets/css/app.css">
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
 </head>
 <body>
   <div class="app-shell">
@@ -18,11 +18,11 @@
         </div> -->
       </div>
       <nav class="sidebar-nav">
-        <a href="dashboard.html" class="nav-link">
+        <a href={% url "home" %} class="nav-link">
           <span class="nav-icon">📊</span>
           <span>Dashboard</span>
         </a>
-        <a href="players.html" class="nav-link">
+        <a href={% url "players" %} class="nav-link">
           <span class="nav-icon">👥</span>
           <span>Players</span>
         </a>
@@ -160,6 +160,6 @@
       </div>
     </main>
   </div>
-  <script type="module" src="static/assets/js/app.js"></script>
+  <script type="module" src="{% static 'assets/js/app.js' %}"></script>
 </body>
 </html>

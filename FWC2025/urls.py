@@ -26,6 +26,10 @@ urlpatterns = [
     path('', View_platformlogin.as_view(),name="login"),
     path('home/', Dashboard.as_view(),name="home"),
     path('logout/', PlatformLogoutView.as_view(),name="logout"),
+    path('players/', PlayerView.as_view(), name='players'),
+    path('player/<int:player_id>/', PlayerProfile.as_view(), name='PlayerProfile'),
+    path('update-player-profile/', UpdatePlayerProfile.as_view(), name='update_player_profile'),
+
 ]
 
 if settings.DEBUG:

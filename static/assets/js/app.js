@@ -90,7 +90,7 @@ class ModalManager {
 
 // ========== Pagination ==========
 class Pagination {
-  constructor(tableId, pageSize = 10) {
+  constructor(tableId, pageSize = 3) {
     this.table = qs(`#${tableId}`);
     if (!this.table) return;
     
@@ -214,41 +214,12 @@ class Pagination {
   }
 }
 
-// ========== Login Handler ==========
-const initLogin = () => {
-  const form = qs('#login-form');
-  if (!form) return;
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const data = formToObject(form);
-    
-    if (data.username && data.password) {
-      window.location.href = 'dashboard.html';
-    } else {
-      showToast('Please enter username and password', 'error');
-    }
-  });
-};
-
-// ========== Logout Handler ==========
-const initLogout = () => {
-  const logoutBtns = qsa('[data-logout]');
-  logoutBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to logout?')) {
-        window.location.href = 'login.html';
-      }
-    });
-  });
-};
-
 // ========== Players Page ==========
 const initPlayersPage = () => {
   const table = qs('#players-table');
   if (!table) return;
 
-  const pagination = new Pagination('players-table', 10);
+  const pagination = new Pagination('players-table', 3);
   
   const searchInput = qs('#player-search');
   if (searchInput) {
@@ -888,8 +859,6 @@ const initUsersPage = () => {
 const modalManager = new ModalManager();
 
 document.addEventListener('DOMContentLoaded', () => {
-  initLogin();
-  initLogout();
   initPlayersPage();
   initProfilePage();
   initComplaintsPage();

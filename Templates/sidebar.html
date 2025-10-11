@@ -1,0 +1,32 @@
+{% load static %}
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+      <span class="nav-icon">📊</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' %}active{% endif %}">
+      <span class="nav-icon">👥</span>
+      <span>Players</span>
+    </a>
+    <a  class="nav-link {% if request.resolver_match.url_name == 'complaints' %}active{% endif %}">
+      <span class="nav-icon">📋</span>
+      <span>Complaints</span>
+    </a>
+    <a  class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
+      <span class="nav-icon">📢</span>
+      <span>Announcements</span>
+    </a>
+    <a  class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}">
+      <span class="nav-icon">🛡️</span>
+      <span>Users</span>
+    </a>
+  </nav>
+  <button class="btn btn--logout" data-logout-url="{% url 'logout' %}">
+    <span>↪</span>
+    <span>Logout</span>
+  </button>
+</aside>

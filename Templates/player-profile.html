@@ -5,50 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Player Profile - FIDE World Cup 2025</title>
-  <link rel="stylesheet" href="static/assets/css/app.css">
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
-        <!-- <div>
-          <div class="brand-title">FIDE WORLD CUP</div>
-          <div class="brand-subtitle">GOA 2025</div>
-        </div> -->
-      </div>
-      <nav class="sidebar-nav">
-        <a href="dashboard.html" class="nav-link">
-          <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
-        </a>
-        <a href="players.html" class="nav-link active">
-          <span class="nav-icon">👥</span>
-          <span>Players</span>
-        </a>
-        <a href="complaints.html" class="nav-link">
-          <span class="nav-icon">📋</span>
-          <span>Complaints</span>
-        </a>
-        <a href="announcements.html" class="nav-link">
-          <span class="nav-icon">📢</span>
-          <span>Announcements</span>
-        </a>
-        <a href="users.html" class="nav-link">
-          <span class="nav-icon">🛡️</span>
-          <span>Users</span>
-        </a>
-      </nav>
-      <button class="btn btn--logout" data-logout>
-        <span>↪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
+    {% include 'sidebar.html' %}
     <main class="main-content">
       <div class="profile-page">
     <div class="profile-header">
       <button class="btn-back" onclick="window.location.href='players.html'">← Back</button>
-      <h1 id="profile-player-name">Player Name</h1>
+      <h1 id="profile-player-name">{{ player.name }}</h1>
       <div class="profile-tabs">
         <button class="tab-btn active" data-tab="profile">Profile</button>
         <button class="tab-btn" data-tab="transportation">Transportation</button>
@@ -61,7 +27,11 @@
     <div id="tab-profile" class="tab-content active">
       <div class="profile-card">
         <div class="profile-photo-section">
-          <div class="profile-avatar" id="profile-avatar" data-initials="NK">NK</div>
+          <div class="profile-avatar" id="profile-avatar" data-initials="{{ player.name|slice:":2" }}">
+            {% if player.image %}
+            <img id="avatar-img" src="{{ player.image.url }}" alt="Profile Photo">
+        {% endif %}
+          </div>
           <button class="btn btn--secondary" id="upload-photo-btn">Upload Photo</button>
           <input type="file" id="upload-photo-input" accept="image/*" style="display: none;">
           <small>JPG, PNG max 2MB</small>
@@ -70,18 +40,18 @@
           <div class="form-row">
             <div class="form-group">
               <label for="profile-name">Name</label>
-              <input type="text" id="profile-name" name="name" value="Nishant Kumar" required>
+              <input type="text" id="profile-name" name="name" value="{{ player.name }}" required>
             </div>
             <div class="form-group">
               <label for="profile-age">Age</label>
-              <input type="number" id="profile-age" name="age" value="32" required>
+              <input type="number" id="profile-age" name="age" value="{{ player.age }}" required>
             </div>
             <div class="form-group">
               <label for="profile-gender">Gender</label>
               <select id="profile-gender" name="gender" required>
-                <option value="Male" selected>Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+                  <option value="Male" {% if player.gender == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if player.gender == 'Female' %}selected{% endif %}>Female</option>
+                  <option value="Other" {% if player.gender == 'Other' %}selected{% endif %}>Other</option>
               </select>
             </div>
           </div>
@@ -89,30 +59,25 @@
             <div class="form-group">
               <label for="profile-country">Country</label>
               <select id="profile-country" name="country" required>
-                <option value="India" selected>India</option>
-                <option value="USA">USA</option>
-                <option value="Colombia">Colombia</option>
-                <option value="Mexico">Mexico</option>
-                <option value="Canada">Canada</option>
-                <option value="Australia">Australia</option>
-                <option value="Singapore">Singapore</option>
-                <option value="Egypt">Egypt</option>
-                <option value="Spain">Spain</option>
-                <option value="Japan">Japan</option>
-                <option value="Bangladesh">Bangladesh</option>
+                  {% for country in countries %}
+                      <option value="{{ country.country_id }}" {% if player.countryid_id == country.country_id %}selected{% endif %}>
+                          {{ country.country_name }}
+                      </option>
+                  {% endfor %}
               </select>
+
             </div>
             <div class="form-group">
               <label for="profile-email">Email</label>
-              <input type="email" id="profile-email" name="email" value="nishant@example.com" required>
+              <input type="email" id="profile-email" name="email" value="{{ player.email }}" required>
             </div>
             <div class="form-group">
               <label for="profile-status">Status</label>
               <select id="profile-status" name="status" required>
-                <option value="In Progress" selected>In Progress</option>
-                <option value="Active">Active</option>
-                <option value="Departed">Departed</option>
-                <option value="Knocked Out">Knocked Out</option>
+                  <option value="IN_PROGRESS" {% if player.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                  <option value="ACTIVE" {% if player.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                  <option value="DEPARTED" {% if player.status == 'DEPARTED' %}selected{% endif %}>Departed</option>
+                  <option value="KNOCKED_OUT" {% if player.status == 'KNOCKED_OUT' %}selected{% endif %}>Knocked Out</option>
               </select>
             </div>
           </div>
@@ -317,6 +282,60 @@
     </main>
   </div>
 
-  <script type="module" src="static/assets/js/app.js"></script>
+  {% comment %} <script type="module" src="{% static 'assets/js/app.js' %}"></script> {% endcomment %}
+
+  <script>
+document.addEventListener("DOMContentLoaded", function() {
+    const profileForm = document.getElementById("profile-form");
+    const uploadBtn = document.getElementById("upload-photo-btn");
+    const uploadInput = document.getElementById("upload-photo-input");
+    const csrfToken = "{{ csrf_token }}";
+    const playerId = "{{ player.id }}"; // Send this in form data
+
+    // Open file picker
+    uploadBtn.addEventListener("click", () => uploadInput.click());
+
+    profileForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("player_id", playerId); // Add player ID here
+        formData.append("name", profileForm.name.value);
+        formData.append("age", profileForm.age.value);
+        formData.append("gender", profileForm.gender.value);
+        formData.append("country", profileForm.country.value);
+        formData.append("email", profileForm.email.value);
+        formData.append("status", profileForm.status.value);
+
+        if (uploadInput.files.length > 0) {
+            formData.append("profile_pic", uploadInput.files[0]);
+        }
+
+        fetch("{% url 'update_player_profile' %}", {  // No ID in URL now
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Profile updated successfully!");
+                if (data.profile_pic_url) {
+                    document.getElementById("profile-avatar").style.backgroundImage = `url(${data.profile_pic_url})`;
+                }
+            } else {
+                alert("Error updating profile. Please try again.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Something went wrong.");
+        });
+    });
+});
+</script>
+
 </body>
 </html>
