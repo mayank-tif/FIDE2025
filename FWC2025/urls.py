@@ -39,7 +39,7 @@ urlpatterns = [
     path('users/edit/<int:user_id>/', EditUserView.as_view(), name='edit_user'),
     path('users/change-password/', ChangeUserPasswordView.as_view(), name='change_user_password'),
     path("activity-log/", UserActivityLogView.as_view(), name="activity_log"),
-    path('palyer-registration/', PlayerRegistrationView.as_view(), name='palyer_registration'),
+    path('player-registration/', PlayerRegistrationView.as_view(), name='player_registration'),
 
 ]
 

@@ -367,6 +367,7 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                alert("Transportation details saved!");
                 transportForm.reset();
                 editTransportId = null;
                 loadTransportData(); // reload updated list
@@ -441,6 +442,7 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                alert("Profile updated successfully!");
                 window.location.reload(true);
             } else {
                 alert("Error updating profile. Please try again.");

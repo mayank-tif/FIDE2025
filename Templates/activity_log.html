@@ -6,16 +6,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Users Activity - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    .search-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .search-input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 300px;
+    }
+    .search-button {
+      padding: 8px 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .search-button:hover {
+      background: #0056b3;
+    }
+    .clear-search {
+      padding: 8px 16px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .clear-search:hover {
+      background: #545b62;
+    }
+    .pagination {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .pagination a {
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #007bff;
+    }
+    .pagination a:hover {
+      background: #f8f9fa;
+    }
+    .current-search {
+      margin: 10px 0;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 4px;
+    }
+  </style>
 </head>
 <body>
 <div class="app-shell">
   {% include 'sidebar.html' %}
   <main class="main-content">
-    <div class="page-header"><h1>Users Activity</h1></div>
+    <div class="page-header">
+      <h1>Users Activity</h1>
+    </div>
+    
     <div class="toolbar">
-      <div class="search-box">
-        <input type="text" id="user-search" placeholder="Search Users">
-      </div>
+      <form method="get" class="search-form">
+        <input 
+          type="text" 
+          name="search" 
+          class="search-input" 
+          placeholder="Search by username, name, action, or description"
+          value="{{ search }}"
+        >
+        <button type="submit" class="search-button">Search</button>
+      </form>
     </div>
 
     <div class="table-container">
@@ -31,29 +101,58 @@
         <tbody>
           {% for log in page_obj %}
            <tr>
-             <td>{{ log.user.name }} ({{ log.user.loginname }})</td>
+             <td>
+               {% if log.user.name %}
+                 {{ log.user.name }} ({{ log.user.loginname }})
+               {% else %}
+                 {{ log.user.loginname }}
+               {% endif %}
+             </td>
              <td>{{ log.action }}</td>
              <td>{{ log.description|default:"—" }}</td>
              <td>{{ log.created_on|date:"Y-m-d H:i:s" }}</td>
            </tr>
           {% empty %}
-           <tr><td colspan="5" class="text-center">No activity logs found.</td></tr>
+           <tr>
+             <td colspan="4" class="text-center">
+               {% if search %}
+                 No activity logs found for "{{ search }}"
+               {% else %}
+                 No activity logs found.
+               {% endif %}
+             </td>
+           </tr>
           {% endfor %}
         </tbody>
       </table>
+      
       <!-- Pagination -->
-        <div class="pagination">
-          {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo; Prev</a>
-          {% endif %}
-          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-          {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next &raquo;</a>
-          {% endif %}
-        </div>
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">← Previous</a>
+        {% endif %}
+        
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">Next →</a>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </main>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  // Auto-submit form when pressing Enter (optional)
+  $(document).ready(function() {
+    $('.search-input').keypress(function(e) {
+      if (e.which === 13) {
+        $(this).closest('form').submit();
+      }
+    });
+  });
+</script>
 </body>
 </html>

@@ -302,7 +302,7 @@ class UpdatePlayerProfile(View):
         print("request.POST", request.POST)
 
         player.name = request.POST.get("name")
-        player.fide_id = int(request.POST.get("fideId"))
+        player.fide_id = request.POST.get("fideId")
         player.age = request.POST.get("age")
         player.gender = request.POST.get("gender")
         player.email = request.POST.get("email")
@@ -654,16 +654,17 @@ class UserActivityLogView(TemplateView):
         page = request.GET.get("page", 1)
         search = request.GET.get("search", "")
 
-        logs = UserActivityLog.objects.select_related("user").all()
+        logs = UserActivityLog.objects.select_related("user").all().order_by('-created_on') 
 
         if search:
             logs = logs.filter(
                 Q(user__loginname__icontains=search) |
+                Q(user__name__icontains=search) |
                 Q(action__icontains=search) |
                 Q(description__icontains=search)
             )
 
-        paginator = Paginator(logs, per_page)
+        paginator = Paginator(logs, 3)
         page_obj = paginator.get_page(page)
 
         return render(request, self.template_name, {
@@ -675,7 +676,7 @@ class UserActivityLogView(TemplateView):
 class PlayerRegistrationView(FormView):
     template_name = "player_registration.html"
     form_class = PlayerRegistrationForm
-    success_url = reverse_lazy('palyer_registration')
+    success_url = reverse_lazy('player_registration')
     
     def form_valid(self, form):
         # Save the form data
