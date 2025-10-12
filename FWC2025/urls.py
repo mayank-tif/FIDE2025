@@ -33,7 +33,13 @@ urlpatterns = [
     path('player/transport/save/', PlayerTransportView.as_view(), name='save_player_transport'),
     path('complaints/', ComplaintListView.as_view(), name='complaint_list'),
     path('complaints/<int:complaint_id>/update/', ComplaintUpdateView.as_view(), name='complaint_update'),
-    path('announcements/', AnnouncementListView.as_view(), name='announcements')
+    path('announcements/', AnnouncementListView.as_view(), name='announcements'),
+    path("manage-users/", ManageUsersView.as_view(), name="manage_users"),
+    path('users/delete/<int:user_id>/', DeleteUserView.as_view(), name='delete_user'),
+    path('users/edit/<int:user_id>/', EditUserView.as_view(), name='edit_user'),
+    path('users/change-password/', ChangeUserPasswordView.as_view(), name='change_user_password'),
+    path("activity-log/", UserActivityLogView.as_view(), name="activity_log"),
+    path('palyer-registration/', PlayerRegistrationView.as_view(), name='palyer_registration'),
 
 ]
 

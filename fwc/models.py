@@ -95,23 +95,17 @@ class MstUserLogins(models.Model):
     ]
     
     id = models.AutoField(primary_key=True)
-    age = models.IntegerField(null=True)
     name = models.CharField(max_length=500, null=True)
-    address = models.CharField(max_length=250, null=True)
     email = models.CharField(max_length=50, null=True)
     loginname = models.CharField(max_length=20)
     securepassword = models.CharField(max_length=200, null=True)
     roleid = models.ForeignKey(MstRole, on_delete=models.DO_NOTHING, null=True, db_column='roleId')
-    cityid = models.IntegerField(null=True)
-    stateid = models.IntegerField(null=True)
-    countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=False, db_column='countryId')
+    countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=True, db_column='countryId')
     mobilenumber = models.CharField(max_length=15, null=True)
     deactivated_by = models.IntegerField(null=True)
     status_flag = models.IntegerField(default=1)
     gender = models.CharField(max_length=10,choices=GENDER_CHOICES,null=True,blank=True)
     deactivated_on = models.DateTimeField(null=True)
-    last_log_id = models.IntegerField(null=True)
-    profile_pic = models.CharField(max_length=100, null=True)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
@@ -122,7 +116,7 @@ class MstUserLogins(models.Model):
         return self.loginname
     
     class Meta:
-        # unique_together = (('loginname',),)
+        unique_together = (('loginname',),)
         db_table = 'UserLogins'
         
         
@@ -149,9 +143,20 @@ class Players(models.Model):
         (GENDER_OTHER, "Other"),
     ]
     
+    ROOM_CLEANING_MORNING = "MORNING"
+    ROOM_CLEANING_AFTERNOON = "AFTERNOON"
+    ROOM_CLEANING_EVENING = "EVENING"
+
+    ROOM_CLEANING_CHOICES = [
+        (ROOM_CLEANING_MORNING, "Morning"),
+        (ROOM_CLEANING_AFTERNOON, "Afternoon"),
+        (ROOM_CLEANING_EVENING, "Evening"),
+    ]
+    
     id = models.AutoField(primary_key=True)
     image = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    fide_id = models.IntegerField(null=True, unique=True)
+    documents = models.FileField(upload_to='player_documents/', null=True, blank=True)
+    fide_id = models.CharField(max_length=100, null=True)
     age = models.IntegerField(null=True)
     name = models.CharField(max_length=500, null=True)
     address = models.CharField(max_length=250, null=True)
@@ -173,13 +178,17 @@ class Players(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
+    details = models.TextField(null=True)
+    room_cleaning_preference = models.CharField(max_length=15,choices=ROOM_CLEANING_CHOICES,null=True,blank=True)
 
     def __str__(self):
         return self.loginname
     
     class Meta:
-        unique_together = (('email',),)
         db_table = 'Players'
+        verbose_name = 'Player'
+        verbose_name_plural = 'Players'
+        unique_together = (('email',),)
         
         
 class TransportationType(models.Model):
@@ -305,6 +314,21 @@ class AnnouncementRecipients(models.Model):
 
     def __str__(self):
         return f"Announcement '{self.announcement.title}' sent to {self.player.name}"
+    
+    
+class UserActivityLog(models.Model):
+    user = models.ForeignKey("MstUserLogins", on_delete=models.DO_NOTHING, related_name="activity_logs", null=True, blank=True)
+    player = models.ForeignKey("Players", on_delete=models.DO_NOTHING, related_name="activity_logs", null=True, blank=True)
+    action = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "user_activity_log"
+        ordering = ["-created_on"]
+
+    def __str__(self):
+        return f"{self.user.loginname} - {self.action} at {self.created_on.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 

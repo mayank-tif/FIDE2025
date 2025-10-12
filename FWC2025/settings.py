@@ -94,7 +94,7 @@ WSGI_APPLICATION = 'FWC2025.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'fwc2025',
+        'NAME': 'fide2025',
         'USER': 'mayank', 
         'PASSWORD': 'TagNpaydbMA@2o25',
         'HOST': '10.0.23.33', 

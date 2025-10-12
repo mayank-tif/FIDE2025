@@ -17,6 +17,7 @@ class SessionCheckByMiddleware:
 
         self.exempt_views = [
             'login',
+            'palyer_registration',
             # Add more exempt views here
         ]
 

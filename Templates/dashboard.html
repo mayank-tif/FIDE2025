@@ -20,28 +20,28 @@
           <div class="stat-icon">👥</div>
           <div class="stat-info">
             <div class="stat-label">Total Players</div>
-            <div class="stat-value">100</div>
+            <div class="stat-value">{{ total_players|default:"0" }}</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">✅</div>
           <div class="stat-info">
             <div class="stat-label">Active Players</div>
-            <div class="stat-value">45</div>
+            <div class="stat-value">{{ active_players|default:"0" }}</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📋</div>
           <div class="stat-info">
             <div class="stat-label">Pending Complaints</div>
-            <div class="stat-value">12</div>
+            <div class="stat-value">{{ pending_complaints|default:"0" }}</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📢</div>
           <div class="stat-info">
             <div class="stat-label">Announcements</div>
-            <div class="stat-value">4</div>
+            <div class="stat-value">{{ total_announcements|default:"0" }}</div>
           </div>
         </div>
       </div>

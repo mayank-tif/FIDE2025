@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users Activity - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+</head>
+<body>
+<div class="app-shell">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="page-header"><h1>Users Activity</h1></div>
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="user-search" placeholder="Search Users">
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Action</th>
+            <th>Description</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in page_obj %}
+           <tr>
+             <td>{{ log.user.name }} ({{ log.user.loginname }})</td>
+             <td>{{ log.action }}</td>
+             <td>{{ log.description|default:"—" }}</td>
+             <td>{{ log.created_on|date:"Y-m-d H:i:s" }}</td>
+           </tr>
+          {% empty %}
+           <tr><td colspan="5" class="text-center">No activity logs found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- Pagination -->
+        <div class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo; Prev</a>
+          {% endif %}
+          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next &raquo;</a>
+          {% endif %}
+        </div>
+    </div>
+  </main>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</body>
+</html>

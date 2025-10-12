@@ -20,9 +20,13 @@
       <span class="nav-icon">📢</span>
       <span>Announcements</span>
     </a>
-    <a  class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}">
+    <a href="{% url 'manage_users' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_users' %}active{% endif %}">
       <span class="nav-icon">🛡️</span>
       <span>Users</span>
+    </a>
+    <a href="{% url 'activity_log' %}" class="nav-link {% if request.resolver_match.url_name == 'activity_log' %}active{% endif %}">
+      <span class="nav-icon">🧑‍💻</span>
+      <span>Users Activity</span>
     </a>
   </nav>
    <form method="post" action="{% url 'logout' %}" class="logout-form">

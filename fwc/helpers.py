@@ -35,3 +35,19 @@ def mobile_number_validation(mobileno):
 
 
 # =======================--END--=============================================
+
+
+def log_user_activity(request, action, description=None):
+    try:
+        user_id = request.session.get("loginid")
+        if not user_id:
+            return
+        
+        UserActivityLog.objects.create(
+            user_id=user_id,
+            action=action,
+            description=description,
+            created_on=timezone.now()
+        )
+    except Exception as e:
+        print("Error logging activity:", e)

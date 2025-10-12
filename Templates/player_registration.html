@@ -1,0 +1,616 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIDE World Cup 2025 - Player Registration</title>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Urbanist', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e3e3e3 0%, #e3e3e3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1170px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .left-panel {
+            background: linear-gradient(180deg, #f54855 0%, #f54855 100%);
+            padding: 30px;
+            flex: 1;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .chess-pieces {
+            margin: 40px 0;
+        }
+
+        .chess-pieces svg {
+            width: 280px;
+            height: auto;
+        }
+
+        .left-panel h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .left-panel p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+
+        .event-details {
+            margin-top: auto;
+        }
+
+        .event-details h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .event-details p {
+            font-size: 15px;
+            margin-bottom: 0;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 40px 50px;
+            background: #f8f9fa;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        .form-header {
+            margin-bottom: 30px;
+        }
+
+        .form-header h2 {
+            color: #d2303c;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .form-header p {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="number"],
+        .form-group textarea,
+        .select2-container .select2-selection--single {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 42px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            outline: none;
+            border-color: #5a8372;
+            box-shadow: 0 0 0 2px rgba(90, 131, 114, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            height: auto;
+        }
+
+        /* Select2 Custom Styling */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 20px;
+            padding-left: 0;
+            color: #333;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+        
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #5a8372;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .file-upload-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-input:hover {
+            border-color: #5a8372;
+            background: #f8f9fa;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .file-label:hover {
+            color: #5a8372;
+        }
+
+        .file-info {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #495057;
+            display: none;
+        }
+
+        .radio-group {
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .radio-option:hover {
+            border-color: #5a8372;
+            background: #f8fffe;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-top: 2px;
+            margin-right: 10px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .radio-option label {
+            cursor: pointer;
+            margin-bottom: 0;
+            font-weight: 400;
+            font-size: 14px;
+        }
+
+        .radio-option input[type="radio"]:checked + label {
+            font-weight: 500;
+            color: #5a8372;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #d2303c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background: #4a7062;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(90, 131, 114, 0.3);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #5a8372;
+            text-decoration: none;
+            margin-top: 15px;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            gap: 8px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                padding: 30px 25px;
+                min-width: unset;
+            }
+
+            .right-panel {
+                padding: 30px 25px;
+            }
+
+            .chess-pieces svg {
+                width: 200px;
+            }
+
+            .left-panel h1 {
+                font-size: 26px;
+            }
+
+            .form-header h2 {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 15px;
+            }
+
+            .left-panel {
+                padding: 20px 15px;
+            }
+
+            .right-panel {
+                padding: 25px 20px;
+            }
+
+            .left-panel h1 {
+                font-size: 22px;
+                margin-bottom: 15px;
+            }
+
+            .form-header h2 {
+                font-size: 22px;
+            }
+
+            .chess-pieces {
+                margin: 20px 0;
+            }
+            
+            .chess-pieces img {
+                width: 100%;
+                max-width: 150px;
+            }
+            
+            .left-panel p {
+                margin-bottom: 15px;
+                font-size: 14px;
+            }
+
+            .chess-pieces svg {
+                width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="logo">
+               <img src="{% static 'assets/images/Logo-FWC.png' %}" alt="FIDE World Cup Logo" style="max-width: 200px;">
+            </div>
+
+            <div class="chess-pieces">
+                <img src="{% static 'assets/images/fidde-login.png' %}" alt="Chess Pieces" style="max-width: 280px;">
+            </div>
+
+            <h1>2025 FIDE WORLD CUP</h1>
+            <p>Welcome to the official player registration portal for the FIDE World Cup 2025 in Goa, India.</p>
+
+            <div class="event-details">
+                <h3>GOA, INDIA</h3>
+                <p>30 October - 27 November 2025</p>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-header">
+                <h2>Player Registration</h2>
+                <p>Register to participate in the FIDE World Cup 2025</p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'success' %}success{% else %}error{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form id="registrationForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Player Name <span class="required">*</span></label>
+                    <input type="text" name="name" value="{{ form.name.value|default:'' }}" required placeholder="Enter your full name">
+                    {% if form.name.errors %}
+                        <div class="error-message">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Email <span class="required">*</span></label>
+                    <input type="email" name="email" value="{{ form.email.value|default:'' }}" required placeholder="Enter your email address">
+                    {% if form.email.errors %}
+                        <div class="error-message">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Country <span class="required">*</span></label>
+                    <select name="country" id="countrySelect" required style="width: 100%">
+                        <option value="">Select your country</option>
+                        {% for country in form.country.field.queryset %}
+                            <option value="{{ country.country_id }}" 
+                                    {% if form.country.value == country.country_id %}selected{% endif %}>
+                                {{ country.country_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.country.errors %}
+                        <div class="error-message">{{ form.country.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Player FIDE ID <span class="required">*</span></label>
+                    <input type="text" name="fide_id" value="{{ form.fide_id.value|default:'' }}" required placeholder="Enter your FIDE ID">
+                    {% if form.fide_id.errors %}
+                        <div class="error-message">{{ form.fide_id.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Express Check-in Documents <span class="required">*</span></label>
+                    <div class="helper-text">Any Photo ID for Indian players, Passport for all non-indian players</div>
+                    <div class="file-upload-wrapper">
+                        <label for="fileUpload" class="file-upload-input">
+                            <div class="file-label">
+                                <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#5a8372" stroke-width="2" style="margin: 0 auto 8px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <div style="font-size: 13px;"><strong>Click to upload</strong> or drag and drop</div>
+                                <div style="font-size: 11px; margin-top: 3px;">PDF or Image (Max 10 MB)</div>
+                            </div>
+                        </label>
+                        <input type="file" id="fileUpload" name="document" accept=".pdf,image/*" required>
+                        <div class="file-name" id="fileName"></div>
+                    </div>
+                    {% if form.document.errors %}
+                        <div class="error-message">{{ form.document.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Do you have any food allergies that the catering department should be aware of? If yes, please provide details below.</label>
+                    <textarea name="food_allergies" placeholder="Enter any food allergies or dietary restrictions">{{ form.food_allergies.value|default:'' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Room Cleaning Preference <span class="required">*</span></label>
+                    <div class="helper-text">To help us schedule room cleaning at a time that is most convenient for you, please select your preferred time slot<br><strong>Note:</strong> We will do our best to accommodate your preference, subject to hotel staff availability.</div>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="afternoon" name="room_cleaning_preference" value="AFTERNOON" {% if form.room_cleaning_preference.value == 'AFTERNOON' %}checked{% endif %} required>
+                            <label for="afternoon">Between 3:00 PM – 6:00 PM (during game hours)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="morning" name="room_cleaning_preference" value="MORNING" {% if form.room_cleaning_preference.value == 'MORNING' %}checked{% endif %} required>
+                            <label for="morning">Morning slot (while you are likely to be in the room)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="evening" name="room_cleaning_preference" value="EVENING" {% if form.room_cleaning_preference.value == 'EVENING' %}checked{% endif %} required>
+                            <label for="evening">Evening slot (after games, while you are likely to be in the room)</label>
+                        </div>
+                    </div>
+                    {% if form.room_cleaning_preference.errors %}
+                        <div class="error-message">{{ form.room_cleaning_preference.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="submit-btn">Submit Registration</button>
+
+                <a href="#" class="back-link">
+                    ← Back to Home
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#countrySelect').select2({
+                placeholder: "Select your country",
+                allowClear: false,
+                width: '100%',
+                dropdownParent: $('.right-panel')
+            });
+            
+            const fileInput = document.getElementById('fileUpload');
+            const fileName = document.getElementById('fileName');
+            
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+                        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                        
+                        if (fileSize > 10) {
+                            alert('File size exceeds 10 MB. Please upload a smaller file.');
+                            this.value = '';
+                            fileName.style.display = 'none';
+                            return;
+                        }
+                        
+                        fileName.textContent = `📎 ${file.name} (${fileSize} MB)`;
+                        fileName.style.display = 'block';
+                    }
+                });
+            }
+
+            document.getElementById('registrationForm').addEventListener('submit', function(e) {
+                const fileInput = document.getElementById('fileUpload');
+                const countrySelect = document.getElementById('countrySelect');
+                
+                if (fileInput.files.length === 0) {
+                    e.preventDefault();
+                    alert('Please upload a document.');
+                    return;
+                }
+                
+                if (!countrySelect.value) {
+                    e.preventDefault();
+                    alert('Please select your country.');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const fileSize = (file.size / 1024 / 1024);
+                if (fileSize > 10) {
+                    e.preventDefault();
+                    alert('File size exceeds 10 MB. Please upload a smaller file.');
+                    return;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

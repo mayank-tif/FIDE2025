@@ -22,6 +22,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from datetime import datetime
 from django.db.models import Prefetch
+from django.views.generic.edit import FormView
+from django.urls import reverse_lazy
 
 
 per_page = 50
@@ -54,11 +56,14 @@ class View_platformlogin(TemplateView):
             
             if username is not None and pswd is not None:
                 user_dtls = MstUserLogins.objects.filter(loginname=username, securepassword=pswd,status_flag=1)
+                print("user_dtls", user_dtls)
 
                 if len(user_dtls) > 0:
+                    log_user_activity(request, "Login", f"User '{username}' logged in successfully")
                     request.session['loginid'] = user_dtls[0].id
                     request.session['loginname'] = user_dtls[0].loginname
-                    request.session['roleid'] = user_dtls[0].roleid.id
+                    request.session['roleid'] = user_dtls[0].roleid.id if user_dtls[0].roleid else None
+                    request.session['department'] = user_dtls[0].department.id if user_dtls[0].department else None
                     request.session['is_active'] = True
                     request.session['loggedin_user_name'] = user_dtls[0].name
                     request.session['loggedin_user_email'] = user_dtls[0].email
@@ -72,33 +77,42 @@ class View_platformlogin(TemplateView):
 
 class PlatformLogoutView(View):
     def post(self, request):
+        log_user_activity(request, "Logout", f"User '{request.session.get('loginname')}' logged out successfully")
         logout(request)
         return redirect(reverse('login'))
     
     
 class Dashboard(TemplateView):
-    def get(self, request):
-        user_id = request.session.get("loginid")
-        role_id = request.session.get("roleid")
-        print("Dashboard------------------------------------------------")
+    template_name = "dashboard.html"
 
+    def get(self, request, *args, **kwargs):
         try:
-            # Count totals
-            # total_categories = CategoryMst.objects.count()
-            # total_items = Items.objects.count()
-            # total_item_orders = ItemOrders.objects.count()
-            # customer_count = Customers.objects.count()
+            # Total players
+            total_players = Players.objects.filter(status_flag=1).count()
 
-            resp_data = {
-                # 'customer_count':customer_count,
-                # 'total_item_orders':total_item_orders,
-                # 'total_items':total_items,
-                # 'total_categories':total_categories
+            # Active players (assuming status_flag=1 is active)
+            active_players = Players.objects.filter(status="ACTIVE", status_flag=1).count()
+
+            # Pending complaints (assuming status='Pending')
+            pending_complaints = PlayerComplaint.objects.filter(status='OPEN', status_flag=1).count()
+
+            # Total announcements
+            total_announcements = Announcements.objects.count()
+
+            context = {
+                "total_players": total_players,
+                "active_players": active_players,
+                "pending_complaints": pending_complaints,
+                "total_announcements": total_announcements,
             }
 
-            return render(request,"dashboard.html",resp_data)
+            return render(request, self.template_name, context)
+
         except Exception as e:
-                return render(request,"dashboard.html",{"message": "No data available  ({e})", "status": True})
+            return render(request, self.template_name, {
+                "message": f"No data available ({e})",
+                "status": True
+            })
             
             
      
@@ -196,6 +210,7 @@ class PlayerView(View):
                 status_flag=1,
                 countryid_id=country_id,
             )
+            log_user_activity(request, "Add Player", f"Player '{name}' added successfully")
 
             return JsonResponse({"success": True, "message": "Player added successfully"})
         except Exception as e:
@@ -220,6 +235,7 @@ class PlayerView(View):
             player.updated_by = request.session.get("loginid")
             player.status = request.POST.get("status")
             player.save()
+            log_user_activity(request, "Update Player", f"Player '{player.name}' updated successfully")
 
             return JsonResponse({"success": True, "message": "Player updated successfully"})
         except Exception as e:
@@ -242,6 +258,7 @@ class PlayerView(View):
                 "fideId": player.fide_id,
                 "status": player.status
             }
+            log_user_activity(request, "Get Player Details", f"Player '{player.name}' details fetched successfully")
             return JsonResponse({"success": True, "data": data})
         except MstUserLogins.DoesNotExist:
             return JsonResponse({"success": False, "error": "Player not found"})
@@ -257,6 +274,7 @@ class PlayerView(View):
             player.updated_on = timezone.now()
             player.updated_by = request.session.get("loginid")
             player.save()
+            log_user_activity(request, "Delete Player", f"Player '{player.name}' deleted successfully")
             return JsonResponse({"success": True, "message": "Player deleted successfully"})
         except MstUserLogins.DoesNotExist:
             return JsonResponse({"success": False, "error": "Player not found"})
@@ -299,6 +317,8 @@ class UpdatePlayerProfile(View):
         data = {"success": True}
         if player.image:
             data["profile_pic_url"] = player.image.url
+            
+        log_user_activity(request, "Update Player Profile", f"Player '{player.name}' profile updated successfully")
 
         return JsonResponse(data)
     
@@ -334,6 +354,7 @@ class PlayerTransportView(View):
             transport_type_id = data.get("transportation_type")
             remarks = data.get("remarks")
             status = data.get("status", PlayerTransportationDetails.STATUS_PENDING)
+            player = Players.objects.filter(id=player_id).first()
 
             # Get TransportationType object
             transport_type_obj = TransportationType.objects.get(id=transport_type_id)
@@ -349,6 +370,7 @@ class PlayerTransportView(View):
                 transport.updated_on = timezone.now()
                 transport.updated_by = request.session.get("loginid")
                 transport.save()
+                log_user_activity(request, "Update Transport", f"Transport ID({transport_id}) updated successfully")
             else:  # Create new
                 PlayerTransportationDetails.objects.create(
                     playerId_id=player_id,
@@ -360,6 +382,7 @@ class PlayerTransportView(View):
                     status=status,
                     created_by=request.session.get("loginid")
                 )
+                log_user_activity(request, "Create Transport", f"Transport created successfully for Player ID({player_id}), name({player.name})")
 
             return JsonResponse({"success": True})
 
@@ -372,6 +395,7 @@ class ComplaintListView(View):
     """Displays all complaints and their conversation threads with search and pagination"""
     def get(self, request):
         search_query = request.GET.get("q", "")
+        log_user_activity(request, "View Complaints", f"User viewed complaints list")
 
         # Prefetch conversations with sender info, ordered latest first
         complaints_qs = PlayerComplaint.objects.select_related("player").prefetch_related(
@@ -416,12 +440,14 @@ class ComplaintUpdateView(View):
             new_status = request.POST.get("status")
             complaint.status = new_status
             complaint.save()
+            log_user_activity(request, "Update Complaint Status", f"Complaint ID({complaint_id}) status updated to {new_status}")
             return JsonResponse({"success": True, "message": "Status updated successfully."})
 
         elif action == "add_remark":
             message = request.POST.get("message")
             sender = MstUserLogins.objects.get(id=request.session.get("loginid"), status_flag=1)
             PlayerComplaintConversation.objects.create(complaint=complaint, sender_user=sender, message=message)
+            log_user_activity(request, "Add Remark", f"Complaint ID({complaint_id}) remark added")
             return JsonResponse({"success": True, "message": "Remark added successfully."})
 
         return JsonResponse({"success": False, "message": "Invalid action."})
@@ -435,7 +461,7 @@ class AnnouncementListView(View):
         if search_query:
             announcements = announcements.filter(title__icontains=search_query)
 
-        paginator = Paginator(announcements, per_page)  # 5 per page
+        paginator = Paginator(announcements, per_page) 
         page_number = request.GET.get("page", 1)
         page_obj = paginator.get_page(page_number)
 
@@ -474,6 +500,188 @@ class AnnouncementListView(View):
             AnnouncementRecipients(announcement=announcement, player=p, sent_on=timezone.now())
             for p in recipients
         ])
+        log_user_activity(request, "Create Announcement", f"Announcement '{title}' created successfully")
 
         return redirect("announcements")  # Redirect back to list
+    
+    
+class ManageUsersView(View):
+    template_name = "users.html"
 
+    def get(self, request):
+        users = MstUserLogins.objects.filter(status_flag=1).order_by("id")
+        roles = MstRole.objects.filter(status_flag=1)  # Active roles
+        departments = Department.objects.filter(status_flag=1)  # Active departments
+        
+        paginator = Paginator(users, per_page) 
+        page_number = request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+        context = {
+            "page_obj": page_obj,
+            "roles": roles,
+            "departments": departments,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        name = request.POST.get("name")
+        loginname = request.POST.get("username")
+        email = request.POST.get("email")
+        phone = request.POST.get("phone")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirmPassword")
+        role_id = request.POST.get("role")
+        department_id = request.POST.get("department")
+        
+        existing_user = MstUserLogins.objects.filter(
+            Q(loginname__iexact=loginname) | Q(email__iexact=email)
+        ).first()
+
+        if existing_user:
+            if existing_user.loginname.lower() == loginname.lower():
+                return JsonResponse({"success": False, "message": f"Username '{loginname}' already exists."})
+            elif existing_user.email.lower() == email.lower():
+                return JsonResponse({"success": False, "message": f"Email '{email}' is already registered."})
+
+        # Validate password
+        if password != confirm_password:
+            return JsonResponse({"success": False, "message": "Passwords do not match."})
+        
+
+        # Fetch role and department objects
+        role = MstRole.objects.get(id=role_id)
+        department = Department.objects.get(id=department_id)
+        
+        enc_pswd = str_encrypt(str(password))
+        pswd = enc_pswd
+
+        # Create user
+        user = MstUserLogins.objects.create(
+            name=name,
+            loginname=loginname,
+            securepassword=pswd,
+            email=email,
+            mobilenumber=phone,
+            roleid=role,
+            department=department,
+        )
+        log_user_activity(request, "Add User", f"New user '{loginname}' created")
+        
+        return JsonResponse({"success": True, "message": "User added successfully."})
+    
+        
+class DeleteUserView(View):
+    def post(self, request, user_id):
+        user = get_object_or_404(MstUserLogins, id=user_id)
+        user.status_flag = 0
+        user.updated_on = timezone.now()
+        user.updated_by = request.session.get("loginid")
+        user.deactivated_by = request.session.get("loginid")
+        user.deactivated_on = timezone.now()
+        user.save()
+        log_user_activity(request, "Delete User", f"User ID({user_id}) - {user.loginname} deleted")
+        return JsonResponse({"success": True, "message": "User deleted successfully."})
+
+
+class EditUserView(View):
+    def get(self, request, user_id):
+        """Return user data for editing"""
+        user = get_object_or_404(MstUserLogins, pk=user_id)
+        data = {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "username": user.loginname,
+            "mobilenumber": user.mobilenumber,
+            "department": user.department.id if user.department else None,
+            "roleid": user.roleid.id if user.roleid else None,
+        }
+        log_user_activity(request, "Fetch Data To Edit User", f"User ID({user_id}) - {user.loginname} edited")
+        return JsonResponse({"success": True, "data": data})
+    
+    def post(self, request, user_id):
+        print("rest", request.POST)
+        user = get_object_or_404(MstUserLogins, id=user_id)
+        role_id = request.POST.get("edit_role")
+        department_id = request.POST.get("edit_department")
+        role = MstRole.objects.get(id=role_id)
+        department = Department.objects.get(id=department_id)
+        
+        user.name = request.POST.get("edit_name")
+        user.loginname = request.POST.get("edit_username")
+        user.email = request.POST.get("edit_email")
+        user.mobilenumber = request.POST.get("edit_phone")
+        user.roleid = role
+        user.department = department
+        user.updated_on = timezone.now()
+        user.updated_by = request.session.get("edit_loginid")
+        user.save()
+        log_user_activity(request, "Update User", f"User ID({user_id}) - {user.loginname} updated")
+        return JsonResponse({"success": True, "message": "User updated successfully."})
+    
+    
+class ChangeUserPasswordView(View):
+    def post(self, request):
+        user_id = request.POST.get("userId")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+        print("request.POST", request.POST)
+
+        if not new_password or not confirm_password:
+            return JsonResponse({"success": False, "message": "Please fill in all fields."})
+
+        if new_password != confirm_password:
+            return JsonResponse({"success": False, "message": "Passwords do not match."})
+
+        try:
+            user = MstUserLogins.objects.get(id=user_id, status_flag=1)
+            enc_pswd = str_encrypt(str(new_password))
+            user.securepassword = enc_pswd
+            user.save()
+            log_user_activity(request, "Change Password", f"User ID({user_id}) - {user.loginname} password changed")
+            return JsonResponse({"success": True, "message": "Password updated successfully."})
+        except MstUserLogins.DoesNotExist:
+            return JsonResponse({"success": False, "message": "User not found."})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": f"Error: {str(e)}"})
+        
+        
+        
+class UserActivityLogView(TemplateView):
+    template_name = "activity_log.html"
+
+    def get(self, request):
+        page = request.GET.get("page", 1)
+        search = request.GET.get("search", "")
+
+        logs = UserActivityLog.objects.select_related("user").all()
+
+        if search:
+            logs = logs.filter(
+                Q(user__loginname__icontains=search) |
+                Q(action__icontains=search) |
+                Q(description__icontains=search)
+            )
+
+        paginator = Paginator(logs, per_page)
+        page_obj = paginator.get_page(page)
+
+        return render(request, self.template_name, {
+            "page_obj": page_obj,
+            "search": search,
+        })
+
+
+class PlayerRegistrationView(FormView):
+    template_name = "player_registration.html"
+    form_class = PlayerRegistrationForm
+    success_url = reverse_lazy('palyer_registration')
+    
+    def form_valid(self, form):
+        # Save the form data
+        try:
+            player = form.save()
+            messages.success(self.request, 'Registration submitted successfully!')
+        except Exception as e:
+            messages.error(self.request, f'Error submitting registration: {str(e)}')
+        return super().form_valid(form)

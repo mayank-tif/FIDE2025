@@ -8,320 +8,323 @@
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
-        <!-- <div>
-          <div class="brand-title">FIDE WORLD CUP</div>
-          <div class="brand-subtitle">GOA 2025</div>
-        </div> -->
+<div class="app-shell">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="page-header"><h1>Manage Users</h1></div>
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="user-search" placeholder="Search Users">
       </div>
-      <nav class="sidebar-nav">
-        <a href={% url "home" %} class="nav-link">
-          <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
-        </a>
-        <a href={% url "players" %} class="nav-link">
-          <span class="nav-icon">👥</span>
-          <span>Players</span>
-        </a>
-        <a href="complaints.html" class="nav-link">
-          <span class="nav-icon">📋</span>
-          <span>Complaints</span>
-        </a>
-        <a href="announcements.html" class="nav-link">
-          <span class="nav-icon">📢</span>
-          <span>Announcements</span>
-        </a>
-        <a href="users.html" class="nav-link active">
-          <span class="nav-icon">🛡️</span>
-          <span>Users</span>
-        </a>
-      </nav>
-      <button class="btn btn--logout" data-logout>
-        <span>↪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
-    <main class="main-content">
-      <div class="page-header">
-        <h1>Manage Users</h1>
-      </div>
-      <div class="toolbar">
-        <div class="search-box">
-          <input type="text" id="user-search" placeholder="Search Users">
-        </div>
-        <button class="btn btn--primary" data-modal-open="add-user-modal">
-          + Add User
-        </button>
-      </div>
-      <div class="table-container">
-        <table id="users-table" data-page-size="10">
-          <thead>
-            <tr>
-              <th>Users</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Department</th>
-              <th>Admin Role</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-id="1" data-name="Nishant Kumar" data-email="nishant@example.com" data-phone="328-555-0174" data-department="Transport" data-role="Editor">
-              <td>Nishant Kumar</td>
-              <td>nishant@example.com</td>
-              <td>328-555-0174</td>
-              <td>Transport</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="2" data-name="Jack Wilson" data-email="jack@example.com" data-phone="328-555-0185" data-department="Hotel" data-role="Viewer">
-              <td>Jack Wilson</td>
-              <td>jack@example.com</td>
-              <td>328-555-0185</td>
-              <td>Hotel</td>
-              <td><span class="badge badge--viewer">Viewer</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="3" data-name="Elena Lopez" data-email="elena@example.com" data-phone="328-555-0129" data-department="Matches" data-role="Restricted">
-              <td>Elena Lopez</td>
-              <td>elena@example.com</td>
-              <td>328-555-0129</td>
-              <td>Matches</td>
-              <td><span class="badge badge--restricted">Restricted</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="4" data-name="Maria Garcia" data-email="maria@example.com" data-phone="328-555-0165" data-department="Ticketing" data-role="Editor">
-              <td>Maria Garcia</td>
-              <td>maria@example.com</td>
-              <td>328-555-0165</td>
-              <td>Ticketing</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="5" data-name="Peter Thompson" data-email="peter@example.com" data-phone="328-555-0147" data-department="Marketing" data-role="Viewer">
-              <td>Peter Thompson</td>
-              <td>peter@example.com</td>
-              <td>328-555-0147</td>
-              <td>Marketing</td>
-              <td><span class="badge badge--viewer">Viewer</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="6" data-name="Henry Brown" data-email="henry@example.com" data-phone="328-555-0173" data-department="Security" data-role="Restricted">
-              <td>Henry Brown</td>
-              <td>henry@example.com</td>
-              <td>328-555-0173</td>
-              <td>Security</td>
-              <td><span class="badge badge--restricted">Restricted</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="7" data-name="Zara Tan" data-email="zara@example.com" data-phone="328-555-0148" data-department="Medical" data-role="Editor">
-              <td>Zara Tan</td>
-              <td>zara@example.com</td>
-              <td>328-555-0148</td>
-              <td>Medical</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="8" data-name="Amira Malik" data-email="amira@example.com" data-phone="328-555-0191" data-department="Catering" data-role="Viewer">
-              <td>Amira Malik</td>
-              <td>amira@example.com</td>
-              <td>328-555-0191</td>
-              <td>Catering</td>
-              <td><span class="badge badge--viewer">Viewer</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="9" data-name="Sofia Rodriguez" data-email="sofia@example.com" data-phone="328-555-0119" data-department="Media" data-role="Editor">
-              <td>Sofia Rodriguez</td>
-              <td>sofia@example.com</td>
-              <td>328-555-0119</td>
-              <td>Media</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="10" data-name="Kenta Yamamoto" data-email="kenta@example.com" data-phone="328-555-0138" data-department="Volunteer" data-role="Restricted">
-              <td>Kenta Yamamoto</td>
-              <td>kenta@example.com</td>
-              <td>328-555-0138</td>
-              <td>Volunteer</td>
-              <td><span class="badge badge--restricted">Restricted</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="11" data-name="Sara Hossain" data-email="sara@example.com" data-phone="328-555-0192" data-department="Technology" data-role="Viewer">
-              <td>Sara Hossain</td>
-              <td>sara@example.com</td>
-              <td>328-555-0192</td>
-              <td>Technology</td>
-              <td><span class="badge badge--viewer">Viewer</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="12" data-name="Leo Chang" data-email="leo@example.com" data-phone="328-555-0156" data-department="Finance" data-role="Editor">
-              <td>Leo Chang</td>
-              <td>leo@example.com</td>
-              <td>328-555-0156</td>
-              <td>Finance</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="13" data-name="Nina Patel" data-email="nina@example.com" data-phone="328-555-0198" data-department="Research" data-role="Viewer">
-              <td>Nina Patel</td>
-              <td>nina@example.com</td>
-              <td>328-555-0198</td>
-              <td>Research</td>
-              <td><span class="badge badge--viewer">Viewer</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="14" data-name="Omar Al-Farsi" data-email="omar@example.com" data-phone="328-555-0121" data-department="Logistics" data-role="Restricted">
-              <td>Omar Al-Farsi</td>
-              <td>omar@example.com</td>
-              <td>328-555-0121</td>
-              <td>Logistics</td>
-              <td><span class="badge badge--restricted">Restricted</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-            <tr data-id="15" data-name="Tanya Singh" data-email="tanya@example.com" data-phone="328-555-0189" data-department="Development" data-role="Editor">
-              <td>Tanya Singh</td>
-              <td>tanya@example.com</td>
-              <td>328-555-0189</td>
-              <td>Development</td>
-              <td><span class="badge badge--editor">Editor</span></td>
-              <td class="actions">
-                <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-                <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="pagination" id="user-pagination"></div>
-    </main>
-  </div>
-
-  <!-- Add User Modal -->
-  <div id="add-user-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Add New User</h2>
-        <button class="modal-close" data-modal-close>&times;</button>
-      </div>
-      <form id="add-user-form" class="modal-body">
-        <div class="form-group">
-          <label for="user-name">User's Name</label>
-          <input type="text" id="user-name" name="name" placeholder="e.g., User 1" required>
-        </div>
-        <div class="form-group">
-          <label for="user-email">Email</label>
-          <input type="email" id="user-email" name="email" placeholder="e.g., user1@example.com" required>
-        </div>
-        <div class="form-group">
-          <label for="user-phone">Phone</label>
-          <input type="tel" id="user-phone" name="phone" placeholder="e.g., +1 234 567 8901" required>
-        </div>
-        <div class="form-group">
-          <label for="user-password">Password</label>
-          <input type="password" id="user-password" name="password" placeholder="At least 8 characters, 1 uppercase, 1 number" required>
-          <small class="form-hint">Min 8 characters, 1 uppercase, 1 number</small>
-        </div>
-        <div class="form-group">
-          <label for="user-confirm-password">Confirm Password</label>
-          <input type="password" id="user-confirm-password" name="confirmPassword" placeholder="Re-enter your password" required>
-        </div>
-        <div class="form-group">
-          <label for="user-role">Role</label>
-          <select id="user-role" name="role" required>
-            <option value="">Select</option>
-            <option value="Editor">Editor</option>
-            <option value="Viewer">Viewer</option>
-            <option value="Restricted">Restricted</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="user-department">Department</label>
-          <select id="user-department" name="department" required>
-            <option value="">Select</option>
-            <option value="Transport">Transport</option>
-            <option value="Hotel">Hotel</option>
-            <option value="Matches">Matches</option>
-            <option value="Ticketing">Ticketing</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Security">Security</option>
-            <option value="Medical">Medical</option>
-            <option value="Catering">Catering</option>
-            <option value="Media">Media</option>
-            <option value="Volunteer">Volunteer</option>
-            <option value="Technology">Technology</option>
-            <option value="Finance">Finance</option>
-            <option value="Research">Research</option>
-            <option value="Logistics">Logistics</option>
-            <option value="Development">Development</option>
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
-          <button type="submit" class="btn btn--primary">Add User</button>
-        </div>
-      </form>
+      <button class="btn btn--primary" data-modal-open="add-user-modal">+ Add User</button>
     </div>
+
+    <div class="table-container">
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>Users</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Department</th>
+            <th>Admin Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in page_obj %}
+          <tr data-id="{{ user.id }}">
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.mobilenumber }}</td>
+            <td>{{ user.department.name }}</td>
+            <td><span class="badge badge--{{ user.roleid.role_name|lower }}">{{ user.roleid.role_name }}</span></td>
+            <td class="actions">
+              <button class="btn-icon" data-action="edit">✏️</button>
+              <button class="btn-icon" data-action="change-password">🔑</button>
+              <button class="btn-icon" data-action="delete">🗑️</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- Pagination -->
+        <div class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo; Prev</a>
+          {% endif %}
+          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next &raquo;</a>
+          {% endif %}
+        </div>
+    </div>
+  </main>
+</div>
+
+<div id="change-password-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Change Password</h2>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form id="change-password-form" class="modal-body" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" name="new_password" required>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" name="confirm_password" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Update Password</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <template id="tpl-user-row">
-    <tr data-id="" data-name="" data-email="" data-phone="" data-department="" data-role="">
-      <td class="name"></td>
-      <td class="email"></td>
-      <td class="phone"></td>
-      <td class="department"></td>
-      <td class="role"><span class="badge"></span></td>
-      <td class="actions">
-        <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-        <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-      </td>
-    </tr>
-  </template>
+<!-- Add User Modal -->
+<div id="add-user-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New User</h2>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form id="add-user-form" class="modal-body" method="post">
+      {% csrf_token %}
+      <div class="form-group"><label>Name</label><input type="text" name="name" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
+      <div class="form-group"><label>Username</label><input type="test" name="username" required></div>
+      <div class="form-group"><label>Phone</label><input type="text" name="phone" required></div>
+      <div class="form-group"><label>Password</label><input type="password" name="password" required></div>
+      <div class="form-group"><label>Confirm Password</label><input type="password" name="confirmPassword" required></div>
+      <div class="form-group">
+        <label for="user-role">Role</label>
+        <select id="user-role" name="role" required>
+          <option value="">Select Role</option>
+          {% for role in roles %}
+            <option value="{{ role.id }}">{{ role.role_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="user-department">Department</label>
+        <select id="user-department" name="department" required>
+          <option value="">Select Department</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Add User</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-  <script type="module" src="{% static 'assets/js/app.js' %}"></script>
+<div id="edit-user-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Edit User</h2>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form id="edit-user-form" class="modal-body" method="post">
+      {% csrf_token %}
+      <div class="form-group"><label>Name</label><input type="text" name="edit_name" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="edit_email" required></div>
+      <div class="form-group"><label>Username</label><input type="test" name="edit_username" required></div>
+      <div class="form-group"><label>Phone</label><input type="text" name="edit_phone" required></div>
+      <div class="form-group">
+        <label for="user-role">Role</label>
+        <select id="user-role" name="edit_role" required>
+          <option value="">Select Role</option>
+          {% for role in roles %}
+            <option value="{{ role.id }}">{{ role.role_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="user-department">Department</label>
+        <select id="user-department" name="edit_department" required>
+          <option value="">Select Department</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn--primary">Edit User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+
+    $(document).on("click", "[data-modal-open]", function() {
+        const modalId = $(this).data("modal-open");
+        $("#" + modalId).addClass("active");
+    });
+
+    $(document).on("click", "[data-modal-close], .modal", function(e) {
+        if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
+            $(this).closest(".modal").removeClass("active");
+        }
+    });
+
+    // User search
+    const searchInput = document.getElementById('user-search');
+      searchInput.addEventListener('input', () => {
+      const filter = searchInput.value.toLowerCase();
+      document.querySelectorAll('#users-table tbody tr').forEach(row => {
+        row.style.display = row.cells[0].innerText.toLowerCase().includes(filter) ? '' : 'none';
+      });
+    });
+  
+    // Open Change Password Modal
+    $(document).on('click', '[data-action="change-password"]', function() {
+        const userId = $(this).closest('tr').data('id');
+        $('#change-password-modal').attr('data-id', userId).addClass('active');
+    });
+
+    // Handle password change submission
+    $(document).on('submit', '#change-password-form', function(e) {
+        e.preventDefault();
+  
+        const userId = $('#change-password-modal').attr('data-id');
+        const newPass = $(this).find('input[name="new_password"]').val();
+        const confirmPass = $(this).find('input[name="confirm_password"]').val();
+  
+        if (newPass !== confirmPass) {
+            alert("Passwords do not match!");
+            return;
+        }
+
+        data = {
+          userId: userId,
+          new_password: newPass,
+          confirm_password: confirmPass,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        }
+  
+        $.ajax({
+            url: "{% url 'change_user_password' %}",
+            type: 'POST',
+            data: data,
+            success: function(res) {
+                if (res.success) {
+                    alert(res.message);
+                    $('#change-password-modal').removeClass('active');
+                    $('#change-password-form')[0].reset();
+                } else {
+                    alert(res.message);
+                }
+            },
+            error: function() {
+                alert("Something went wrong. Please try again.");
+            }
+        });
+    });
+
+
+    $('#add-user-form').on('submit', function(e) {
+      e.preventDefault();
+      const password = $(this).find('input[name="password"]').val();
+      const confirmPassword = $(this).find('input[name="confirmPassword"]').val();
+      if (password !== confirmPassword) {
+          alert('Passwords do not match! Please check.');
+          $(this).find('input[name="confirmPassword"]').focus();
+          return false;
+      }
+      $.ajax({
+          url: "{% url 'manage_users' %}",
+          type: 'POST',
+          data: $(this).serialize(),
+          success: function(res) {
+              if (res.success) {
+                  alert(res.message);
+                  $('#add-user-modal').removeClass('active');
+                  $('#add-user-form')[0].reset();            
+                  location.reload();                         
+              } else {
+                  alert(res.message);
+              }
+          },
+          error: function() {
+              alert("Something went wrong. Please try again.");
+          }
+      });
+    });
+
+
+    $(document).on('submit', '#edit-user-form', function(e) {
+        e.preventDefault();
+        const userId = $('#edit-user-modal').attr('data-id');
+        $.ajax({
+            url: `/users/edit/${userId}/`,
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(res) {
+                if (res.success) {
+                    alert(res.message);
+                    location.reload();
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '[data-action="delete"]', function() {
+        const row = $(this).closest('tr');
+        const userId = row.data('id');
+        if (!confirm('Are you sure you want to delete this user?')) return;
+
+        $.ajax({
+          url: `/users/delete/${userId}/`,
+          type: 'POST',
+          data: { csrfmiddlewaretoken: '{{ csrf_token }}' },
+          success: function(res) {
+            if (res.success) {
+              alert(res.message);
+              row.remove();
+            }
+          }
+        });
+    });
+
+    // Edit user
+    $(document).on('click', '[data-action="edit"]', function() {
+        const userId = $(this).closest('tr').data('id');
+    
+        $.ajax({
+            url: `/users/edit/${userId}/`,
+            type: 'GET',
+            success: function(res) {
+                if (res.success) {
+                    const u = res.data;
+                    const modal = $('#edit-user-modal');
+                    modal.find('input[name="edit_name"]').val(u.name);
+                    modal.find('input[name="edit_email"]').val(u.email);
+                    modal.find('input[name="edit_username"]').val(u.username);
+                    modal.find('input[name="edit_phone"]').val(u.mobilenumber);
+                    modal.find('select[name="edit_department"]').val(u.department);
+                    modal.find('select[name="edit_role"]').val(u.roleid);
+                    modal.attr('data-id', userId).addClass('active');
+                }
+            }
+        });
+    });
+
+});
+</script>
 </body>
 </html>
