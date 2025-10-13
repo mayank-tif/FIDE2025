@@ -7,6 +7,28 @@
     <title>FIDE World Cup 2025 - Player Registration</title>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
+        /* Your existing CSS remains the same, just add these new styles: */
+        
+        .field-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
+        }
+        
+        .error-highlight {
+            animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: rgba(220, 53, 69, 0.1); }
+            100% { background-color: transparent; }
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        /* Your existing CSS below */
         * {
             margin: 0;
             padding: 0;
@@ -454,24 +476,24 @@
                 {% csrf_token %}
                 
                 <div class="form-group">
-                    <label>Player Name <span class="required">*</span></label>
-                    <input type="text" name="name" value="{{ form.name.value|default:'' }}" required placeholder="Enter your full name">
+                    <label class="required-field">Player Name</label>
+                    <input type="text" name="name" value="{{ form.name.value|default:'' }}" placeholder="Enter your full name" class="{% if form.name.errors %}field-error{% endif %}">
                     {% if form.name.errors %}
                         <div class="error-message">{{ form.name.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="form-group">
-                    <label>Email <span class="required">*</span></label>
-                    <input type="email" name="email" value="{{ form.email.value|default:'' }}" required placeholder="Enter your email address">
+                    <label class="required-field">Email</label>
+                    <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="Enter your email address" class="{% if form.email.errors %}field-error{% endif %}">
                     {% if form.email.errors %}
                         <div class="error-message">{{ form.email.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="form-group">
-                    <label>Country <span class="required">*</span></label>
-                    <select name="country" id="countrySelect" required style="width: 100%">
+                    <label class="required-field">Country</label>
+                    <select name="country" id="countrySelect" style="width: 100%" class="{% if form.country.errors %}field-error{% endif %}">
                         <option value="">Select your country</option>
                         {% for country in form.country.field.queryset %}
                             <option value="{{ country.country_id }}" 
@@ -486,17 +508,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Player FIDE ID <span class="required">*</span></label>
-                    <input type="text" name="fide_id" value="{{ form.fide_id.value|default:'' }}" required placeholder="Enter your FIDE ID">
+                    <label class="required-field">Player FIDE ID</label>
+                    <input type="text" name="fide_id" value="{{ form.fide_id.value|default:'' }}" placeholder="Enter your FIDE ID" class="{% if form.fide_id.errors %}field-error{% endif %}">
                     {% if form.fide_id.errors %}
                         <div class="error-message">{{ form.fide_id.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="form-group">
-                    <label>Express Check-in Documents <span class="required">*</span></label>
+                    <label class="required-field">Express Check-in Documents</label>
                     <div class="helper-text">Any Photo ID for Indian players, Passport for all non-indian players</div>
-                    <div class="file-upload-wrapper">
+                    <div class="file-upload-wrapper {% if form.document.errors %}field-error{% endif %}">
                         <label for="fileUpload" class="file-upload-input">
                             <div class="file-label">
                                 <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#5a8372" stroke-width="2" style="margin: 0 auto 8px;">
@@ -508,7 +530,7 @@
                                 <div style="font-size: 11px; margin-top: 3px;">PDF or Image (Max 10 MB)</div>
                             </div>
                         </label>
-                        <input type="file" id="fileUpload" name="document" accept=".pdf,image/*" required>
+                        <input type="file" id="fileUpload" name="document" accept=".pdf,image/*">
                         <div class="file-name" id="fileName"></div>
                     </div>
                     {% if form.document.errors %}
@@ -517,24 +539,27 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Do you have any food allergies that the catering department should be aware of? If yes, please provide details below.</label>
-                    <textarea name="food_allergies" placeholder="Enter any food allergies or dietary restrictions">{{ form.food_allergies.value|default:'' }}</textarea>
+                    <label class="required-field">Food Allergies Information</label>
+                    <textarea name="food_allergies" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'." class="{% if form.food_allergies.errors %}field-error{% endif %}">{{ form.food_allergies.value|default:'' }}</textarea>
+                    {% if form.food_allergies.errors %}
+                        <div class="error-message">{{ form.food_allergies.errors.0 }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="form-group">
-                    <label>Room Cleaning Preference <span class="required">*</span></label>
+                    <label class="required-field">Room Cleaning Preference</label>
                     <div class="helper-text">To help us schedule room cleaning at a time that is most convenient for you, please select your preferred time slot<br><strong>Note:</strong> We will do our best to accommodate your preference, subject to hotel staff availability.</div>
-                    <div class="radio-group">
+                    <div class="radio-group {% if form.room_cleaning_preference.errors %}field-error{% endif %}">
                         <div class="radio-option">
-                            <input type="radio" id="afternoon" name="room_cleaning_preference" value="AFTERNOON" {% if form.room_cleaning_preference.value == 'AFTERNOON' %}checked{% endif %} required>
+                            <input type="radio" id="afternoon" name="room_cleaning_preference" value="AFTERNOON" {% if form.room_cleaning_preference.value == 'AFTERNOON' %}checked{% endif %}>
                             <label for="afternoon">Between 3:00 PM – 6:00 PM (during game hours)</label>
                         </div>
                         <div class="radio-option">
-                            <input type="radio" id="morning" name="room_cleaning_preference" value="MORNING" {% if form.room_cleaning_preference.value == 'MORNING' %}checked{% endif %} required>
+                            <input type="radio" id="morning" name="room_cleaning_preference" value="MORNING" {% if form.room_cleaning_preference.value == 'MORNING' %}checked{% endif %}>
                             <label for="morning">Morning slot (while you are likely to be in the room)</label>
                         </div>
                         <div class="radio-option">
-                            <input type="radio" id="evening" name="room_cleaning_preference" value="EVENING" {% if form.room_cleaning_preference.value == 'EVENING' %}checked{% endif %} required>
+                            <input type="radio" id="evening" name="room_cleaning_preference" value="EVENING" {% if form.room_cleaning_preference.value == 'EVENING' %}checked{% endif %}>
                             <label for="evening">Evening slot (after games, while you are likely to be in the room)</label>
                         </div>
                     </div>
@@ -554,8 +579,519 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
     <script>
+    $(document).ready(function() {
+        $('#countrySelect').select2({
+            placeholder: "Select your country",
+            allowClear: false,
+            width: '100%',
+            dropdownParent: $('.right-panel')
+        });
+        
+        const fileInput = document.getElementById('fileUpload');
+        const fileName = document.getElementById('fileName');
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                    
+                    if (fileSize > 10) {
+                        showFieldError(this, 'File size exceeds 10 MB. Please upload a smaller file.');
+                        this.value = '';
+                        fileName.style.display = 'none';
+                        return;
+                    }
+                    
+                    fileName.textContent = `📎 ${file.name} (${fileSize} MB)`;
+                    fileName.style.display = 'block';
+                    clearFieldError(this);
+                }
+            });
+        }
+
+        // Function to show error below field
+        function showFieldError(field, message) {
+            // Remove any existing error message for this field
+            clearFieldError(field);
+            
+            // Create error message element
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.textContent = message;
+            errorElement.id = field.name + '-error';
+            
+            // Add error class to field
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').classList.add('field-error', 'error-highlight');
+            } else if (field.name === 'country') {
+                $('.select2-container').addClass('field-error error-highlight');
+            } else {
+                field.classList.add('field-error', 'error-highlight');
+            }
+            
+            // Insert error message after the field
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').parentNode.insertBefore(errorElement, field.closest('.file-upload-wrapper').nextSibling);
+            } else if (field.name === 'country') {
+                $('.select2-container').after(errorElement);
+            } else {
+                field.parentNode.insertBefore(errorElement, field.nextSibling);
+            }
+        }
+
+        // Function to clear field error
+        function clearFieldError(field) {
+            // Remove error message
+            const existingError = document.getElementById(field.name + '-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Remove error classes
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').classList.remove('field-error', 'error-highlight');
+            } else if (field.name === 'country') {
+                $('.select2-container').removeClass('field-error error-highlight');
+            } else {
+                field.classList.remove('field-error', 'error-highlight');
+            }
+        }
+
+        // Function to show radio group error
+        function showRadioGroupError(message) {
+            const radioGroup = document.querySelector('.radio-group');
+            // Remove existing error
+            const existingError = document.getElementById('room_cleaning_preference-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add error styling
+            radioGroup.classList.add('field-error', 'error-highlight');
+            
+            // Create error message
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.textContent = message;
+            errorElement.id = 'room_cleaning_preference-error';
+            
+            // Insert after radio group
+            radioGroup.parentNode.insertBefore(errorElement, radioGroup.nextSibling);
+        }
+
+        // Function to clear radio group error
+        function clearRadioGroupError() {
+            const radioGroup = document.querySelector('.radio-group');
+            const existingError = document.getElementById('room_cleaning_preference-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            radioGroup.classList.remove('field-error', 'error-highlight');
+        }
+
+        // Enhanced form validation with scrolling to errors
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            let hasErrors = false;
+            let firstErrorElement = null;
+
+            // Clear all previous client-side errors
+            document.querySelectorAll('.error-message').forEach(error => {
+                if (error.id && error.id.endsWith('-error')) {
+                    error.remove();
+                }
+            });
+            document.querySelectorAll('.field-error').forEach(element => {
+                element.classList.remove('field-error', 'error-highlight');
+            });
+
+            // Get all form fields
+            const nameField = document.querySelector('input[name="name"]');
+            const emailField = document.querySelector('input[name="email"]');
+            const countrySelect = document.getElementById('countrySelect');
+            const fideIdField = document.querySelector('input[name="fide_id"]');
+            const foodAllergiesField = document.querySelector('textarea[name="food_allergies"]');
+            const radioChecked = document.querySelector('input[name="room_cleaning_preference"]:checked');
+
+            // Validate Name
+            if (!nameField.value.trim()) {
+                hasErrors = true;
+                showFieldError(nameField, 'Please enter name');
+                if (!firstErrorElement) firstErrorElement = nameField;
+            }
+
+            // Validate Email
+            if (!emailField.value.trim()) {
+                hasErrors = true;
+                showFieldError(emailField, 'Please enter email address');
+                if (!firstErrorElement) firstErrorElement = emailField;
+            } else if (!isValidEmail(emailField.value)) {
+                hasErrors = true;
+                showFieldError(emailField, 'Please enter a valid email address');
+                if (!firstErrorElement) firstErrorElement = emailField;
+            }
+
+            // Validate Country
+            if (!countrySelect.value) {
+                hasErrors = true;
+                showFieldError(countrySelect, 'Please select your country');
+                if (!firstErrorElement) firstErrorElement = countrySelect;
+            }
+
+            // Validate FIDE ID
+            if (!fideIdField.value.trim()) {
+                hasErrors = true;
+                showFieldError(fideIdField, 'Please enter FIDE ID');
+                if (!firstErrorElement) firstErrorElement = fideIdField;
+            }
+
+            // Validate Food Allergies
+            if (!foodAllergiesField.value.trim()) {
+                hasErrors = true;
+                showFieldError(foodAllergiesField, 'Please provide information. If none, please write "None"');
+                if (!firstErrorElement) firstErrorElement = foodAllergiesField;
+            }
+
+            // Validate File Upload
+            if (fileInput.files.length === 0) {
+                hasErrors = true;
+                showFieldError(fileInput, 'Please upload a document');
+                if (!firstErrorElement) firstErrorElement = fileInput;
+            }
+
+            // Validate Radio Buttons
+            if (!radioChecked) {
+                hasErrors = true;
+                showRadioGroupError('Please select a room cleaning preference');
+                if (!firstErrorElement) firstErrorElement = document.querySelector('.radio-group');
+            }
+
+            // Check file size
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileSize = (file.size / 1024 / 1024);
+                if (fileSize > 10) {
+                    showFieldError(fileInput, 'File size exceeds 10 MB. Please upload a smaller file.');
+                    fileInput.closest('.file-upload-wrapper').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    return;
+                }
+            }
+
+            if (hasErrors) {
+                // Scroll to the first error
+                if (firstErrorElement) {
+                    let scrollElement = firstErrorElement;
+                    if (firstErrorElement.type === 'file') {
+                        scrollElement = firstErrorElement.closest('.file-upload-wrapper');
+                    } else if (firstErrorElement.name === 'country') {
+                        scrollElement = $('.select2-container')[0];
+                    } else if (firstErrorElement.classList.contains('radio-group')) {
+                        scrollElement = firstErrorElement;
+                    }
+                    
+                    scrollElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }
+                return;
+            }
+
+            // If no errors, submit the form programmatically
+            this.submit();
+        });
+
+        // Email validation function
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Remove error highlighting when user starts typing/selecting
+        document.querySelectorAll('input, textarea, select').forEach(element => {
+            element.addEventListener('input', function() {
+                clearFieldError(this);
+            });
+            
+            element.addEventListener('change', function() {
+                clearFieldError(this);
+                if (this.name === 'room_cleaning_preference') {
+                    clearRadioGroupError();
+                }
+            });
+        });
+
+        // Remove error from file upload when file is selected
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                clearFieldError(this);
+            });
+        }
+
+        // Remove error from country select when changed
+        $('#countrySelect').on('change', function() {
+            clearFieldError(this);
+        });
+    });
+</script>
+    {% comment %} <script>
+    $(document).ready(function() {
+        $('#countrySelect').select2({
+            placeholder: "Select your country",
+            allowClear: false,
+            width: '100%',
+            dropdownParent: $('.right-panel')
+        });
+        
+        const fileInput = document.getElementById('fileUpload');
+        const fileName = document.getElementById('fileName');
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                    
+                    if (fileSize > 10) {
+                        showFieldError(this, 'File size exceeds 10 MB. Please upload a smaller file.');
+                        this.value = '';
+                        fileName.style.display = 'none';
+                        return;
+                    }
+                    
+                    fileName.textContent = `📎 ${file.name} (${fileSize} MB)`;
+                    fileName.style.display = 'block';
+                    clearFieldError(this);
+                }
+            });
+        }
+
+        // Function to show error below field
+        function showFieldError(field, message) {
+            // Remove any existing error message for this field
+            clearFieldError(field);
+            
+            // Create error message element
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.textContent = message;
+            errorElement.style.color = '#dc3545';
+            errorElement.style.fontSize = '12px';
+            errorElement.style.marginTop = '4px';
+            errorElement.id = field.name + '-error';
+            
+            // Add error class to field
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').classList.add('field-error', 'error-highlight');
+            } else if (field.name === 'country') {
+                $('.select2-container').addClass('field-error error-highlight');
+            } else {
+                field.classList.add('field-error', 'error-highlight');
+            }
+            
+            // Insert error message after the field
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').parentNode.insertBefore(errorElement, field.closest('.file-upload-wrapper').nextSibling);
+            } else if (field.name === 'country') {
+                $('.select2-container').after(errorElement);
+            } else {
+                field.parentNode.insertBefore(errorElement, field.nextSibling);
+            }
+        }
+
+        // Function to clear field error
+        function clearFieldError(field) {
+            // Remove error message
+            const existingError = document.getElementById(field.name + '-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Remove error classes
+            if (field.type === 'file') {
+                field.closest('.file-upload-wrapper').classList.remove('field-error', 'error-highlight');
+            } else if (field.name === 'country') {
+                $('.select2-container').removeClass('field-error error-highlight');
+            } else {
+                field.classList.remove('field-error', 'error-highlight');
+            }
+        }
+
+        // Function to show radio group error
+        function showRadioGroupError(message) {
+            const radioGroup = document.querySelector('.radio-group');
+            // Remove existing error
+            const existingError = document.getElementById('room_cleaning_preference-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add error styling
+            radioGroup.classList.add('field-error', 'error-highlight');
+            
+            // Create error message
+            const errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.textContent = message;
+            errorElement.style.color = '#dc3545';
+            errorElement.style.fontSize = '12px';
+            errorElement.style.marginTop = '4px';
+            errorElement.id = 'room_cleaning_preference-error';
+            
+            // Insert after radio group
+            radioGroup.parentNode.insertBefore(errorElement, radioGroup.nextSibling);
+        }
+
+        // Function to clear radio group error
+        function clearRadioGroupError() {
+            const radioGroup = document.querySelector('.radio-group');
+            const existingError = document.getElementById('room_cleaning_preference-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            radioGroup.classList.remove('field-error', 'error-highlight');
+        }
+
+        // Enhanced form validation with scrolling to errors
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            let hasErrors = false;
+            let firstErrorElement = null;
+
+            // Clear all previous client-side errors
+            document.querySelectorAll('.error-message').forEach(error => {
+                if (error.id && error.id.endsWith('-error')) {
+                    error.remove();
+                }
+            });
+            document.querySelectorAll('.field-error').forEach(element => {
+                element.classList.remove('field-error', 'error-highlight');
+            });
+
+            // Check all required fields
+            const requiredFields = this.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    hasErrors = true;
+                    let fieldName = '';
+                    
+                    // Get field name for error message
+                    switch(field.name) {
+                        case 'name': fieldName = 'Player Name'; break;
+                        case 'email': fieldName = 'Email'; break;
+                        case 'fide_id': fieldName = 'FIDE ID'; break;
+                        case 'food_allergies': fieldName = 'Food Allergies Information'; break;
+                        default: fieldName = 'This field';
+                    }
+                    
+                    showFieldError(field, `Please enter ${fieldName.toLowerCase()}`);
+                    
+                    // Store the first error element for scrolling
+                    if (!firstErrorElement) {
+                        firstErrorElement = field;
+                    }
+                }
+            });
+
+            // Check file upload
+            if (fileInput.files.length === 0) {
+                hasErrors = true;
+                showFieldError(fileInput, 'Please upload a document');
+                if (!firstErrorElement) {
+                    firstErrorElement = fileInput;
+                }
+            }
+
+            // Check country selection
+            const countrySelect = document.getElementById('countrySelect');
+            if (!countrySelect.value) {
+                hasErrors = true;
+                showFieldError(countrySelect, 'Please select your country');
+                if (!firstErrorElement) {
+                    firstErrorElement = countrySelect;
+                }
+            }
+
+            // Check radio buttons
+            const radioChecked = document.querySelector('input[name="room_cleaning_preference"]:checked');
+            if (!radioChecked) {
+                hasErrors = true;
+                showRadioGroupError('Please select a room cleaning preference');
+                if (!firstErrorElement) {
+                    firstErrorElement = document.querySelector('.radio-group');
+                }
+            }
+
+            // Check file size
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileSize = (file.size / 1024 / 1024);
+                if (fileSize > 10) {
+                    e.preventDefault();
+                    showFieldError(fileInput, 'File size exceeds 10 MB. Please upload a smaller file.');
+                    fileInput.closest('.file-upload-wrapper').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    return;
+                }
+            }
+
+            if (hasErrors) {
+                e.preventDefault();
+                
+                // Scroll to the first error
+                if (firstErrorElement) {
+                    let scrollElement = firstErrorElement;
+                    if (firstErrorElement.type === 'file') {
+                        scrollElement = firstErrorElement.closest('.file-upload-wrapper');
+                    } else if (firstErrorElement.name === 'country') {
+                        scrollElement = $('.select2-container')[0];
+                    }
+                    
+                    scrollElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }
+                return;
+            }
+        });
+
+        // Remove error highlighting when user starts typing/selecting
+        document.querySelectorAll('input, textarea, select').forEach(element => {
+            element.addEventListener('input', function() {
+                clearFieldError(this);
+            });
+            
+            element.addEventListener('change', function() {
+                clearFieldError(this);
+                if (this.name === 'room_cleaning_preference') {
+                    clearRadioGroupError();
+                }
+            });
+        });
+
+        // Remove error from file upload when file is selected
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                clearFieldError(this);
+            });
+        }
+
+        // Remove error from country select when changed
+        $('#countrySelect').on('change', function() {
+            clearFieldError(this);
+        });
+    });
+</script> {% endcomment %}
+
+    {% comment %} <script>
         $(document).ready(function() {
             $('#countrySelect').select2({
                 placeholder: "Select your country",
@@ -586,31 +1122,132 @@
                 });
             }
 
+            // Enhanced form validation with scrolling to errors
             document.getElementById('registrationForm').addEventListener('submit', function(e) {
-                const fileInput = document.getElementById('fileUpload');
-                const countrySelect = document.getElementById('countrySelect');
-                
+                let hasErrors = false;
+                let firstErrorElement = null;
+
+                // Check all required fields
+                const requiredFields = this.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        hasErrors = true;
+                        field.classList.add('field-error', 'error-highlight');
+                        
+                        // Store the first error element for scrolling
+                        if (!firstErrorElement) {
+                            firstErrorElement = field;
+                        }
+                    } else {
+                        field.classList.remove('field-error');
+                    }
+                });
+
+                // Check file upload
                 if (fileInput.files.length === 0) {
-                    e.preventDefault();
-                    alert('Please upload a document.');
-                    return;
+                    hasErrors = true;
+                    fileInput.closest('.file-upload-wrapper').classList.add('field-error', 'error-highlight');
+                    if (!firstErrorElement) {
+                        firstErrorElement = fileInput.closest('.file-upload-wrapper');
+                    }
+                } else {
+                    fileInput.closest('.file-upload-wrapper').classList.remove('field-error');
                 }
-                
+
+                // Check country selection
+                const countrySelect = document.getElementById('countrySelect');
                 if (!countrySelect.value) {
-                    e.preventDefault();
-                    alert('Please select your country.');
-                    return;
+                    hasErrors = true;
+                    $('.select2-container').addClass('field-error error-highlight');
+                    if (!firstErrorElement) {
+                        firstErrorElement = $('.select2-container')[0];
+                    }
+                } else {
+                    $('.select2-container').removeClass('field-error');
                 }
-                
-                const file = fileInput.files[0];
-                const fileSize = (file.size / 1024 / 1024);
-                if (fileSize > 10) {
+
+                // Check radio buttons
+                const radioChecked = document.querySelector('input[name="room_cleaning_preference"]:checked');
+                if (!radioChecked) {
+                    hasErrors = true;
+                    document.querySelector('.radio-group').classList.add('field-error', 'error-highlight');
+                    if (!firstErrorElement) {
+                        firstErrorElement = document.querySelector('.radio-group');
+                    }
+                } else {
+                    document.querySelector('.radio-group').classList.remove('field-error');
+                }
+
+                // Check file size
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileSize = (file.size / 1024 / 1024);
+                    if (fileSize > 10) {
+                        e.preventDefault();
+                        alert('File size exceeds 10 MB. Please upload a smaller file.');
+                        fileInput.closest('.file-upload-wrapper').classList.add('field-error', 'error-highlight');
+                        fileInput.closest('.file-upload-wrapper').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        return;
+                    }
+                }
+
+                if (hasErrors) {
                     e.preventDefault();
-                    alert('File size exceeds 10 MB. Please upload a smaller file.');
+                    
+                    // Scroll to the first error
+                    if (firstErrorElement) {
+                        firstErrorElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        
+                        // Show specific error message
+                        let fieldName = '';
+                        if (firstErrorElement.name === 'name') fieldName = 'Player Name';
+                        else if (firstErrorElement.name === 'email') fieldName = 'Email';
+                        else if (firstErrorElement.name === 'country') fieldName = 'Country';
+                        else if (firstErrorElement.name === 'fide_id') fieldName = 'FIDE ID';
+                        else if (firstErrorElement.name === 'document') fieldName = 'Document';
+                        else if (firstErrorElement.name === 'food_allergies') fieldName = 'Food Allergies Information';
+                        else if (firstErrorElement.classList.contains('radio-group')) fieldName = 'Room Cleaning Preference';
+                        
+                        if (fieldName) {
+                            alert(`Please fill in the ${fieldName} field.`);
+                        } else {
+                            alert('Please fill in all required fields.');
+                        }
+                    }
                     return;
                 }
             });
+
+            // Remove error highlighting when user starts typing/selecting
+            document.querySelectorAll('input, textarea, select').forEach(element => {
+                element.addEventListener('input', function() {
+                    this.classList.remove('field-error', 'error-highlight');
+                    if (this.name === 'country') {
+                        $('.select2-container').removeClass('field-error error-highlight');
+                    }
+                });
+                
+                element.addEventListener('change', function() {
+                    this.classList.remove('field-error', 'error-highlight');
+                    if (this.name === 'room_cleaning_preference') {
+                        document.querySelector('.radio-group').classList.remove('field-error', 'error-highlight');
+                    }
+                });
+            });
+
+            // Remove error from file upload when file is selected
+            if (fileInput) {
+                fileInput.addEventListener('change', function() {
+                    this.closest('.file-upload-wrapper').classList.remove('field-error', 'error-highlight');
+                });
+            }
         });
-    </script>
+    </script> {% endcomment %}
 </body>
 </html>

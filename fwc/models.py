@@ -329,6 +329,89 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.loginname} - {self.action} at {self.created_on.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+    
+class FideIDMst(models.Model):
+    id = models.AutoField(primary_key=True)
+    fide_id = models.CharField(max_length=100, null=True)
+    player_name = models.CharField(max_length=100, null=True)
+    Full_country_name = models.CharField(max_length=100, null=True)
+    Short_country_name = models.CharField(max_length=20, null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'FideIDMst'
 
 
+class PlayerRegistrationAuditLog(models.Model):
+    # Audit log ID
+    id = models.AutoField(primary_key=True)
+    
+    # Player information (all fields from Players model)
+    player_id = models.IntegerField(null=True, blank=True, help_text="ID of the player if registration was successful")
+    image = models.CharField(max_length=500, null=True, blank=True, help_text="Image file path")
+    documents = models.CharField(max_length=500, null=True, blank=True, help_text="Document file path")
+    fide_id = models.CharField(max_length=100, null=True, blank=True)
+    age = models.IntegerField(null=True, blank=True)
+    name = models.CharField(max_length=500, null=True, blank=True)
+    address = models.CharField(max_length=250, null=True, blank=True)
+    email = models.CharField(max_length=50, null=True, blank=True)
+    loginname = models.CharField(max_length=20, null=True, blank=True)
+    securepassword = models.CharField(max_length=200, null=True, blank=True)
+    cityid = models.IntegerField(null=True, blank=True)
+    stateid = models.IntegerField(null=True, blank=True)
+    countryid = models.IntegerField(null=True, blank=True, help_text="Country ID from CountryMst")
+    mobilenumber = models.CharField(max_length=15, null=True, blank=True)
+    deactivated_by = models.IntegerField(null=True, blank=True)
+    status_flag = models.IntegerField(default=1)
+    status = models.CharField(max_length=20, choices=Players.STATUS_CHOICES, default=Players.STATUS_ACTIVE, null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=Players.GENDER_CHOICES, null=True, blank=True)
+    deactivated_on = models.DateTimeField(null=True, blank=True)
+    last_log_id = models.IntegerField(null=True, blank=True)
+    profile_pic = models.CharField(max_length=100, null=True, blank=True)
+    created_by = models.IntegerField(null=True, blank=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True, blank=True)
+    updated_by = models.IntegerField(null=True, blank=True)
+    details = models.TextField(null=True, blank=True)
+    room_cleaning_preference = models.CharField(max_length=15, choices=Players.ROOM_CLEANING_CHOICES, null=True, blank=True)
+    
+    # Additional form fields that are not in Players model
+    food_allergies = models.TextField(null=True, blank=True, help_text="Food allergies information from form")
+    document_file_name = models.CharField(max_length=255, null=True, blank=True, help_text="Original name of uploaded document")
+    document_file_size = models.BigIntegerField(null=True, blank=True, help_text="Size of uploaded document in bytes")
+    
+    # Audit log specific fields
+    submission_data = models.JSONField(default=dict, help_text="Raw form submission data")
+    user_agent = models.TextField(null=True, blank=True, help_text="User agent string")
+    submission_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('SUCCESS', 'Success'),
+            ('FAILED', 'Failed'),
+            ('VALIDATION_ERROR', 'Validation Error'),
+            ('DUPLICATE', 'Duplicate'),
+        ],
+        default='SUCCESS'
+    )
+    error_message = models.TextField(null=True, blank=True, help_text="Error message if submission failed")
+    validation_errors = models.JSONField(default=dict, help_text="Form validation errors if any")
+    
+    # Timestamps
+    submitted_at = models.DateTimeField(default=timezone.now)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Audit Log - {self.name} ({self.email}) - {self.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    class Meta:
+        db_table = 'PlayerRegistrationAuditLog'
+        verbose_name = 'Player Registration Audit Log'
+        verbose_name_plural = 'Player Registration Audit Logs'
+
+    def save(self, *args, **kwargs):
+        if not self.processed_at and self.submission_status in ['SUCCESS', 'FAILED']:
+            self.processed_at = timezone.now()
+        super().save(*args, **kwargs)
 

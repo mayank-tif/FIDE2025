@@ -87,3 +87,21 @@ class CustomSessionMiddleware(MiddlewareMixin):
             self.session_middleware.process_response(request, response)
 
         return response
+    
+    
+class DomainRedirectMiddleware:
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Get host (domain)
+        host = request.get_host().lower()
+
+        # Check domain and path
+        if host == "player.fwc2025.in" and request.path == "/":
+            return redirect("/player-registration", permanent=True)
+
+        # Continue normal request handling
+        response = self.get_response(request)
+        return response
