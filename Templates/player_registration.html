@@ -496,8 +496,8 @@
                     <select name="country" id="countrySelect" style="width: 100%" class="{% if form.country.errors %}field-error{% endif %}">
                         <option value="">Select your country</option>
                         {% for country in form.country.field.queryset %}
-                            <option value="{{ country.country_id }}" 
-                                    {% if form.country.value == country.country_id %}selected{% endif %}>
+                             <option value="{{ country.country_id }}" 
+                                    {% if form.country.value|add:"0" == country.country_id %}selected{% endif %}>
                                 {{ country.country_name }}
                             </option>
                         {% endfor %}

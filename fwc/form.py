@@ -1,6 +1,6 @@
 from django import forms
 from .models import *
-import json
+import os
 
 class PlayerRegistrationForm(forms.ModelForm):
     # Make food_allergies required
@@ -50,6 +50,97 @@ class PlayerRegistrationForm(forms.ModelForm):
         self.fields['room_cleaning_preference'].required = True
         self.fields['country'].required = True
         self.fields['food_allergies'].required = True
+
+    def clean_fide_id(self):
+        fide_id = self.cleaned_data.get('fide_id')
+        
+        if not fide_id:
+            raise forms.ValidationError('FIDE ID is required.')
+            
+        # Check if FIDE ID is already registered in Players table
+        if Players.objects.filter(fide_id=fide_id).exists():
+            raise forms.ValidationError('This FIDE ID is already registered.')
+        
+        # Check if FIDE ID exists in FideIdMst table
+        try:
+            fide_record = FideIDMst.objects.get(fide_id=fide_id, status_flag=1)
+            self.fide_record = fide_record
+        except FideIDMst.DoesNotExist:
+            raise forms.ValidationError(
+                'Invalid FIDE ID. Please check your FIDE ID or contact administrators.'
+            )
+        
+        return fide_id
+
+    def clean_document(self):
+        document = self.cleaned_data.get('document')
+        if not document:
+            raise forms.ValidationError('Please upload a document.')
+        
+        # Get FIDE ID to prepend to filename
+        fide_id = self.cleaned_data.get('fide_id')
+        if fide_id and document:
+            # Get the original filename and extension
+            original_name = document.name
+            name, ext = os.path.splitext(original_name)
+            
+            # Create new filename with FIDE ID prefix
+            new_filename = f"{fide_id}_{original_name}"
+            
+            # Rename the file
+            document.name = new_filename
+        
+        return document
+
+    def clean(self):
+        """Override clean to capture all validation errors"""
+        cleaned_data = super().clean()
+        
+        # If there are validation errors, create audit log
+        if self.errors:
+            validation_errors = {}
+            for field, errors in self.errors.items():
+                validation_errors[field] = [str(error) for error in errors]
+            
+            self.create_audit_log(
+                submission_status='VALIDATION_ERROR',
+                error_message='Form validation failed',
+                validation_errors=validation_errors
+            )
+        
+        return cleaned_data
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if not email:
+            raise forms.ValidationError('Email is required.')
+        if Players.objects.filter(email=email).exists():
+            raise forms.ValidationError('This email is already registered.')
+        return email
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if not name:
+            raise forms.ValidationError('Player name is required.')
+        return name
+
+    def clean_food_allergies(self):
+        food_allergies = self.cleaned_data.get('food_allergies')
+        if not food_allergies:
+            raise forms.ValidationError('Please provide information about food allergies. If none, please write "None".')
+        return food_allergies
+
+    def clean_room_cleaning_preference(self):
+        preference = self.cleaned_data.get('room_cleaning_preference')
+        if not preference:
+            raise forms.ValidationError('Please select a room cleaning preference.')
+        return preference
+
+    def clean_country(self):
+        country = self.cleaned_data.get('country')
+        if not country:
+            raise forms.ValidationError('Please select your country.')
+        return country
 
     def create_audit_log(self, submission_status='SUCCESS', player_instance=None, error_message=None, validation_errors=None):
         """Create an audit log entry for this form submission"""
@@ -123,81 +214,6 @@ class PlayerRegistrationForm(forms.ModelForm):
             return None
 
 
-    def clean(self):
-        """Override clean to capture all validation errors"""
-        cleaned_data = super().clean()
-        
-        # If there are validation errors, create audit log
-        if self.errors:
-            validation_errors = {}
-            for field, errors in self.errors.items():
-                validation_errors[field] = [str(error) for error in errors]
-            
-            self.create_audit_log(
-                submission_status='VALIDATION_ERROR',
-                error_message='Form validation failed',
-                validation_errors=validation_errors
-            )
-        
-        return cleaned_data
-
-    def clean_fide_id(self):
-        fide_id = self.cleaned_data.get('fide_id')
-        
-        if not fide_id:
-            raise forms.ValidationError('FIDE ID is required.')
-            
-        if Players.objects.filter(fide_id=fide_id).exists():
-            raise forms.ValidationError('This FIDE ID is already registered.')
-        
-        try:
-            fide_record = FideIDMst.objects.get(fide_id=fide_id, status_flag=1)
-            self.fide_record = fide_record
-        except FideIDMst.DoesNotExist:
-            raise forms.ValidationError(
-                'Invalid FIDE ID. Please check your FIDE ID or contact administrators.'
-            )
-        
-        return fide_id
-
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if not email:
-            raise forms.ValidationError('Email is required.')
-        if Players.objects.filter(email=email).exists():
-            raise forms.ValidationError('This email is already registered.')
-        return email
-
-    def clean_name(self):
-        name = self.cleaned_data.get('name')
-        if not name:
-            raise forms.ValidationError('Player name is required.')
-        return name
-
-    def clean_food_allergies(self):
-        food_allergies = self.cleaned_data.get('food_allergies')
-        if not food_allergies:
-            raise forms.ValidationError('Please provide information about food allergies. If none, please write "None".')
-        return food_allergies
-
-    def clean_room_cleaning_preference(self):
-        preference = self.cleaned_data.get('room_cleaning_preference')
-        if not preference:
-            raise forms.ValidationError('Please select a room cleaning preference.')
-        return preference
-
-    def clean_country(self):
-        country = self.cleaned_data.get('country')
-        if not country:
-            raise forms.ValidationError('Please select your country.')
-        return country
-
-    def clean_document(self):
-        document = self.cleaned_data.get('document')
-        if not document:
-            raise forms.ValidationError('Please upload a document.')
-        return document
-
     def save(self, commit=True):
         """Override save to ensure audit log is created even if save fails"""
         instance = None
@@ -208,8 +224,8 @@ class PlayerRegistrationForm(forms.ModelForm):
             instance.status = Players.STATUS_ACTIVE
             
             # Generate loginname from email if not provided
-            # if not instance.loginname:
-            #     instance.loginname = self.cleaned_data['email'].split('@')[0]
+            if not instance.loginname:
+                instance.loginname = self.cleaned_data['email'].split('@')[0]
             
             # Set countryid from the country field
             instance.countryid = self.cleaned_data['country']
@@ -220,7 +236,7 @@ class PlayerRegistrationForm(forms.ModelForm):
             if commit:
                 instance.save()
                 
-                # Handle file upload
+                # Handle file upload - the filename already has FIDE ID prefix from clean_document method
                 document = self.cleaned_data.get('document')
                 if document:
                     instance.documents = document
@@ -238,8 +254,7 @@ class PlayerRegistrationForm(forms.ModelForm):
             # Create failed audit log with the error
             self.create_audit_log(
                 submission_status='FAILED',
-                player_instance=instance,  # instance might be None if save failed early
+                player_instance=instance,
                 error_message=str(e)
             )
-            # Re-raise the exception so the view can handle it
             raise e
