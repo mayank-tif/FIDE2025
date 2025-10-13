@@ -37,12 +37,10 @@
         
           <div class="complaint-body">
             <p class="complaint-description">{{ c.description }}</p>
-            {% if c.status != 'RESOLVED' %}
             <div class="remarks-section">
               <textarea class="remarks-input" placeholder="Write remarks..." data-complaint-id="{{ c.id }}"></textarea>
               <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="{{ c.id }}">Send</button>
             </div>
-            {% endif %}
 
             {% if c.conversations.all %}
                 {% for convo in c.conversations.all %}
@@ -102,34 +100,23 @@
       }
     });
 
-    // Update complaint status
-    document.querySelectorAll(".status-select").forEach(select => {
-      select.addEventListener("change", () => {
-        const id = select.dataset.complaintId;
-        const status = select.value;
-        fetch(`/complaints/${id}/update/`, {
-          method: "POST",
-          headers: { "X-CSRFToken": "{{ csrf_token }}" },
-          body: new URLSearchParams({ action: "update_status", status })
-        }).then(res => res.json()).then(data => {
-          alert(data.message)
-          window.location.reload();
-        });
-      });
-    });
-
     // Send remark
     document.querySelectorAll("[data-action='send-remark']").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.complaintId;
         const textarea = document.querySelector(`.remarks-input[data-complaint-id='${id}']`);
         const message = textarea.value.trim();
-        if (!message) return alert("Please enter a remark.");
+        // Also get the current status value
+        const statusSelect = document.querySelector(`.status-select[data-complaint-id='${id}']`);
+        const status = statusSelect ? statusSelect.value : "";
+        if (!message && !status) {
+          return alert("Please enter a remark or select a status.");
+        }
 
         fetch(`/complaints/${id}/update/`, {
           method: "POST",
           headers: { "X-CSRFToken": "{{ csrf_token }}" },
-          body: new URLSearchParams({ action: "add_remark", message })
+          body: new URLSearchParams({ status, message })
         })
         .then(res => res.json())
         .then(data => {

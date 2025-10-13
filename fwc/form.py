@@ -13,17 +13,17 @@ class PlayerRegistrationForm(forms.ModelForm):
     )
     
     document = forms.FileField(
-        required=True,
+        required=False,
         label='Express Check-in Documents'
     )
     
-    country = forms.ModelChoiceField(
-        queryset=CountryMst.objects.filter(status_flag=1),
-        required=True,
-        label="Country",
-        empty_label="Select your country",
-        widget=forms.Select(attrs={'class': 'country-select'})
-    )
+    # country = forms.ModelChoiceField(
+    #     queryset=CountryMst.objects.filter(status_flag=1),
+    #     required=True,
+    #     label="Country",
+    #     empty_label="Select your country",
+    #     widget=forms.Select(attrs={'class': 'country-select'})
+    # )
     
     class Meta:
         model = Players
@@ -48,8 +48,9 @@ class PlayerRegistrationForm(forms.ModelForm):
         self.fields['email'].required = True
         self.fields['fide_id'].required = True
         self.fields['room_cleaning_preference'].required = True
-        self.fields['country'].required = True
+        # self.fields['country'].required = True
         self.fields['food_allergies'].required = True
+        self.fields['document'].required = False
 
     def clean_fide_id(self):
         fide_id = self.cleaned_data.get('fide_id')
@@ -74,8 +75,8 @@ class PlayerRegistrationForm(forms.ModelForm):
 
     def clean_document(self):
         document = self.cleaned_data.get('document')
-        if not document:
-            raise forms.ValidationError('Please upload a document.')
+        # if not document:
+        #     raise forms.ValidationError('Please upload a document.')
         
         # Get FIDE ID to prepend to filename
         fide_id = self.cleaned_data.get('fide_id')
@@ -136,11 +137,11 @@ class PlayerRegistrationForm(forms.ModelForm):
             raise forms.ValidationError('Please select a room cleaning preference.')
         return preference
 
-    def clean_country(self):
-        country = self.cleaned_data.get('country')
-        if not country:
-            raise forms.ValidationError('Please select your country.')
-        return country
+    # def clean_country(self):
+    #     country = self.cleaned_data.get('country')
+    #     if not country:
+    #         raise forms.ValidationError('Please select your country.')
+    #     return country
 
     def create_audit_log(self, submission_status='SUCCESS', player_instance=None, error_message=None, validation_errors=None):
         """Create an audit log entry for this form submission"""
@@ -157,11 +158,11 @@ class PlayerRegistrationForm(forms.ModelForm):
                         'content_type': form_data['document'].content_type
                     }
                 # Handle country object
-                if 'country' in form_data and form_data['country']:
-                    form_data['country'] = {
-                        'id': form_data['country'].country_id,
-                        'name': form_data['country'].country_name
-                    }
+                # if 'country' in form_data and form_data['country']:
+                #     form_data['country'] = {
+                #         'id': form_data['country'].country_id,
+                #         'name': form_data['country'].country_name
+                #     }
             else:
                 # Use raw form data if cleaned_data is not available
                 form_data = dict(self.data)
@@ -169,7 +170,6 @@ class PlayerRegistrationForm(forms.ModelForm):
                 form_data.pop('csrfmiddlewaretoken', None)
             
             # Get request information
-            ip_address = None
             user_agent = None
             if self.request:
                 user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:500]  # Limit length
@@ -181,7 +181,7 @@ class PlayerRegistrationForm(forms.ModelForm):
                 'email': form_data.get('email'),
                 'fide_id': form_data.get('fide_id'),
                 'room_cleaning_preference': form_data.get('room_cleaning_preference'),
-                'countryid': form_data.get('country', {}).get('id') if isinstance(form_data.get('country'), dict) else None,
+                # 'countryid': form_data.get('country', {}).get('id') if isinstance(form_data.get('country'), dict) else None,
                 
                 # Additional form fields
                 'food_allergies': form_data.get('food_allergies'),
@@ -228,7 +228,7 @@ class PlayerRegistrationForm(forms.ModelForm):
                 instance.loginname = self.cleaned_data['email'].split('@')[0]
             
             # Set countryid from the country field
-            instance.countryid = self.cleaned_data['country']
+            # instance.countryid = self.cleaned_data['country']
             
             # Set other required fields with default values
             instance.status_flag = 1

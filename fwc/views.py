@@ -24,6 +24,7 @@ from datetime import datetime
 from django.db.models import Prefetch
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
+from django.core.files.base import ContentFile
 
 
 per_page = 50
@@ -209,6 +210,7 @@ class PlayerView(View):
                 created_on=timezone.now(),
                 status_flag=1,
                 countryid_id=country_id,
+                is_self_registered=False
             )
             log_user_activity(request, "Add Player", f"Player '{name}' added successfully")
 
@@ -273,6 +275,8 @@ class PlayerView(View):
             player.status_flag = 0
             player.updated_on = timezone.now()
             player.updated_by = request.session.get("loginid")
+            player.deactivated_by = request.session.get("loginid")
+            player.deactivated_on = timezone.now()
             player.save()
             log_user_activity(request, "Delete Player", f"Player '{player.name}' deleted successfully")
             return JsonResponse({"success": True, "message": "Player deleted successfully"})
@@ -292,34 +296,63 @@ class PlayerProfile(View):
         return render(request, self.template_name, {
             "player": player, 
             "countries": countries, 
-            "TransportationTypes": TransportationTypes})
+            "TransportationTypes": TransportationTypes
+        })
     
     
 class UpdatePlayerProfile(View):
     def post(self, request):
         player_id = request.POST.get("player_id")
+        print("request", request.POST)
         player = get_object_or_404(Players, id=player_id, status_flag=1)
-        print("request.POST", request.POST)
 
+        fide_id = request.POST.get("fide_id")
+        
+        # Check if FIDE ID exists in FideIDMst
+        if not FideIDMst.objects.filter(fide_id=fide_id).exists():
+            return JsonResponse({"success": False, "error": "FIDE ID does not exist."})
+        
+        # Check if FIDE ID is already assigned to another player
+        if Players.objects.filter(fide_id=fide_id).exclude(id=player_id).exists():
+            return JsonResponse({"success": False, "error": "This FIDE ID is already registered with another player."})
+
+        # Update player details
         player.name = request.POST.get("name")
-        player.fide_id = request.POST.get("fideId")
+        player.fide_id = fide_id
         player.age = request.POST.get("age")
         player.gender = request.POST.get("gender")
         player.email = request.POST.get("email")
         player.status = request.POST.get("status")
         player.countryid_id = request.POST.get("country")
+        player.details = request.POST.get("food_allergies", player.details)
+        player.room_cleaning_preference = request.POST.get("room_cleaning_preference", player.room_cleaning_preference)
 
-        if "profile_pic" in request.FILES:
+        # Handle profile picture upload
+        if "profile_pic" in request.FILES: 
             player.image = request.FILES["profile_pic"]
 
+        # Handle documents upload
+        if "documents" in request.FILES:
+            document = request.FILES["documents"]
+            original_name = document.name
+            extension = os.path.splitext(original_name)[1]  # Get file extension
+            new_name = f"{fide_id}_{original_name}"
+            
+            # Save file with new name
+            player.documents.save(new_name, ContentFile(document.read()), save=False)
+
+        # Set update timestamp and user
+        player.updated_on = timezone.now()
+        player.updated_by = request.session.get("loginid")
         player.save()
 
         data = {"success": True}
         if player.image:
-            data["profile_pic_url"] = player.image.url
-            
-        log_user_activity(request, "Update Player Profile", f"Player '{player.name}' profile updated successfully")
+            data["image_url"] = player.image.url
+        if player.documents:
+            data["documents_url"] = player.documents.url
 
+        log_user_activity(request, "Update Player Profile", f"Player '{player.name}' profile updated successfully")
         return JsonResponse(data)
     
     
@@ -353,7 +386,7 @@ class PlayerTransportView(View):
             details = data.get("details")
             transport_type_id = data.get("transportation_type")
             remarks = data.get("remarks")
-            status = data.get("status", PlayerTransportationDetails.STATUS_PENDING)
+            status = data.get("status", PlayerTransportationDetails.STATUS_IN_TRANSIT)
             player = Players.objects.filter(id=player_id).first()
 
             # Get TransportationType object
@@ -434,23 +467,20 @@ class ComplaintUpdateView(View):
 
     def post(self, request, complaint_id):
         complaint = get_object_or_404(PlayerComplaint, id=complaint_id)
-        action = request.POST.get("action")
+        new_status = request.POST.get("status")
+        message = request.POST.get("message")
+        print("new_status", new_status, "message", message)
 
-        if action == "update_status":
-            new_status = request.POST.get("status")
+        if new_status:
             complaint.status = new_status
             complaint.save()
             log_user_activity(request, "Update Complaint Status", f"Complaint ID({complaint_id}) status updated to {new_status}")
-            return JsonResponse({"success": True, "message": "Status updated successfully."})
-
-        elif action == "add_remark":
-            message = request.POST.get("message")
+        if message:
             sender = MstUserLogins.objects.get(id=request.session.get("loginid"), status_flag=1)
             PlayerComplaintConversation.objects.create(complaint=complaint, sender_user=sender, message=message)
             log_user_activity(request, "Add Remark", f"Complaint ID({complaint_id}) remark added")
-            return JsonResponse({"success": True, "message": "Remark added successfully."})
-
-        return JsonResponse({"success": False, "message": "Invalid action."})
+            
+        return JsonResponse({"success": True, "message": "Complaint updated successfully."})
     
 
 class AnnouncementListView(View):
@@ -664,7 +694,7 @@ class UserActivityLogView(TemplateView):
                 Q(description__icontains=search)
             )
 
-        paginator = Paginator(logs, 3)
+        paginator = Paginator(logs, per_page)
         page_obj = paginator.get_page(page)
 
         return render(request, self.template_name, {

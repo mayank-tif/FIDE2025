@@ -12,88 +12,124 @@
     {% include 'sidebar.html' %}
     <main class="main-content">
       <div class="profile-page">
-    <div class="profile-header">
-      {% comment %} <button class="btn-back" onclick="window.location.href='players.html'">← Back</button> {% endcomment %}
-      <h1 id="profile-player-name">{{ player.name }}</h1>
-      <div class="profile-tabs">
-        <button class="tab-btn active" data-tab="profile">Profile</button>
-        <button class="tab-btn" data-tab="transportation">Transportation</button>
-        <button class="tab-btn" data-tab="hotels">Hotels</button>
-        <button class="tab-btn" data-tab="matches">Matches Tracker</button>
-      </div>
-    </div>
-
-    <!-- Profile Tab -->
-    <div id="tab-profile" class="tab-content active">
-      <div class="profile-card">
-        <div class="profile-photo-section">
-          <div class="profile-avatar" id="profile-avatar" data-initials="{{ player.name|slice:":2" }}">
-            {% if player.image %}
-              <img id="avatar-img" src="{{ player.image.url }}" alt="Profile Photo">
-            {% endif %}
+        <div class="profile-header">
+          <h1 id="profile-player-name">{{ player.name }}</h1>
+          <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="profile">Profile</button>
+            <button class="tab-btn" data-tab="transportation">Transportation</button>
           </div>
-          <button class="btn btn--secondary" id="upload-photo-btn">Upload Photo</button>
-          <input type="file" id="upload-photo-input" accept="image/*" style="display: none;">
-          <small>JPG, PNG max 2MB</small>
         </div>
-        <form id="profile-form" class="profile-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="profile-name">Name</label>
-              <input type="text" id="profile-name" name="name" value="{{ player.name }}" required>
+
+        <!-- Profile Tab -->
+        <div id="tab-profile" class="tab-content active">
+          <div class="profile-card">
+            <div class="profile-photo-section">
+              <div class="profile-avatar" id="profile-avatar" data-initials="{{ player.name|slice:':2' }}">
+                {% if player.image %}
+                  <img id="avatar-img" src="{{ player.image.url }}" alt="Profile Photo">
+                {% endif %}
+              </div>
+              <button class="btn btn--secondary" id="upload-photo-btn">Upload Photo</button>
+              <input type="file" id="upload-photo-input" accept="image/*" style="display: none;">
+              <small>JPG, PNG max 2MB</small>
             </div>
-            <div class="form-group">
-              <label for="profile-name">FIDE ID</label>
-              <input type="text" id="fide_id" name="fide_id" value="{{ player.fide_id }}" required>
-            </div>
-            <div class="form-group">
-              <label for="profile-age">Age</label>
-              <input type="number" id="profile-age" name="age" value="{{ player.age }}" required>
-            </div>
-            <div class="form-group">
-              <label for="profile-gender">Gender</label>
-              <select id="profile-gender" name="gender" required>
-                  <option value="Male" {% if player.gender == 'Male' %}selected{% endif %}>Male</option>
-                  <option value="Female" {% if player.gender == 'Female' %}selected{% endif %}>Female</option>
-                  <option value="Other" {% if player.gender == 'Other' %}selected{% endif %}>Other</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="profile-country">Country</label>
-              <select id="profile-country" name="country" required>
-                  {% for country in countries %}
+            <form id="profile-form" class="profile-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-name">Name</label>
+                  <input type="text" id="profile-name" name="name" value="{{ player.name }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="profile-fide-id">FIDE ID</label>
+                  <input type="text" id="profile-fide-id" name="fide_id" value="{{ player.fide_id }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="profile-age">Age</label>
+                  <input type="number" id="profile-age" name="age" value="{{ player.age }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="profile-gender">Gender</label>
+                  <select id="profile-gender" name="gender" required>
+                    <option value="MALE" {% if player.gender == 'MALE' %}selected{% endif %}>Male</option>
+                    <option value="FEMALE" {% if player.gender == 'FEMALE' %}selected{% endif %}>Female</option>
+                    <option value="OTHER" {% if player.gender == 'OTHER' %}selected{% endif %}>Other</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-country">Country</label>
+                  <select id="profile-country" name="country" required>
+                    {% for country in countries %}
                       <option value="{{ country.country_id }}" {% if player.countryid_id == country.country_id %}selected{% endif %}>
-                          {{ country.country_name }}
+                        {{ country.country_name }}
                       </option>
-                  {% endfor %}
-              </select>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="profile-email">Email</label>
+                  <input type="email" id="profile-email" name="email" value="{{ player.email }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="profile-status">Status</label>
+                  <select id="profile-status" name="status" required>
+                    <option value="ACTIVE" {% if player.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                    <option value="DEPARTED" {% if player.status == 'DEPARTED' %}selected{% endif %}>Departed</option>
+                    <option value="KNOCKED_OUT" {% if player.status == 'KNOCKED_OUT' %}selected{% endif %}>Knocked Out</option>
+                  </select>
+                </div>
+              </div>
 
-            </div>
-            <div class="form-group">
-              <label for="profile-email">Email</label>
-              <input type="email" id="profile-email" name="email" value="{{ player.email }}" required>
-            </div>
-            <div class="form-group">
-              <label for="profile-status">Status</label>
-              <select id="profile-status" name="status" required>
-                  <option value="IN_PROGRESS" {% if player.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
-                  <option value="ACTIVE" {% if player.status == 'ACTIVE' %}selected{% endif %}>Active</option>
-                  <option value="DEPARTED" {% if player.status == 'DEPARTED' %}selected{% endif %}>Departed</option>
-                  <option value="KNOCKED_OUT" {% if player.status == 'KNOCKED_OUT' %}selected{% endif %}>Knocked Out</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn--primary">Save Changes</button>
-            <button type="button" class="btn btn--secondary">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <!-- New Fields from Registration Form -->
+              <div class="form-row">
+                <div class="form-group full-width">
+                  <label for="profile-food-allergies">Food Allergies & Dietary Restrictions</label>
+                  <textarea id="profile-food-allergies" name="food_allergies" rows="3" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'." required>{{ player.details|default:'' }}</textarea>
+                </div>
+              </div>
 
-    <!-- Transportation Tab -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profile-room-cleaning">Room Cleaning Preference</label>
+                  <select id="profile-room-cleaning" name="room_cleaning_preference" required>
+                    <option value="MORNING" {% if player.room_cleaning_preference == 'AFTERNOON' %}selected{% endif %}>Between 3:00 PM – 6:00 PM (during game hours)</option>
+                    <option value="AFTERNOON" {% if player.room_cleaning_preference == 'MORNING' %}selected{% endif %}>Morning slot (while you are likely to be in the room)</option>
+                    <option value="EVENING" {% if player.room_cleaning_preference == 'EVENING' %}selected{% endif %}>Evening slot (after games, while you are likely to be in the room)</option>
+                    <option value="AT_HOTEL" {% if player.room_cleaning_preference == 'AT_HOTEL' %}selected{% endif %}>Will give instructions at hotel</option>                  
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Documents</label>
+                  <div class="documents-section">
+                    {% if player.documents %}
+                      <div class="document-item">
+                        <span>📝</span>
+                        <a href="{{ player.documents.url }}" target="_blank" class="btn btn--small btn--secondary">View</a>
+                      </div>
+                    {% else %}
+                      <div class="document-item">
+                        <span>No documents uploaded</span>
+                      </div>
+                    {% endif %}
+                    <button type="button" class="btn btn--small btn--secondary upload-new-btn" id="upload-document-btn">
+                      Upload New Document
+                    </button>
+                    <input type="file" id="upload-document-input" name="document" accept=".pdf,image/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn--primary">Save Changes</button>
+                <button type="button" class="btn btn--secondary" onclick="window.history.back()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+            <!-- Transportation Tab -->
     <div id="tab-transportation" class="tab-content">
       <div class="profile-card">
         <h3>Add Transportation Details</h3>
@@ -127,11 +163,16 @@
             <div class="form-group">
               <label for="status-type">Status</label>
               <select id="status-type" name="status" required>
-                <option value="">Select</option>
-                <option value="PENDING">Pending</option>
-                <option value="IN_TRANSIT">In Transit</option>
-                <option value="COMPLETED">Completed</option>
+                  <option value="">Select Status</option>
+                  <option value="ARRIVED_AIRPORT">Arrived at Airport</option>
+                  <option value="ENTROUTE_HOTEL">Entroute to Hotel</option>
+                  <option value="REACHED_HOTEL">Reached Hotel</option>
+                  <option value="IN_TRANSIT">In Transit</option>
+                  <option value="REACHED_DESTINATION">Reached Destination</option>
+                  <option value="DEPARTED_AIRPORT">Departed for Airport</option>
+                  <option value="REACHED_AIRPORT_DEPARTURE">Reached Airport for Departure</option>
               </select>
+
             </div>
             <div class="form-group">
               <label for="transport-remarks">Remarks</label>
@@ -149,109 +190,11 @@
         <h3>Transportation Details</h3>
         <ul id="transport-log" class="item-log">
         </ul>
-      </div>
-    </div>
+      </div
 
-    <!-- Hotels Tab -->
-    <div id="tab-hotels" class="tab-content">
-      <div class="profile-card">
-        <h3>Add Hotel Details</h3>
-        <form id="hotel-form" class="profile-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="hotel-pickup">Pick-Up Location</label>
-              <input type="text" id="hotel-pickup" name="pickup" placeholder="e.g., Airport Terminal 2" required>
-            </div>
-            <div class="form-group">
-              <label for="hotel-dropoff">Drop-Off Location</label>
-              <input type="text" id="hotel-dropoff" name="dropoff" placeholder="e.g., Hotel Grand Royale" required>
-            </div>
-            <div class="form-group">
-              <label for="hotel-details">Cab/Shuttle Details</label>
-              <input type="text" id="hotel-details" name="details" placeholder="e.g., Silver Cab - XL123" required>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="hotel-type">Transportation Type</label>
-              <select id="hotel-type" name="type" required>
-                <option value="">Select</option>
-                <option value="Airport">Airport</option>
-                <option value="Hotel">Hotel</option>
-                <option value="Match">Match</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="hotel-remarks">Remarks</label>
-              <input type="text" id="hotel-remarks" name="remarks" placeholder="Enter any additional details">
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn--primary">Save Changes</button>
-            <button type="button" class="btn btn--secondary">Cancel</button>
-          </div>
-        </form>
       </div>
 
-      <div class="profile-card">
-        <h3>Hotel Details</h3>
-        <ul id="hotel-log" class="item-log">
-        </ul>
-      </div>
-    </div>
-
-    <!-- Matches Tracker Tab -->
-    <div id="tab-matches" class="tab-content">
-      <div class="profile-card">
-        <h3>Add Matches Tracker Details</h3>
-        <form id="match-form" class="profile-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="match-pickup">Pick-Up Location</label>
-              <input type="text" id="match-pickup" name="pickup" placeholder="e.g., Airport Terminal 2" required>
-            </div>
-            <div class="form-group">
-              <label for="match-dropoff">Drop-Off Location</label>
-              <input type="text" id="match-dropoff" name="dropoff" placeholder="e.g., Hotel Grand Royale" required>
-            </div>
-            <div class="form-group">
-              <label for="match-details">Cab/Shuttle Details</label>
-              <input type="text" id="match-details" name="details" placeholder="e.g., Silver Cab - XL123" required>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="match-type">Transportation Type</label>
-              <select id="match-type" name="type" required>
-                <option value="">Select</option>
-                <option value="Airport">Airport</option>
-                <option value="Hotel">Hotel</option>
-                <option value="Match">Match</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="match-remarks">Remarks</label>
-              <input type="text" id="match-remarks" name="remarks" placeholder="Enter any additional details">
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn--primary">Save Changes</button>
-            <button type="button" class="btn btn--secondary">Cancel</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="profile-card">
-        <h3>Matches Tracker Details</h3>
-        <ul id="match-log" class="item-log">
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <template id="tpl-transport-item">
+      <template id="tpl-transport-item">
     <li class="item-entry" data-pickup="" data-dropoff="" data-type="" data-details="" data-remarks="" data-status="">
       <div class="item-line">
         <div>
@@ -264,37 +207,115 @@
       </div>
     </li>
   </template>
-
-  <template id="tpl-hotel-item">
-    <li class="item-entry">
-      <div class="item-line">
-        <div>
-          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
-        </div>
-        <span class="badge badge--completed">Completed</span>
-      </div>
-      <div class="item-actions">
-        <button class="btn btn--small btn--edit" data-action="edit-hotel">Edit</button>
-      </div>
-    </li>
-  </template>
-
-  <template id="tpl-match-item">
-    <li class="item-entry">
-      <div class="item-line">
-        <div>
-          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
-        </div>
-        <span class="badge badge--completed">Completed</span>
-      </div>
-      <div class="item-actions">
-        <button class="btn btn--small btn--edit" data-action="edit-match">Edit</button>
-      </div>
-    </li>
-  </template>
-      </div>
     </main>
   </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const profileForm = document.getElementById("profile-form");
+      const uploadBtn = document.getElementById("upload-photo-btn");
+      const uploadInput = document.getElementById("upload-photo-input");
+      const uploadDocBtn = document.getElementById("upload-document-btn");
+      const uploadDocInput = document.getElementById("upload-document-input");
+      const avatarDiv = document.getElementById("profile-avatar");
+      const csrfToken = "{{ csrf_token }}";
+      const playerId = "{{ player.id }}";
+
+      // Open file picker for profile photo
+      uploadBtn.addEventListener("click", () => uploadInput.click());
+
+      // Open file picker for document
+      uploadDocBtn.addEventListener("click", () => uploadDocInput.click());
+
+      // Preview selected profile image instantly
+      uploadInput.addEventListener("change", function() {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            let existingImg = document.getElementById("avatar-img");
+            if (existingImg) {
+              existingImg.src = e.target.result;
+            } else {
+              const img = document.createElement("img");
+              img.id = "avatar-img";
+              img.src = e.target.result;
+              img.alt = "Profile Photo";
+              avatarDiv.appendChild(img);
+            }
+          }
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+
+      // Handle document upload preview
+      uploadDocInput.addEventListener("change", function() {
+        if (this.files && this.files[0]) {
+          const fileName = this.files[0].name;
+          // You could add preview logic for documents here
+          console.log("Document selected:", fileName);
+        }
+      });
+
+      // Handle profile form submission
+      profileForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("player_id", playerId);
+        formData.append("name", profileForm.name.value);
+        formData.append("fide_id", profileForm.fide_id.value);
+        formData.append("age", profileForm.age.value);
+        formData.append("gender", profileForm.gender.value);
+        formData.append("country", profileForm.country.value);
+        formData.append("email", profileForm.email.value);
+        formData.append("status", profileForm.status.value);
+        formData.append("food_allergies", profileForm.food_allergies.value);
+        formData.append("room_cleaning_preference", profileForm.room_cleaning_preference.value);
+
+        if (uploadInput.files.length > 0) {
+          formData.append("profile_pic", uploadInput.files[0]);
+        }
+
+        if (uploadDocInput.files.length > 0) {
+          formData.append("documents", uploadDocInput.files[0]);
+        }
+
+        fetch("{% url 'update_player_profile' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": csrfToken },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert("Profile updated successfully!");
+            window.location.reload(true);
+          } else {
+            alert("Error updating profile: " + (data.error || "Please try again."));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Something went wrong.");
+        });
+      });
+
+      // Tab switching functionality
+      const tabs = document.querySelectorAll(".tab-btn");
+      const tabContents = document.querySelectorAll(".tab-content");
+
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.forEach(t => t.classList.remove("active"));
+          tabContents.forEach(c => c.classList.remove("active"));
+
+          tab.classList.add("active");
+          const tabId = "tab-" + tab.dataset.tab;
+          document.getElementById(tabId).classList.add("active");
+        });
+      });
+    });
+  </script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const transportForm = document.getElementById("transport-form");
@@ -378,99 +399,6 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(err => {
             console.error(err);
             alert("Something went wrong.");
-        });
-    });
-});
-</script>
-
-
-  <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const profileForm = document.getElementById("profile-form");
-    const uploadBtn = document.getElementById("upload-photo-btn");
-    const uploadInput = document.getElementById("upload-photo-input");
-    const avatarDiv = document.getElementById("profile-avatar");
-    const csrfToken = "{{ csrf_token }}";
-    const playerId = "{{ player.id }}";
-
-    // Open file picker
-    uploadBtn.addEventListener("click", () => uploadInput.click());
-
-    // Preview selected image instantly
-    uploadInput.addEventListener("change", function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Remove existing img if any
-                let existingImg = document.getElementById("avatar-img");
-                if (existingImg) {
-                    existingImg.src = e.target.result;
-                } else {
-                    const img = document.createElement("img");
-                    img.id = "avatar-img";
-                    img.src = e.target.result;
-                    img.alt = "Profile Photo";
-                    avatarDiv.appendChild(img);
-                }
-            }
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
-
-    profileForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-
-        const formData = new FormData();
-        formData.append("player_id", playerId);
-        formData.append("name", profileForm.name.value);
-        formData.append("fideId", profileForm.fide_id.value);
-        formData.append("age", profileForm.age.value);
-        formData.append("gender", profileForm.gender.value);
-        formData.append("country", profileForm.country.value);
-        formData.append("email", profileForm.email.value);
-        formData.append("status", profileForm.status.value);
-
-        if (uploadInput.files.length > 0) {
-            formData.append("profile_pic", uploadInput.files[0]);
-        }
-
-        fetch("{% url 'update_player_profile' %}", {
-            method: "POST",
-            headers: { "X-CSRFToken": csrfToken },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert("Profile updated successfully!");
-                window.location.reload(true);
-            } else {
-                alert("Error updating profile. Please try again.");
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Something went wrong.");
-        });
-    });
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const tabs = document.querySelectorAll(".tab-btn");
-    const tabContents = document.querySelectorAll(".tab-content");
-
-    tabs.forEach(tab => {
-        tab.addEventListener("click", () => {
-            // Remove 'active' from all tabs and contents
-            tabs.forEach(t => t.classList.remove("active"));
-            tabContents.forEach(c => c.classList.remove("active"));
-
-            // Add 'active' to clicked tab and corresponding content
-            tab.classList.add("active");
-            const tabId = "tab-" + tab.dataset.tab;
-            document.getElementById(tabId).classList.add("active");
         });
     });
 });

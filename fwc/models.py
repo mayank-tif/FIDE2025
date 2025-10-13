@@ -146,11 +146,13 @@ class Players(models.Model):
     ROOM_CLEANING_MORNING = "MORNING"
     ROOM_CLEANING_AFTERNOON = "AFTERNOON"
     ROOM_CLEANING_EVENING = "EVENING"
+    ROOM_CLEANING_AT_HOTEL = "AT_HOTEL"
 
     ROOM_CLEANING_CHOICES = [
         (ROOM_CLEANING_MORNING, "Morning"),
         (ROOM_CLEANING_AFTERNOON, "Afternoon"),
         (ROOM_CLEANING_EVENING, "Evening"),
+        (ROOM_CLEANING_AT_HOTEL, "At Hotel"),
     ]
     
     id = models.AutoField(primary_key=True)
@@ -165,11 +167,11 @@ class Players(models.Model):
     securepassword = models.CharField(max_length=200, null=True)
     cityid = models.IntegerField(null=True)
     stateid = models.IntegerField(null=True)
-    countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=False, db_column='countryId')
+    countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=True, blank=True, db_column='countryId')
     mobilenumber = models.CharField(max_length=15, null=True)
     deactivated_by = models.IntegerField(null=True)
     status_flag = models.IntegerField(default=1)
-    status = models.CharField(max_length=20,choices=STATUS_CHOICES,default=STATUS_ACTIVE,null=True)
+    status = models.CharField(max_length=50,choices=STATUS_CHOICES,default=STATUS_ACTIVE,null=True)
     gender = models.CharField(max_length=10,choices=GENDER_CHOICES,null=True,blank=True)
     deactivated_on = models.DateTimeField(null=True)
     last_log_id = models.IntegerField(null=True)
@@ -180,6 +182,7 @@ class Players(models.Model):
     updated_by = models.IntegerField(null=True)
     details = models.TextField(null=True)
     room_cleaning_preference = models.CharField(max_length=15,choices=ROOM_CLEANING_CHOICES,null=True,blank=True)
+    is_self_registered = models.BooleanField(default=True)
 
     def __str__(self):
         return self.loginname
@@ -208,14 +211,22 @@ class TransportationType(models.Model):
         
         
 class PlayerTransportationDetails(models.Model):
+    STATUS_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
+    STATUS_ENTROUTE_HOTEL = "ENTROUTE_HOTEL"
+    STATUS_REACHED_HOTEL = "REACHED_HOTEL"
     STATUS_IN_TRANSIT = "IN_TRANSIT"
-    STATUS_COMPLETED = "COMPLETED"
-    STATUS_PENDING = "PENDING"
+    STATUS_REACHED_DESTINATION = "REACHED_DESTINATION"
+    STATUS_DEPARTED_AIRPORT = "DEPARTED_AIRPORT"
+    STATUS_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
 
     STATUS_CHOICES = [
+        (STATUS_ARRIVED_AIRPORT, "Arrived at Airport"),
+        (STATUS_ENTROUTE_HOTEL, "Entroute to Hotel"),
+        (STATUS_REACHED_HOTEL, "Reached Hotel"),
         (STATUS_IN_TRANSIT, "In Transit"),
-        (STATUS_COMPLETED, "Completed"),
-        (STATUS_PENDING, "Pending"),
+        (STATUS_REACHED_DESTINATION, "Reached Destination"),
+        (STATUS_DEPARTED_AIRPORT, "Departed for Airport"),
+        (STATUS_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
     ]
     
     id = models.AutoField(primary_key=True)
@@ -225,7 +236,7 @@ class PlayerTransportationDetails(models.Model):
     drop_location = models.CharField(max_length=500)
     details = models.CharField(max_length=500)
     remarks = models.CharField(max_length=500)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT)
+    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
