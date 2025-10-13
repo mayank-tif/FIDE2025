@@ -223,9 +223,11 @@ class PlayerRegistrationForm(forms.ModelForm):
             # Set default values for required fields
             instance.status = Players.STATUS_ACTIVE
             
+            instance.details = self.cleaned_data.get('food_allergies', '')
+            
             # Generate loginname from email if not provided
-            if not instance.loginname:
-                instance.loginname = self.cleaned_data['email'].split('@')[0]
+            # if not instance.loginname:
+            #     instance.loginname = self.cleaned_data['email'].split('@')[0]
             
             # Set countryid from the country field
             # instance.countryid = self.cleaned_data['country']
