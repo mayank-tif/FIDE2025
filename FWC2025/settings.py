@@ -56,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'fwc.middleware.SessionCheckByMiddleware',
+    'fwc.middleware.DomainRedirectMiddleware',
 ]
 
 
