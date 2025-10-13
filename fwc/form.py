@@ -1,6 +1,11 @@
 from django import forms
 from .models import *
 import os
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+
+
 
 class PlayerRegistrationForm(forms.ModelForm):
     # Make food_allergies required
@@ -249,6 +254,30 @@ class PlayerRegistrationForm(forms.ModelForm):
                     submission_status='SUCCESS',
                     player_instance=instance
                 )
+                
+                
+            # Send welcome email
+            domain = self.request.get_host()
+            protocol = 'https' if self.request.is_secure() else 'http'
+            image_url = f"{protocol}://{domain}/static/email/FIDE_Elements-min.png"
+            
+            
+            html_message = render_to_string(
+               'welcome.html',
+               {
+                   'player_name': instance.name,
+                   'image_url': image_url
+               }
+            )
+
+            send_mail(
+                subject="Welcome to FIDE World Cup 2025",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[instance.email],
+                html_message=html_message,
+                fail_silently=False
+            )
             
             return instance
             

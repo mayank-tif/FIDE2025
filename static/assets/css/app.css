@@ -6,8 +6,8 @@
 }
 
 :root {
-  --primary: #3d7e47;
-  --primary-dark: #2d5e37;
+  --primary: #271F64;
+  --primary-dark: #271F64;
   --secondary: #e0e0e0;
   --danger: #dc3545;
   --success: #28a745;
@@ -27,7 +27,7 @@
   --restricted: #f8d7da;
   
   --bg-light: #f8f9fa;
-  --bg-dark: #2d3e2d;
+  --bg-dark: #271F64;
   --text: #333;
   --text-light: #666;
   --border: #ddd;

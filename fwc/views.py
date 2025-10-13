@@ -25,6 +25,7 @@ from django.db.models import Prefetch
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.core.files.base import ContentFile
+from FWC2025.env_details import *
 
 
 per_page = 50
@@ -38,7 +39,7 @@ class View_platformlogin(TemplateView):
             print("already logged in")
             return redirect("/home")
         msg = request.GET.get('msg', None)
-        return render(request,"login.html",{'msg': msg})
+        return render(request,"login.html",{'msg': msg, 'site_key': RECAPTCHA_SITE_KEY})
     
     def post(self, request):
         print("post")
@@ -50,10 +51,25 @@ class View_platformlogin(TemplateView):
         print("username", username)
 
         try:
+            # Get reCAPTCHA response from form
+            recaptcha_response = request.POST.get('g-recaptcha-response')
+
+            # Verify reCAPTCHA v3 response with Google
+            recaptcha_verify_url = "https://www.google.com/recaptcha/api/siteverify"
+            recaptcha_data = {
+                'secret': RECAPTCHA_SECRET_KEY,
+                'response': recaptcha_response
+            }
+            recaptcha_result = requests.post(recaptcha_verify_url, data=recaptcha_data).json()
+
+            # Check reCAPTCHA success and score (Google recommends 0.5+)
+            if not recaptcha_result.get("success") or recaptcha_result.get("score", 0) < 0.5:
+                return render(request, "index.html", {"message": "reCAPTCHA failed. Please try again.", "status": False, "site_key": RECAPTCHA_SITE_KEY})
+            
             if pd.isnull(username) or username == '' or username is None:
-                return render(request,"login.html",{'message': 'Username should not be empty..!', "status": False})
+                return render(request,"login.html",{'message': 'Username should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY})
             if pd.isnull(pswd) or pswd == '' or pswd is None:
-                return render(request,"login.html",{'message': 'Password should not be empty..!', "status": False})
+                return render(request,"login.html",{'message': 'Password should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY})
             
             if username is not None and pswd is not None:
                 user_dtls = MstUserLogins.objects.filter(loginname=username, securepassword=pswd,status_flag=1)
@@ -707,6 +723,11 @@ class PlayerRegistrationView(FormView):
     template_name = "player_registration.html"
     form_class = PlayerRegistrationForm
     success_url = reverse_lazy('player_registration')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         # Save the form data

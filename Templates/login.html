@@ -44,6 +44,9 @@
               required
             />
           </div>
+          <!-- Google reCAPTCHA -->
+          <!-- Hidden field for reCAPTCHA response -->
+          <input type="hidden" name="g-recaptcha-response" id="recaptchaResponse">
           <button type="submit" class="btn btn--primary btn--block btn--login">Sign In</button>
           <div class="error-message" id="error_message" style="display: none">
               Wrong Username or Password
@@ -77,6 +80,20 @@
           }
 
         });
+    </script>
+      <!-- Load Google reCAPTCHA v3 script -->
+	<script src="https://www.google.com/recaptcha/api.js?render={{ site_key }}"></script>
+    <script>
+      document.getElementById("login-form").addEventListener("submit", function(event) {
+          event.preventDefault(); // Stop form submission
+      
+          grecaptcha.ready(function() {
+              grecaptcha.execute("{{ site_key }}", { action: "login" }).then(function(token) {
+                  document.getElementById("recaptchaResponse").value = token;
+                  document.getElementById("login-form").submit(); // Submit after getting the token
+              });
+          });
+      });
     </script>
   </body>
   
