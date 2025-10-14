@@ -266,6 +266,11 @@ class PlayerRegistrationForm(forms.ModelForm):
                'welcome.html',
                {
                    'player_name': instance.name,
+                   'fide_id': instance.fide_id,
+                   'email': instance.email,
+                   'food_allergies': instance.details,
+                   'room_cleaning_preference': instance.room_cleaning_preference,
+                   'document_file_name': os.path.basename(instance.documents.name) if instance.documents else None,
                    'image_url': image_url
                }
             )

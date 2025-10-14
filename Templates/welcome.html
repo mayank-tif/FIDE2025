@@ -75,48 +75,110 @@
 </head>
 
 <body style="text-align: center; margin: 0; padding-top: 10px; padding-bottom: 10px; padding-left: 0; padding-right: 0; -webkit-text-size-adjust: 100%;background-color: #241A4F; color: #000000" align="center">
+  
   <!-- Fallback force center content -->
   <div style="text-align: center;">
+
+    
      <!-- Start container for logo -->
     <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
       <tbody>
         <tr>
           <td style="width: 596px; vertical-align: top; padding-left: 0; padding-right: 0; padding-top: 15px; padding-bottom: 15px;" width="596">
-          <img style="width: 600px; max-width: 595px; height: 350px; max-height: 350px; text-align: center;" alt="Hero image" src="https://player.fwc2025.in/static/email/FIDE_Elements-min.png" align="center" width="600" height="350">
+
+       
+ <img style="width: 600px; max-width: 595px; height: 350px; max-height: 350px; text-align: center;" alt="FWC image" src="https://player.fwc2025.in/static/email/FIDE_Elements-min.png" align="center" width="600" height="350">
+   
           </td>
         </tr>
       </tbody>
     </table>
     <!-- End container for logo -->
+
+    
+    
     <!-- Start single column section -->
     <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
         <tbody>
           <tr>
             <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
-              <h1 style="font-size: 20px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #000000;">Dear {{player_name}},</h1>
-              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">Thank you for providing your details for the Express Check-In for the 2025 FIDE Chess World Cup.</p>              
+
+              <h1 style="font-size: 20px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #000000;">
+                Dear {{player_name}},
+              </h1>
+
+              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">
+                Thank you for providing your details for the Express Check-In for the 2025 FIDE Chess World Cup.
+              </p>
+              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">Below are the details submitted:</p>    
+              <!-- Info Table Start -->
+              <table align="center" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; border-collapse: collapse;">
+                <tbody>
+                  <tr style="background-color: #F4F4F4;">
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Player Name</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ player_name }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">FIDE ID</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ fide_id }}</td>
+                  </tr>
+                  <tr style="background-color: #F4F4F4;">
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Email</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ email }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Food Allergies / Dietary Restrictions</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ food_allergies }}</td>
+                  </tr>
+                  <tr style="background-color: #F4F4F4;">
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Room Cleaning Preference</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ room_cleaning_preference }}</td>
+                  </tr>
+                  {% if document_file_name %}
+                  <tr>
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Uploaded Document</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ document_file_name }}</td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+              <!-- Info Table End -->
+          
+
+              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">
+                We look forward to welcoming you to the 2025 FIDE Chess World Cup and wish you a great tournament ahead!
+              </p>
+
               <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;"></p>              
+              
             </td>
           </tr>
         </tbody>
       </table>
       <!-- End single column section -->
+      
+     
+   
+   
       <!-- Start footer -->
-      <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #FDB813;" width="600">
+      <!--<table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #FDB813;" width="600">
         <tbody>
           <tr>
-            <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 30px;" width="596">
+            <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 30px;" width="596">-->
+
               <!-- Your inverted logo is here -->
-              <p style="font-size: 13px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #ffffff;">
-              </p>
-              <p style="margin-bottom: 0; font-size: 13px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #ffffff;">
-                <a target="_blank" style="text-decoration: underline; color: #ffffff;" href="fcw2025.in">
-                </a>
-              </p>
+              <!--<p style="font-size: 13px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #ffffff;">
+              </p>-->
+
+              <!--<p style="margin-bottom: 0; font-size: 13px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #ffffff;">-->
+                <!--<a target="_blank" style="text-decoration: underline; color: #ffffff;" href="fcw2025.in">
+                </a>-->
+              <!--</p>
+
             </td>
           </tr>
         </tbody>
-      </table>
+      </table>-->
       <!-- End footer -->
     
     

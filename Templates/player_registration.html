@@ -441,6 +441,33 @@
                 width: 150px;
             }
         }
+        #loaderOverlay {
+          display: none; /* Hidden by default */
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(255,255,255,0.8);
+          z-index: 9999;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .loader {
+          border: 6px solid #f3f3f3;
+          border-top: 6px solid #271F64;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 <body>
@@ -450,25 +477,18 @@
                <img src="{% static 'assets/images/FIDE_Elements-min.png' %}" alt="FIDE World Cup Logo">
             </div>
 
-            {% comment %} <div class="chess-pieces">
-                <img src="{% static 'assets/images/fidde-login.png' %}" alt="Chess Pieces" style="max-width: 280px;">
-            </div> {% endcomment %}
-
-            <h1>2025 FIDE WORLD CUP</h1>
-            <p>Welcome to the official player registration portal for the FIDE World Cup 2025 in Goa, India.</p>
+            <br>
 
             <div class="event-details">
-                <h3>GOA, INDIA</h3>
+                <br>
                 <p>30 October - 27 November 2025</p>
             </div>
         </div>
 
         <div class="right-panel">
             <div class="form-header">
-                <h2>Player Registration</h2>
-                <p>Register to participate in the FIDE World Cup 2025</p>
-                <br>
-                <p>Player Information for Express Checkin</p>
+                <p style="color: #271F64"><b>Player Information for Express Checkin</b></p>
+
             </div>
 
             {% if messages %}
@@ -481,6 +501,14 @@
 
             <form id="registrationForm" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="required-field">Player FIDE ID</label>
+                    <input type="text" id="fide_id" name="fide_id" value="{{ form.fide_id.value|default:'' }}" placeholder="Enter your FIDE ID" class="{% if form.fide_id.errors %}field-error{% endif %}">
+                    {% if form.fide_id.errors %}
+                        <div class="error-message">{{ form.fide_id.errors.0 }}</div>
+                    {% endif %}
+                </div>
                 
                 <div class="form-group">
                     <label class="required-field">Player Name</label>
@@ -514,13 +542,7 @@
                     {% endif %}
                 </div> {% endcomment %}
 
-                <div class="form-group">
-                    <label class="required-field">Player FIDE ID</label>
-                    <input type="text" name="fide_id" value="{{ form.fide_id.value|default:'' }}" placeholder="Enter your FIDE ID" class="{% if form.fide_id.errors %}field-error{% endif %}">
-                    {% if form.fide_id.errors %}
-                        <div class="error-message">{{ form.fide_id.errors.0 }}</div>
-                    {% endif %}
-                </div>
+                
 
                 <div class="form-group">
                     <label class="">Express Check-in Documents</label>
@@ -579,7 +601,7 @@
                     {% endif %}
                 </div>
 
-                <button type="submit" class="submit-btn">Submit Registration</button>
+                <button type="submit" class="submit-btn">Submit Information </button>
             </form>
         </div>
     </div>
@@ -597,6 +619,8 @@
         
         const fileInput = document.getElementById('fileUpload');
         const fileName = document.getElementById('fileName');
+        const loader = document.getElementById("loaderOverlay");
+        const submitBtn = document.querySelector(".submit-btn");
         
         if (fileInput) {
             fileInput.addEventListener('change', function(e) {
@@ -810,9 +834,22 @@
                 return;
             }
 
+            // ✅ Show loader overlay
+            loader.style.display = "flex";
+
+            // ✅ Disable submit button to prevent multiple clicks
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting...";
+
             // If no errors, submit the form programmatically
             this.submit();
         });
+
+        window.addEventListener("pageshow", function() {
+    loader.style.display = "none";
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit";
+  });
 
         // Email validation function
         function isValidEmail(email) {
@@ -846,6 +883,9 @@
         //    clearFieldError(this);
         //});
     });
-</script>
+    </script>
+    <div id="loaderOverlay">
+  <div class="loader"></div>
+</div>
 </body>
 </html>
