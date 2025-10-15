@@ -639,7 +639,7 @@
                     <label class="">Please upload the following documents for players and accompanying persons</label>
                     <div class="helper-text">Any Photo ID for Indian Nationals and Passport for Foreign Nationals</div>
                     <div class="file-upload-wrapper {% if form.documents.errors %}field-error{% endif %}">
-                        <div class="file-upload-multiple" id="fileUploadArea"
+                        <div class="file-upload-multiple" id="fileUploadArea">
                             <div class="file-label">
                                 <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#5a8372" stroke-width="2" style="margin: 0 auto 8px;">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -650,7 +650,7 @@
                                 <div style="font-size: 11px; margin-top: 3px;">PDF or Image files (Max 10 MB per file)</div>
                                 <div style="font-size: 11px; margin-top: 2px;">You can select multiple files</div>
                             </div>
-                        </label>
+                        </div>
                         <input type="file" id="fileUpload" name="documents" accept=".pdf,image/*" multiple style="display: none;">
                         <div class="file-list" id="fileList"></div>
                     </div>
@@ -703,39 +703,40 @@
     <script>
     $(document).ready(function() {    
         const fileInput = document.getElementById('fileUpload');
-        const fileName = document.getElementById('fileName');
+        const fileUploadArea = document.getElementById('fileUploadArea'); // Added this line
+        const fileList = document.getElementById('fileList'); // Added this line
         const loader = document.getElementById("loaderOverlay");
         const submitBtn = document.querySelector(".submit-btn");
         
         let selectedFiles = [];
-
+        
         // File upload area click handler
         fileUploadArea.addEventListener('click', function() {
             fileInput.click();
         });
-
+    
         // Drag and drop functionality
         fileUploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
             fileUploadArea.classList.add('dragover');
         });
-
+    
         fileUploadArea.addEventListener('dragleave', function(e) {
             e.preventDefault();
             fileUploadArea.classList.remove('dragover');
         });
-
+    
         fileUploadArea.addEventListener('drop', function(e) {
             e.preventDefault();
             fileUploadArea.classList.remove('dragover');
             handleFiles(e.dataTransfer.files);
         });
-
+    
         // File input change handler
         fileInput.addEventListener('change', function(e) {
             handleFiles(this.files);
         });
-
+    
         function handleFiles(files) {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -752,9 +753,24 @@
                 }
             }
             updateFileList();
+            updateFileInput(); // Add this line to update the actual file input
             clearFieldError(fileInput);
         }
-
+    
+        // NEW FUNCTION: Update the actual file input with all selected files
+        function updateFileInput() {
+            // Create a new DataTransfer object
+            const dataTransfer = new DataTransfer();
+            
+            // Add all selected files to the DataTransfer object
+            selectedFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            
+            // Update the file input with the new FileList
+            fileInput.files = dataTransfer.files;
+        }
+    
         function updateFileList() {
             fileList.innerHTML = '';
             
@@ -779,13 +795,14 @@
                 
                 fileList.appendChild(fileItem);
             });
-
+        
             // Add remove file handlers
             document.querySelectorAll('.remove-file').forEach(button => {
                 button.addEventListener('click', function() {
                     const index = parseInt(this.getAttribute('data-index'));
                     selectedFiles.splice(index, 1);
                     updateFileList();
+                    updateFileInput(); // Update file input when removing files
                 });
             });
         }
@@ -988,6 +1005,9 @@
                 }
                 return;
             }
+
+            // ✅ Ensure file input is updated before submission
+            updateFileInput();
 
             // ✅ Show loader overlay
             loader.style.display = "flex";

@@ -122,6 +122,8 @@ class RoleBasedAccessMiddleware:
         # Allowed URLs for Role ID 3
         self.allowed_urls_role_3 = {
             'roaster_list',
+            'add_roaster',
+            'edit_roaster',
             'login',
             'logout',
         }
