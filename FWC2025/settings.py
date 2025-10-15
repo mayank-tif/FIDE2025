@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'fwc.middleware.SessionCheckByMiddleware',
     'fwc.middleware.DomainRedirectMiddleware',
+    'fwc.middleware.RoleBasedAccessMiddleware',
 ]
 
 

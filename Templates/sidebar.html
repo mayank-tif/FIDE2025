@@ -4,36 +4,153 @@
     <img src="{% static 'assets/images/fide-world-cup-logo.png' %}" alt="Logo" width="60" height="60">
   </div>
   <nav class="sidebar-nav">
-    <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-      <span class="nav-icon">📊</span>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' %}active{% endif %}">
-      <span class="nav-icon">👥</span>
-      <span>Players</span>
-    </a>
-    <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
-      <span class="nav-icon">📋</span>
-      <span>Complaints</span>
-    </a>
-    <a href="{% url 'announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
-      <span class="nav-icon">📢</span>
-      <span>Announcements</span>
-    </a>
-    <a href="{% url 'manage_users' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_users' %}active{% endif %}">
-      <span class="nav-icon">🛡️</span>
-      <span>Users</span>
-    </a>
-    <a href="{% url 'activity_log' %}" class="nav-link {% if request.resolver_match.url_name == 'activity_log' %}active{% endif %}">
-      <span class="nav-icon">🧑‍💻</span>
-      <span>Users Activity</span>
-    </a>
+    {% if request.session.roleid == 1 %}
+      <!-- Admin sees all -->
+      <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' %}active{% endif %}">
+        <span class="nav-icon">👥</span>
+        <span>Players</span>
+      </a>
+      <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
+        <span class="nav-icon">📋</span>
+        <span>Complaints</span>
+      </a>
+      <a href="{% url 'announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
+        <span class="nav-icon">📢</span>
+        <span>Announcements</span>
+      </a>
+      <a href="{% url 'manage_users' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_users' %}active{% endif %}">
+        <span class="nav-icon">🛡️</span>
+        <span>Users</span>
+      </a>
+      <a href="{% url 'activity_log' %}" class="nav-link {% if request.resolver_match.url_name == 'activity_log' %}active{% endif %}">
+        <span class="nav-icon">🧑‍💻</span>
+        <span>Users Activity</span>
+      </a>
+      <a href="{% url 'roaster_list' %}" class="nav-link {% if request.resolver_match.url_name == 'roaster_list' %}active{% endif %}">
+        <span class="nav-icon">🚗</span>
+        <span>Logistics</span>
+      </a>
+    {% elif request.session.roleid == 2 %}
+      <!-- Department sees only Complaints -->
+      <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
+        <span class="nav-icon">📋</span>
+        <span>Complaints</span>
+      </a>
+    {% elif request.session.roleid == 3 %}
+      <!-- Logistics sees only Roaster/Logistics -->
+      <a href="{% url 'roaster_list' %}" class="nav-link {% if request.resolver_match.url_name == 'roaster_list' %}active{% endif %}">
+        <span class="nav-icon">🚗</span>
+        <span>Logistics</span>
+      </a>
+    {% endif %}
   </nav>
-   <form method="post" action="{% url 'logout' %}" class="logout-form">
+
+  <form method="post" action="{% url 'logout' %}" id="logoutForm" class="logout-form">
     {% csrf_token %}
-    <button type="submit" class="btn btn--logout">
+    <button type="submit" id="logoutButton" class="btn btn--logout">
       <span>↪</span>
       <span>Logout</span>
     </button>
   </form>
 </aside>
+
+<!-- Modal HTML & JS remain the same as before -->
+
+
+<!-- Modal HTML -->
+<div id="logoutModal" class="logoutModal">
+  <div class="logoutModalContent">
+    <h3>Confirm Logout</h3>
+    <p>Are you sure you want to logout?</p>
+    <div class="logoutModalActions">
+      <button id="confirmLogout" class="btn btn--primary logout">Yes, Logout</button>
+      <button id="cancelLogout" class="btn btn--secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSS -->
+<style>
+.logoutModal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.logoutModal.show {
+  display: flex;
+}
+
+.logoutModalContent {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 8px;
+  text-align: center;
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.logoutModalActions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.logoutModalActions button {
+  min-width: 100px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+{% comment %} .logout { background: #4CAF50; color: white; } {% endcomment %}
+.btn--secondary { background: #f44336; color: white; }
+</style>
+
+
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+  const modal = $("#logoutModal");
+
+  $("#logoutButton").click(function(e) {
+    e.preventDefault(); // prevent default form submit
+    modal.addClass("show"); // show modal
+  });
+
+  $("#cancelLogout").click(function() {
+    modal.removeClass("show"); // hide modal
+  });
+
+  $("#confirmLogout").click(function() {
+    $("#logoutForm").submit(); // submit form
+  });
+
+  // Close modal if clicked outside modal content
+  $(window).click(function(e) {
+    if ($(e.target).is(modal)) {
+      modal.removeClass("show");
+    }
+  });
+});
+</script>

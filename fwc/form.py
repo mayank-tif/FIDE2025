@@ -6,6 +6,23 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [single_file_clean(d, initial) for d in data]
+        else:
+            result = single_file_clean(data, initial)
+        return result
+
+
 
 class PlayerRegistrationForm(forms.ModelForm):
     # Make food_allergies required
@@ -17,9 +34,19 @@ class PlayerRegistrationForm(forms.ModelForm):
         })
     )
     
-    document = forms.FileField(
+    documents = MultipleFileField(
         required=False,
-        label='Express Check-in Documents'
+        label='Express Check-in Documents',
+        help_text='You can select multiple files. Maximum 10MB per file.'
+    )
+    
+    accompanying_persons = forms.CharField(
+        required=False,
+        label='Are you traveling with any accompanying person(s)?',
+        widget=forms.TextInput(attrs={
+            'placeholder': '(e.g., John Doe, Jane Smith)',
+        }),
+        help_text='If traveling with family members or companions, please enter their full names separated by commas.'
     )
     
     # country = forms.ModelChoiceField(
@@ -33,17 +60,21 @@ class PlayerRegistrationForm(forms.ModelForm):
     class Meta:
         model = Players
         fields = [
-            'name', 'email', 'fide_id', 'room_cleaning_preference'
+            'name', 'email', 'fide_id', 'room_cleaning_preference', 'accompanying_persons'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'Enter your full name'}),
             'email': forms.EmailInput(attrs={'placeholder': 'Enter your email address'}),
             'fide_id': forms.NumberInput(attrs={'placeholder': 'Enter your FIDE ID'}),
+            'accompanying_persons': forms.TextInput(attrs={
+                'placeholder': '(e.g., John Doe, Jane Smith)'
+            }),
         }
         labels = {
             'name': 'Player Name',
             'fide_id': 'Player FIDE ID',
             'room_cleaning_preference': 'Room Cleaning Preference',
+            'accompanying_persons': 'Are you traveling with any accompanying person(s)?',
         }
     
     def __init__(self, *args, **kwargs):
@@ -55,7 +86,8 @@ class PlayerRegistrationForm(forms.ModelForm):
         self.fields['room_cleaning_preference'].required = True
         # self.fields['country'].required = True
         self.fields['food_allergies'].required = True
-        self.fields['document'].required = False
+        self.fields['documents'].required = False
+        self.fields['accompanying_persons'].required = False
 
     def clean_fide_id(self):
         fide_id = self.cleaned_data.get('fide_id')
@@ -78,25 +110,51 @@ class PlayerRegistrationForm(forms.ModelForm):
         
         return fide_id
 
-    def clean_document(self):
-        document = self.cleaned_data.get('document')
-        # if not document:
-        #     raise forms.ValidationError('Please upload a document.')
+    def clean_documents(self):
+        documents = self.cleaned_data.get('documents')
+        print("documents", documents)
+        if not documents:
+            return []
         
-        # Get FIDE ID to prepend to filename
-        fide_id = self.cleaned_data.get('fide_id')
-        if fide_id and document:
-            # Get the original filename and extension
-            original_name = document.name
-            name, ext = os.path.splitext(original_name)
-            
-            # Create new filename with FIDE ID prefix
-            new_filename = f"{fide_id}_{original_name}"
-            
-            # Rename the file
-            document.name = new_filename
+        if not isinstance(documents, list):
+            documents = [documents]
         
-        return document
+        total_size = 0
+        
+        for document in documents:
+            # Check file size for each document (10MB limit)
+            if document.size > 10 * 1024 * 1024:  # 10MB in bytes
+                raise forms.ValidationError(f'File "{document.name}" exceeds 10 MB size limit.')
+            
+            # Check file type
+            allowed_types = ['.pdf', '.jpg', '.jpeg', '.png', '.docs', '.docx']
+            file_ext = os.path.splitext(document.name)[1].lower()
+            if file_ext not in allowed_types:
+                raise forms.ValidationError(f'File "{document.name}" has invalid type. Allowed types: PDF, JPG, JPEG, PNG...')
+            
+            total_size += document.size
+        
+        # Check total size (50MB total limit)
+        if total_size > 50 * 1024 * 1024:  # 50MB total limit
+            raise forms.ValidationError('Total file size exceeds 50 MB limit.')
+        
+        return documents
+    
+    def clean_accompanying_persons(self):
+        accompanying_persons = self.cleaned_data.get('accompanying_persons', '').strip()
+        print("accompanying_persons", accompanying_persons)
+        if accompanying_persons:
+            # Split by comma and clean up names
+            names = [name.strip() for name in accompanying_persons.split(',') if name.strip()]
+            # Validate each name (basic validation)
+            for name in names:
+                if len(name) < 1:
+                    raise forms.ValidationError(f'Name "{name}" is too short.')
+                if len(name) > 100:
+                    raise forms.ValidationError(f'Name "{name}" is too long.')
+            # Return as comma-separated string for saving
+            return ', '.join(names)
+        return ''
 
     def clean(self):
         """Override clean to capture all validation errors"""
@@ -148,26 +206,25 @@ class PlayerRegistrationForm(forms.ModelForm):
     #         raise forms.ValidationError('Please select your country.')
     #     return country
 
-    def create_audit_log(self, submission_status='SUCCESS', player_instance=None, error_message=None, validation_errors=None):
+    def create_audit_log(self, submission_status='SUCCESS', uploaded_documents=None, player_instance=None, error_message=None, validation_errors=None):
         """Create an audit log entry for this form submission"""
         try:
             # Prepare form data for logging
             form_data = {}
             if hasattr(self, 'cleaned_data') and self.cleaned_data:
                 form_data = self.cleaned_data.copy()
-                # Handle file object for JSON serialization
-                if 'document' in form_data and form_data['document']:
-                    form_data['document'] = {
-                        'name': form_data['document'].name,
-                        'size': form_data['document'].size,
-                        'content_type': form_data['document'].content_type
-                    }
-                # Handle country object
-                # if 'country' in form_data and form_data['country']:
-                #     form_data['country'] = {
-                #         'id': form_data['country'].country_id,
-                #         'name': form_data['country'].country_name
-                #     }
+            
+                # Convert file objects to serializable dictionaries
+                if 'documents' in form_data and form_data['documents']:
+                    documents_list = []
+                    for doc in form_data['documents']:
+                        documents_list.append({
+                            'name': doc.name,
+                            'size': doc.size,
+                            'content_type': doc.content_type,
+                            'size_mb': round(doc.size / (1024 * 1024), 2)
+                        })
+                    form_data['documents'] = documents_list
             else:
                 # Use raw form data if cleaned_data is not available
                 form_data = dict(self.data)
@@ -190,8 +247,8 @@ class PlayerRegistrationForm(forms.ModelForm):
                 
                 # Additional form fields
                 'food_allergies': form_data.get('food_allergies'),
-                'document_file_name': form_data.get('document', {}).get('name') if isinstance(form_data.get('document'), dict) else form_data.get('document'),
-                'document_file_size': form_data.get('document', {}).get('size') if isinstance(form_data.get('document'), dict) else None,
+                'document_file_name': ', '.join(uploaded_documents) if uploaded_documents else None,
+                # 'document_file_size': form_data.get('document', {}).get('size') if isinstance(form_data.get('document'), dict) else None,
                 
                 # Audit log specific fields
                 'submission_data': form_data,
@@ -199,7 +256,10 @@ class PlayerRegistrationForm(forms.ModelForm):
                 'submission_status': submission_status,
                 'error_message': error_message,
                 'validation_errors': validation_errors or {},
+                'accompanying_persons': form_data.get('accompanying_persons'),
             }
+            
+            print("audit_log_data", audit_log_data)
             
             # Add player ID if successful
             if player_instance:
@@ -222,6 +282,7 @@ class PlayerRegistrationForm(forms.ModelForm):
     def save(self, commit=True):
         """Override save to ensure audit log is created even if save fails"""
         instance = None
+        uploaded_documents = []  # Store document info for email
         try:
             instance = super().save(commit=False)
             
@@ -243,16 +304,32 @@ class PlayerRegistrationForm(forms.ModelForm):
             if commit:
                 instance.save()
                 
-                # Handle file upload - the filename already has FIDE ID prefix from clean_document method
-                document = self.cleaned_data.get('document')
-                if document:
-                    instance.documents = document
-                    instance.save()
+                documents = self.request.FILES.getlist('documents') if self.request else []
+                fide_id = self.cleaned_data.get('fide_id')
                 
-                # Create success audit log
-                self.create_audit_log(
+                for document in documents:
+                    # Create new filename with FIDE ID prefix
+                    original_name = document.name
+                    new_filename = f"{fide_id}_{original_name}"
+                    # Store original filename for email
+                    uploaded_documents.append(original_name)
+                    
+                    # Create PlayerDocument record
+                    player_doc = PlayerDocument(
+                        player=instance,
+                        reg_document=document,
+                        original_filename=original_name,
+                        file_size=document.size,
+                        document_type='IDENTIFICATION'  # You can make this dynamic if needed
+                    )
+                    # Rename the file
+                    player_doc.reg_document.name = new_filename
+                    player_doc.save()
+
+                audit_log_instance = self.create_audit_log(
                     submission_status='SUCCESS',
-                    player_instance=instance
+                    player_instance=instance,
+                    uploaded_documents=uploaded_documents
                 )
                 
                 
@@ -270,9 +347,25 @@ class PlayerRegistrationForm(forms.ModelForm):
                    'email': instance.email,
                    'food_allergies': instance.details,
                    'room_cleaning_preference': instance.room_cleaning_preference,
-                   'document_file_name': os.path.basename(instance.documents.name) if instance.documents else None,
+                   'accompanying_persons': instance.accompanying_persons,
+                   'uploaded_documents': uploaded_documents,  # List of document names
+                   'document_count': len(uploaded_documents),
                    'image_url': image_url
                }
+            )
+            
+            subject = "Welcome to FIDE World Cup 2025"
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='WELCOME',
+                subject=subject,
+                recipient_email=instance.email,
+                status='PENDING',
+                player=instance,
+                audit_log=audit_log_instance,
+                html_content=html_message,
+                text_content="",  # You can generate a text version if needed
             )
 
             send_mail(
@@ -281,9 +374,33 @@ class PlayerRegistrationForm(forms.ModelForm):
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[instance.email],
                 html_message=html_message,
-                fail_silently=False
+                fail_silently=False,
             )
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
             
+            email_log1 = EmailLog.objects.create(
+                email_type='WELCOME',
+                subject=subject,
+                recipient_email='mayankary.ma@gmail.com',
+                status='PENDING',
+                player=instance,
+                audit_log=audit_log_instance,
+                html_content=html_message,
+                text_content="",  # You can generate a text version if needed
+            )
+            send_mail(
+                subject="Welcome to FIDE World Cup 2025",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=["chesswc2025@gmail.com"],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            # Update email log with success
+            email_log1.status = 'SENT'
+            email_log1.save()
             return instance
             
         except Exception as e:

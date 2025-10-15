@@ -14,7 +14,23 @@
       <div class="page-header">
         <h1>Manage Complaints</h1>
       </div>
+      <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <!-- Messages will be dynamically inserted here -->
+      </div>
+      
       <div class="toolbar">
+        {% if role_id == 1 %}
+          <form method="get" id="filter-form" style="margin-bottom: 15px;">
+            <label for="department" style="font-weight: 600;">Department:</label>
+            <select name="department" id="department" onchange="document.getElementById('filter-form').submit()" class="dept-select">
+              <option value="">All Departments</option>
+              {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if dept.id|stringformat:"s" == selected_department %}selected{% endif %}>{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        {% endif %}
+
         <div class="search-box">
           <input type="text" id="complaint-search" placeholder="Search Complaints" value="{{ search_query }}">
         </div>
@@ -25,7 +41,10 @@
           <div class="complaint-header">
             <h3>#C{{ c.id }}</h3>
             <div class="complaint-meta">
-              <span class="player-name">{{ c.player.name }}</span>
+              <span class="player-name">{{ c.player.name }} |</span>
+              {% if c.department %}
+                <span class="complaint-dept">{{ c.department.name }} |</span>
+              {% endif %}
               <span class="complaint-date">{{ c.created_on|date:"M d, Y" }}</span>
             </div>
             <select class="status-select" data-complaint-id="{{ c.id }}">
@@ -37,11 +56,7 @@
         
           <div class="complaint-body">
             <p class="complaint-description">{{ c.description }}</p>
-            <div class="remarks-section">
-              <textarea class="remarks-input" placeholder="Write remarks..." data-complaint-id="{{ c.id }}"></textarea>
-              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="{{ c.id }}">Send</button>
-            </div>
-
+            
             {% if c.conversations.all %}
                 {% for convo in c.conversations.all %}
                   <div class="admin-reply" data-complaint-id="{{ c.id }}">
@@ -62,7 +77,12 @@
                 {% endfor %}
             {% else %}
                 <p class="no-remarks">No remarks yet.</p>
-            {% endif %}      
+            {% endif %}  
+            
+            <div class="remarks-section">
+              <textarea class="remarks-input" placeholder="Write remarks..." data-complaint-id="{{ c.id }}"></textarea>
+              <button class="btn btn--small btn--primary" data-action="send-remark" data-complaint-id="{{ c.id }}">Send</button>
+            </div>
           </div>
         </article>
   {% empty %}
@@ -88,15 +108,17 @@
 
     </main>
   </div>
-
+  <script src="{% static 'assets/js/app.js' %}"></script> 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
 
     // Enter key press in search input
     document.getElementById("complaint-search").addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
+        e.preventDefault();
         const query = e.target.value.trim();
-        window.location.href = `?q=${encodeURIComponent(query)}`;
+        const dept = document.getElementById("department")?.value || "";
+        window.location.href = `?q=${encodeURIComponent(query)}&department=${encodeURIComponent(dept)}`;
       }
     });
 
@@ -110,7 +132,7 @@
         const statusSelect = document.querySelector(`.status-select[data-complaint-id='${id}']`);
         const status = statusSelect ? statusSelect.value : "";
         if (!message && !status) {
-          return alert("Please enter a remark or select a status.");
+          return showMessage("Please enter a remark or select a status.");
         }
 
         fetch(`/complaints/${id}/update/`, {
@@ -120,8 +142,12 @@
         })
         .then(res => res.json())
         .then(data => {
-          alert(data.message);
-          window.location.reload();
+          if (data.success) {
+            showMessage(data.message, "success");
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            showMessage("Something went wrong!", "error");
+          }
         });
       });
     });

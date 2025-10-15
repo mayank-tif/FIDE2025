@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Logistics - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    {% include 'sidebar.html' %}
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Manage Logistics</h1>
+      </div>
+      <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <!-- Messages will be dynamically inserted here -->
+      </div>
+
+      <div class="toolbar">
+        <div class="logistics-search">
+          <input type="text" id="searchInput" placeholder="Search Driver or Player" value="{{ search_query }}">
+          <button id="searchBtn" style="height: 31px;">Search</button>
+        </div>
+        <button class="btn--add-roaster" id="addRoasterBtn">
+          <span>+</span>
+          <span>Add Roaster</span>
+        </button>
+      </div>
+
+      <div class="logistics-table-container">
+        <div class="logistics-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Vehicle Type</th>
+                <th>Vehicle Number</th>
+                <th>Driver</th>
+                <th>Seats</th>
+                <th>Assigned Players</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in roasters %}
+              <tr>
+                <td>{{ r.vechicle_type }}</td>
+                <td>{{ r.vechicle_no }}</td>
+                <td>{{ r.driver_name }}</td>
+                <td>{{ r.number_of_seats }}</td>
+                <td>
+                  {% with players_list=r.playertransportationdetails_set.all %}
+                    {% if players_list|length <= 3 %}
+                      {% for p in players_list %}
+                        {{ p.playerId.name }}{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      {% for p in players_list|slice:":3" %}
+                        {{ p.playerId.name }}{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                      <span class="more-players" data-players='{% for p in players_list %}{{ p.playerId.name }}{% if not forloop.last %},{% endif %}{% endfor %}'>
+                        +{{ players_list|length|add:"-3" }} more
+                      </span>
+                    {% endif %}
+                  {% endwith %}
+                </td>
+
+                <td>
+                  <button class="edit-roaster-btn btn-icon" data-roaster-id="{{ r.id }}">✏️</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="paginationContainer">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+          {% endif %}
+          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- Player List Modal -->
+<div id="playersModal" class="players-modal">
+  <div class="players-modal-content">
+    <span class="players-modal-close">&times;</span>
+    <h3>Assigned Players</h3>
+    <div id="playersList" class="players-list">
+      <!-- Player names will be dynamically inserted here -->
+    </div>
+  </div>
+</div>
+
+  <script src="{% static 'assets/js/app.js' %}"></script>
+  <script>
+    $(document).ready(function() {
+      const playersModal = document.getElementById('playersModal');
+      const playersListContainer = document.getElementById('playersList');
+      const closeBtn = document.querySelector('.players-modal-close');
+
+      // Open modal on clicking "+X more"
+      document.querySelectorAll('.more-players').forEach(el => {
+        el.addEventListener('click', () => {
+          const names = el.dataset.players.split(',');
+          playersListContainer.innerHTML = ''; // clear previous content
+        
+          names.forEach(name => {
+            const div = document.createElement('div');
+            div.textContent = name;
+            playersListContainer.appendChild(div);
+          });
+        
+          playersModal.style.display = 'block';
+        });
+      });
+
+      // Close modal
+      closeBtn.addEventListener('click', () => {
+        playersModal.style.display = 'none';
+      });
+
+      // Close modal on clicking outside the content
+      window.addEventListener('click', (event) => {
+        if(event.target == playersModal) {
+          playersModal.style.display = 'none';
+        }
+      });
+    });
+  </script>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const addBtn = document.getElementById('addRoasterBtn');
+    const editButtons = document.querySelectorAll('.edit-roaster-btn');
+      
+    // Preserve current page
+    const currentPage = new URLSearchParams(window.location.search).get('page') || 1;
+      
+    // Search
+    searchBtn.addEventListener('click', () => {
+        const searchValue = searchInput.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchValue);
+        url.searchParams.set('page', 1);  // go to first page for new search
+        window.location.href = url.toString();
+    });
+
+    // Add Roaster - pass current page
+    addBtn.addEventListener('click', () => {
+        const url = new URL("{% url 'add_roaster' %}", window.location.origin);
+        url.searchParams.set('page', currentPage);
+        window.location.href = url.toString();
+    });
+
+    // Edit Roaster - pass current page
+    editButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const roasterId = btn.dataset.roasterId;
+            const baseUrl = "{% url 'edit_roaster' 0 %}".replace('0/', ''); // base without ID
+            const url = new URL(baseUrl + roasterId + '/', window.location.origin); // append ID dynamically
+            url.searchParams.set('page', currentPage);
+            window.location.href = url.toString();
+        });
+    });
+  </script>
+  <script>
+  // Show Django messages in side popup
+  document.addEventListener("DOMContentLoaded", () => {
+    {% if messages %}
+      {% for message in messages %}
+        showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    {% endif %}
+  });
+</script>
+
+</body>
+</html>

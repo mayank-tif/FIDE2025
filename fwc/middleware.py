@@ -105,3 +105,40 @@ class DomainRedirectMiddleware:
         # Continue normal request handling
         response = self.get_response(request)
         return response
+    
+    
+class RoleBasedAccessMiddleware:
+    """Middleware to restrict access based on user role."""
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Allowed URLs for Role ID 2
+        self.allowed_urls_role_2 = {
+            'complaint_list', 
+            'login',
+            'logout',
+        }
+        
+        # Allowed URLs for Role ID 3
+        self.allowed_urls_role_3 = {
+            'roaster_list',
+            'login',
+            'logout',
+        }
+
+    def __call__(self, request):
+        """Handle the request and apply role-based restrictions."""
+        
+        if request.session.get('is_active'):
+            role_id = request.session.get('roleid', None)
+            resolver_match = resolve(request.path_info)
+            current_url_name = resolver_match.url_name  
+            print("Current URL name:", current_url_name, role_id)
+
+            if role_id == 2 and current_url_name and current_url_name not in self.allowed_urls_role_2:
+                return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
+            
+            if role_id == 3 and current_url_name and current_url_name not in self.allowed_urls_role_3:
+                return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
+
+        return self.get_response(request)

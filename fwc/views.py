@@ -35,9 +35,14 @@ class View_platformlogin(TemplateView):
 
     def get(self, request):
         # Check if user is already logged in
+        msg = request.GET.get('msg', None)
+        
+        if msg == "Unauthorized":
+            logout(request)  
+        
         if request.session.get('is_active'):
-            print("already logged in")
             return redirect("/home")
+        
         msg = request.GET.get('msg', None)
         return render(request,"login.html",{'msg': msg, 'site_key': RECAPTCHA_SITE_KEY})
     
@@ -84,13 +89,18 @@ class View_platformlogin(TemplateView):
                     request.session['is_active'] = True
                     request.session['loggedin_user_name'] = user_dtls[0].name
                     request.session['loggedin_user_email'] = user_dtls[0].email
+                    print("user_dtls[0].roleid.id", user_dtls[0].roleid.id)
+                    if user_dtls[0].roleid.id == 2:
+                        return redirect("/complaints")
+                    elif user_dtls[0].roleid.id == 3:
+                        return redirect("roaster_list")
                     return redirect("/home")
                 else:
-                    return render(request,"login.html",{"message": "Incorrect Password!!", "status": False})
+                    return render(request,"login.html",{"message": "Incorrect Password!!", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
             else:
-                return render(request,"login.html",{"message": "Please provide both username and password", "status": False})
+                return render(request,"login.html",{"message": "Please provide both username and password", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
         except Exception as e:
-            return render(request,"login.html",{"message": "Please provide both username and password ({e})", "status": False})
+            return render(request,"login.html",{"message": "Please provide both username and password ({e})", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
 
 class PlatformLogoutView(View):
     def post(self, request):
@@ -442,40 +452,54 @@ class PlayerTransportView(View):
 
 class ComplaintListView(View):
     """Displays all complaints and their conversation threads with search and pagination"""
+
     def get(self, request):
         search_query = request.GET.get("q", "")
-        log_user_activity(request, "View Complaints", f"User viewed complaints list")
+        selected_department = request.GET.get("department", "")
 
-        # Prefetch conversations with sender info, ordered latest first
-        complaints_qs = PlayerComplaint.objects.select_related("player").prefetch_related(
+        role_id = request.session.get("roleid")
+        user_dept_id = request.session.get("department")
+        print("role_id", role_id, "user_dept_id", user_dept_id)
+
+        log_user_activity(request, "View Complaints", "User viewed complaints list")
+
+        # Base queryset
+        complaints_qs = PlayerComplaint.objects.select_related("player", "department").prefetch_related(
             Prefetch(
                 "conversations",
                 queryset=PlayerComplaintConversation.objects.select_related("sender_player", "sender_user").order_by("-created_on")
             )
-        ).all().order_by("-created_on")
+        ).order_by("-created_on")
 
-        # Apply search filter if query exists
+        # Apply department filter based on role
+        if role_id == 2 and user_dept_id:
+            # Normal department user – see only their department’s data
+            complaints_qs = complaints_qs.filter(department_id=user_dept_id)
+            selected_department = user_dept_id
+        elif role_id == 1:
+            # Admin can view all and optionally filter by dropdown
+            if selected_department:
+                complaints_qs = complaints_qs.filter(department_id=selected_department)
+
+        # Apply search filter
         if search_query:
             complaints_qs = complaints_qs.filter(player__name__icontains=search_query)
 
-        # Pagination: 5 complaints per page
         paginator = Paginator(complaints_qs, per_page)
         page_number = request.GET.get("page", 1)
         page_obj = paginator.get_page(page_number)
 
-        # Debug prints
-        for c in page_obj:
-            print(f"Complaint #{c.id} by player: {c.player.name}")
-            for convo in c.conversations.all():
-                player_name = convo.sender_player.name if convo.sender_player else None
-                user_name = convo.sender_user.name if convo.sender_user else None
-                print(f"  Conversation #{convo.id} - Player: {player_name}, User: {user_name}, Message: {convo.message}")
+        departments = Department.objects.filter(status_flag=1).order_by("name")
 
         return render(request, "complaints.html", {
             "complaints": page_obj,
             "search_query": search_query,
             "page_obj": page_obj,
+            "departments": departments,
+            "selected_department": str(selected_department),
+            "role_id": role_id,
         })
+
 
 
 class ComplaintUpdateView(View):
@@ -555,7 +579,7 @@ class ManageUsersView(View):
     template_name = "users.html"
 
     def get(self, request):
-        users = MstUserLogins.objects.filter(status_flag=1).order_by("id")
+        users = MstUserLogins.objects.filter(status_flag=1).order_by("-created_on")
         roles = MstRole.objects.filter(status_flag=1)  # Active roles
         departments = Department.objects.filter(status_flag=1)  # Active departments
         
@@ -596,7 +620,9 @@ class ManageUsersView(View):
 
         # Fetch role and department objects
         role = MstRole.objects.get(id=role_id)
-        department = Department.objects.get(id=department_id)
+        department = None
+        if department_id:
+            department = Department.objects.get(id=department_id)
         
         enc_pswd = str_encrypt(str(password))
         pswd = enc_pswd
@@ -651,7 +677,9 @@ class EditUserView(View):
         role_id = request.POST.get("edit_role")
         department_id = request.POST.get("edit_department")
         role = MstRole.objects.get(id=role_id)
-        department = Department.objects.get(id=department_id)
+        department = None
+        if department_id: 
+            department = Department.objects.get(id=department_id)
         
         user.name = request.POST.get("edit_name")
         user.loginname = request.POST.get("edit_username")
@@ -737,3 +765,143 @@ class PlayerRegistrationView(FormView):
         except Exception as e:
             messages.error(self.request, f'Error submitting registration: {str(e)}')
         return super().form_valid(form)
+    
+  
+  
+class RoasterListView(View):
+    template_name = "logistics.html"
+
+    def get(self, request):
+        search_query = request.GET.get('search', '')
+        page_number = request.GET.get('page', 1)
+
+        roasters = Roaster.objects.filter(status_flag=1).order_by('-created_on')
+        if search_query:
+            roasters = roasters.filter(
+                Q(driver_name__icontains=search_query) |
+                Q(playertransportationdetails__playerId__name__icontains=search_query)
+            ).distinct()
+
+        paginator = Paginator(roasters, per_page)
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'page_obj': page_obj,
+            'roasters': page_obj.object_list,
+            'search_query': search_query,
+        }
+        return render(request, self.template_name, context)  
+    
+    
+class RoasterAddView(View):
+    template_name = "add-roaster.html"
+
+    def get(self, request):
+        players = Players.objects.filter(status_flag=1).order_by("name")
+        transportation_types = TransportationType.objects.filter(status_flag=1)
+        current_page = request.GET.get('page', 1)
+        return render(request, self.template_name, {
+            'players': players,
+            'transportation_types': transportation_types,
+            'roaster_status_choices': Roaster.STATUS_CHOICES,
+            'current_page': current_page
+        })
+
+    def post(self, request):
+        print(request.POST)
+        vehicle_type = request.POST.get('vehicleType')
+        vehicle_number = request.POST.get('vehicleNumber')
+        number_of_seats = request.POST.get('number_of_seats')
+        driver_name = request.POST.get('driverName')
+        transportation_type_id = request.POST.get('transportationTypeId')
+        status = request.POST.get('status')
+        assigned_players = request.POST.getlist('players')
+        current_page = request.POST.get('current_page', 1)
+        travel_date_str = request.POST.get('travel_date')
+        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%dT%H:%M") if travel_date_str else None
+
+        roaster = Roaster.objects.create(
+            vechicle_type=vehicle_type,
+            vechicle_no=vehicle_number,
+            number_of_seats=number_of_seats,
+            driver_name=driver_name,
+            transportationTypeId_id=transportation_type_id,
+            travel_date=travel_date,
+            status=status,
+            status_flag=1
+        )
+
+        for player_id in assigned_players:
+            player = Players.objects.get(id=player_id)
+            PlayerTransportationDetails.objects.create(
+                playerId=player,
+                roasterId=roaster,
+                pickup_location="",
+                drop_location="",
+                details="",
+                remarks="",
+            )
+
+        messages.success(request, "Information added successfully!")
+
+        return redirect(f"{reverse('roaster_list')}?page={current_page}")
+    
+
+class RoasterEditView(View):
+    template_name = "edit-roaster.html"
+
+    def get(self, request, roaster_id):
+        roaster = get_object_or_404(Roaster, id=roaster_id)
+        players = Players.objects.filter(status_flag=1).order_by("name")
+        assigned_player_ids = roaster.playertransportationdetails_set.values_list('playerId__id', flat=True)
+        current_page = request.GET.get('page', 1)
+        transportation_types = TransportationType.objects.filter(status_flag=1)
+
+        return render(request, self.template_name, {
+            'roaster': roaster,
+            'players': players,
+            'assigned_player_ids': assigned_player_ids,
+            'current_page': current_page,
+            'transportation_types': transportation_types,
+            'roaster_status_choices': Roaster.STATUS_CHOICES,
+        })
+
+    def post(self, request, roaster_id):
+        print("request", request.POST)
+        roaster = get_object_or_404(Roaster, id=roaster_id)
+        vehicle_type = request.POST.get('vehicleType')
+        vehicle_number = request.POST.get('vehicleNumber')
+        number_of_seats = request.POST.get('number_of_seats')
+        driver_name = request.POST.get('driverName')
+        assigned_players = request.POST.getlist('players')
+        current_page = request.POST.get('current_page', 1)
+        transportation_type_id = request.POST.get('transportationTypeId')
+        status = request.POST.get('status')
+        travel_date_str = request.POST.get('travel_date')
+        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%dT%H:%M") if travel_date_str else None
+        
+
+        roaster.vechicle_type = vehicle_type
+        roaster.vechicle_no = vehicle_number
+        roaster.number_of_seats = number_of_seats
+        roaster.driver_name = driver_name
+        roaster.transportationTypeId_id = transportation_type_id
+        roaster.travel_date = travel_date 
+        roaster.status = status
+        roaster.save()
+
+        # Update player assignments
+        PlayerTransportationDetails.objects.filter(roasterId=roaster).delete()
+        for player_id in assigned_players:
+            player = Players.objects.get(id=player_id)
+            PlayerTransportationDetails.objects.create(
+                playerId=player,
+                roasterId=roaster,
+                pickup_location="",
+                drop_location="",
+                details="",
+                remarks="",
+            )
+            
+        messages.success(request, "Information Edited successfully!")
+        return redirect(f"{reverse('roaster_list')}?page={current_page}")

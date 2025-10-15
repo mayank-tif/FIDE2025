@@ -7,7 +7,101 @@
     <title>FIDE World Cup 2025 - Player Registration</title>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        /* Your existing CSS remains the same, just add these new styles: */
+        /* Add these new styles for multiple file upload and accompanying persons */
+        
+        .accompanying-persons-input {
+            margin-top: 8px;
+        }
+        
+        .file-upload-multiple {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-multiple:hover {
+            border-color: #5a8372;
+            background: #f8f9fa;
+        }
+        
+        .file-upload-multiple.dragover {
+            border-color: #5a8372;
+            background: #f0fff4;
+        }
+        
+        .file-list {
+            margin-top: 15px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .file-size {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .remove-file {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            border-radius: 3px;
+        }
+        
+        .remove-file:hover {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .upload-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        /* Your existing CSS remains the same below */
+        .field-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
+        }
+        
+        .error-highlight {
+            animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: rgba(220, 53, 69, 0.1); }
+            100% { background-color: transparent; }
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
         
         .field-error {
             border-color: #dc3545 !important;
@@ -488,7 +582,7 @@
         <div class="right-panel">
             <div class="form-header">
                 <p style="color: #271F64"><b>Player Information for Express Checkin</b></p>
-
+                <p style="color: #271F64"><b>(Only for official hotel guests)</b></p>
             </div>
 
             {% if messages %}
@@ -526,29 +620,26 @@
                     {% endif %}
                 </div>
 
-                {% comment %} <div class="form-group">
-                    <label class="required-field">Country</label>
-                    <select name="country" id="countrySelect" style="width: 100%" class="{% if form.country.errors %}field-error{% endif %}">
-                        <option value="">Select your country</option>
-                        {% for country in form.country.field.queryset %}
-                             <option value="{{ country.country_id }}" 
-                                    {% if form.country.value|add:"0" == country.country_id %}selected{% endif %}>
-                                {{ country.country_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if form.country.errors %}
-                        <div class="error-message">{{ form.country.errors.0 }}</div>
-                    {% endif %}
-                </div> {% endcomment %}
-
-                
-
+                <!-- NEW: Accompanying Persons Field -->
                 <div class="form-group">
-                    <label class="">Express Check-in Documents</label>
-                    <div class="helper-text">Any Photo ID for Indian players, Passport for all non-indian players</div>
-                    <div class="file-upload-wrapper {% if form.document.errors %}field-error{% endif %}">
-                        <label for="fileUpload" class="file-upload-input">
+                    <label>Are you traveling with any accompanying person(s)?</label>
+                    <div class="helper-text">If traveling with family members or companions, please enter their full names separated by commas</div>
+                    <input type="text" 
+                           name="accompanying_persons" 
+                           value="{{ form.accompanying_persons.value|default:'' }}" 
+                           placeholder="(e.g., John Doe, Jane Smith)"
+                           class="accompanying-persons-input {% if form.accompanying_persons.errors %}field-error{% endif %}">
+                    {% if form.accompanying_persons.errors %}
+                        <div class="error-message">{{ form.accompanying_persons.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- UPDATED: Multiple File Upload -->
+                <div class="form-group">
+                    <label class="">Please upload the following documents for players and accompanying persons</label>
+                    <div class="helper-text">Any Photo ID for Indian Nationals and Passport for Foreign Nationals</div>
+                    <div class="file-upload-wrapper {% if form.documents.errors %}field-error{% endif %}">
+                        <div class="file-upload-multiple" id="fileUploadArea"
                             <div class="file-label">
                                 <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#5a8372" stroke-width="2" style="margin: 0 auto 8px;">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -556,14 +647,15 @@
                                     <line x1="12" y1="3" x2="12" y2="15"></line>
                                 </svg>
                                 <div style="font-size: 13px;"><strong>Click to upload</strong> or drag and drop</div>
-                                <div style="font-size: 11px; margin-top: 3px;">PDF or Image (Max 10 MB)</div>
+                                <div style="font-size: 11px; margin-top: 3px;">PDF or Image files (Max 10 MB per file)</div>
+                                <div style="font-size: 11px; margin-top: 2px;">You can select multiple files</div>
                             </div>
                         </label>
-                        <input type="file" id="fileUpload" name="document" accept=".pdf,image/*">
-                        <div class="file-name" id="fileName"></div>
+                        <input type="file" id="fileUpload" name="documents" accept=".pdf,image/*" multiple style="display: none;">
+                        <div class="file-list" id="fileList"></div>
                     </div>
-                    {% if form.document.errors %}
-                        <div class="error-message">{{ form.document.errors.0 }}</div>
+                    {% if form.documents.errors %}
+                        <div class="error-message">{{ form.documents.errors.0 }}</div>
                     {% endif %}
                 </div>
 
@@ -601,7 +693,7 @@
                     {% endif %}
                 </div>
 
-                <button type="submit" class="submit-btn">Submit Information </button>
+                <button type="submit" class="submit-btn">Submit Information</button>
             </form>
         </div>
     </div>
@@ -609,36 +701,92 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-    $(document).ready(function() {
-        //$('#countrySelect').select2({
-        //    placeholder: "Select your country",
-        //    allowClear: false,
-        //    width: '100%',
-        //    dropdownParent: $('.right-panel')
-        //});
-        
+    $(document).ready(function() {    
         const fileInput = document.getElementById('fileUpload');
         const fileName = document.getElementById('fileName');
         const loader = document.getElementById("loaderOverlay");
         const submitBtn = document.querySelector(".submit-btn");
         
-        if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-                if (this.files && this.files[0]) {
-                    const file = this.files[0];
-                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                    
-                    if (fileSize > 10) {
-                        showFieldError(this, 'File size exceeds 10 MB. Please upload a smaller file.');
-                        this.value = '';
-                        fileName.style.display = 'none';
-                        return;
-                    }
-                    
-                    fileName.textContent = `📎 ${file.name} (${fileSize} MB)`;
-                    fileName.style.display = 'block';
-                    clearFieldError(this);
+        let selectedFiles = [];
+
+        // File upload area click handler
+        fileUploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // File input change handler
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(this.files);
+        });
+
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" exceeds 10 MB size limit. Please choose a smaller file.`);
+                    continue;
                 }
+                
+                // Check if file already exists
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            }
+            updateFileList();
+            clearFieldError(fileInput);
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                return;
+            }
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <span>📎</span>
+                        <span>${file.name}</span>
+                        <span class="file-size">(${fileSize} MB)</span>
+                    </div>
+                    <button type="button" class="remove-file" data-index="${index}">×</button>
+                `;
+                
+                fileList.appendChild(fileItem);
+            });
+
+            // Add remove file handlers
+            document.querySelectorAll('.remove-file').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    selectedFiles.splice(index, 1);
+                    updateFileList();
+                });
             });
         }
 
@@ -801,17 +949,24 @@
             }
 
             // Check file size
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const fileSize = (file.size / 1024 / 1024);
-                if (fileSize > 10) {
-                    showFieldError(fileInput, 'File size exceeds 10 MB. Please upload a smaller file.');
-                    fileInput.closest('.file-upload-wrapper').scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
-                    });
+            clearFieldError(fileInput);
+            
+            // Validate file sizes
+            let totalSize = 0;
+            for (const file of selectedFiles) {
+                totalSize += file.size;
+                if (file.size > 10 * 1024 * 1024) {
+                    showFieldError(fileInput, `File "${file.name}" exceeds 10 MB size limit.`);
+                    e.preventDefault();
                     return;
                 }
+            }
+            
+            // Validate total size (optional)
+            if (totalSize > 50 * 1024 * 1024) {
+                showFieldError(fileInput, 'Total file size exceeds 50 MB limit.');
+                e.preventDefault();
+                return;
             }
 
             if (hasErrors) {
@@ -846,10 +1001,10 @@
         });
 
         window.addEventListener("pageshow", function() {
-    loader.style.display = "none";
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit";
-  });
+          loader.style.display = "none";
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit";
+        });
 
         // Email validation function
         function isValidEmail(email) {

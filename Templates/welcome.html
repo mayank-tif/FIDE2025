@@ -46,31 +46,19 @@
             .ExternalClass {
                 width: 100%;
             }
+            .document-list {
+                list-style-type: none;
+                padding: 0;
+                margin: 0;
+            }
+            .document-list li {
+                padding: 5px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .document-list li:last-child {
+                border-bottom: none;
+            }
         </style>
- {% comment %} <style type="text/css">
-    a,a[href],a:hover, a:link, a:visited {{
-      text-decoration: none!important;
-      color: #0000EE;
-    }}
-    p, p:visited {{
-      font-size:15px;
-      line-height:24px;
-      font-family:'Helvetica', Arial, sans-serif;
-      font-weight:300;
-      text-decoration:none;
-      color: #000000;
-    }}
-    h1 {{
-      font-size:22px;
-      line-height:24px;
-      font-family:'Helvetica', Arial, sans-serif;
-      font-weight:normal;
-      text-decoration:none;
-      color: #000000;
-    }}
-    .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td {{line-height: 100%;}}
-    .ExternalClass {{width: 100%;}}
-</style> {% endcomment %}
 
 </head>
 
@@ -126,6 +114,10 @@
                     <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Email</td>
                     <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ email }}</td>
                   </tr>
+                  <tr style="background-color: #F4F4F4;">
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Accompanying Persons</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ accompanying_persons }}</td>
+                  </tr>
                   <tr>
                     <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Food Allergies / Dietary Restrictions</td>
                     <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ food_allergies }}</td>
@@ -134,10 +126,16 @@
                     <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Room Cleaning Preference</td>
                     <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ room_cleaning_preference }}</td>
                   </tr>
-                  {% if document_file_name %}
+                  {% if uploaded_documents %}
                   <tr>
-                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Uploaded Document</td>
-                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">{{ document_file_name }}</td>
+                    <td style="padding: 12px 15px; font-weight: 600; color: #241A4F; border: 1px solid #ddd;">Uploaded Documents ({{ document_count }})</td>
+                    <td style="padding: 12px 15px; color: #333333; border: 1px solid #ddd;">
+                        <ul class="document-list">
+                            {% for document in uploaded_documents %}
+                            <li>📎 {{ document }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
                   </tr>
                   {% endif %}
                 </tbody>

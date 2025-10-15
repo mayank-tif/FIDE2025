@@ -183,6 +183,7 @@ class Players(models.Model):
     details = models.TextField(null=True)
     room_cleaning_preference = models.CharField(max_length=15,choices=ROOM_CLEANING_CHOICES,null=True,blank=True)
     is_self_registered = models.BooleanField(default=True)
+    accompanying_persons = models.TextField(null=True)
 
     def __str__(self):
         return self.loginname
@@ -192,6 +193,20 @@ class Players(models.Model):
         verbose_name = 'Player'
         verbose_name_plural = 'Players'
         unique_together = (('email',),)
+        
+
+class PlayerDocument(models.Model):
+    id = models.AutoField(primary_key=True)
+    player = models.ForeignKey(Players, on_delete=models.DO_NOTHING, related_name='player_documents')
+    reg_document = models.FileField(upload_to='player_reg_documents/')
+    document_type = models.CharField(max_length=100, default='IDENTIFICATION')
+    original_filename = models.CharField(max_length=255)
+    file_size = models.IntegerField()  # in bytes
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'PlayerDocument'
         
         
 class TransportationType(models.Model):
@@ -208,6 +223,48 @@ class TransportationType(models.Model):
     
     class Meta:
         db_table = 'TransportationType'
+        
+        
+        
+class Roaster(models.Model):
+    STATUS_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
+    STATUS_ENTROUTE_HOTEL = "ENTROUTE_HOTEL"
+    STATUS_REACHED_HOTEL = "REACHED_HOTEL"
+    STATUS_IN_TRANSIT = "IN_TRANSIT"
+    STATUS_REACHED_DESTINATION = "REACHED_DESTINATION"
+    STATUS_DEPARTED_AIRPORT = "DEPARTED_AIRPORT"
+    STATUS_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
+
+    STATUS_CHOICES = [
+        (STATUS_ARRIVED_AIRPORT, "Arrived at Airport"),
+        (STATUS_ENTROUTE_HOTEL, "Entroute to Hotel"),
+        (STATUS_REACHED_HOTEL, "Reached Hotel"),
+        (STATUS_IN_TRANSIT, "In Transit"),
+        (STATUS_REACHED_DESTINATION, "Reached Destination"),
+        (STATUS_DEPARTED_AIRPORT, "Departed for Airport"),
+        (STATUS_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    vechicle_no = models.CharField(max_length=100, null=False)
+    vechicle_type = models.TextField(null=False)
+    number_of_seats = models.IntegerField(null=False)
+    driver_name = models.CharField(max_length=100, null=False)
+    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
+    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT, null=True, blank=True)
+    travel_date = models.DateTimeField(null=True)
+    status_flag = models.IntegerField(default=1)
+    created_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+    
+
+    def __str__(self):
+        return self.id
+    
+    class Meta:
+        db_table = 'Roaster'
         
         
 class PlayerTransportationDetails(models.Model):
@@ -231,12 +288,13 @@ class PlayerTransportationDetails(models.Model):
     
     id = models.AutoField(primary_key=True)
     playerId = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
-    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
-    pickup_location = models.CharField(max_length=500)
-    drop_location = models.CharField(max_length=500)
-    details = models.CharField(max_length=500)
-    remarks = models.CharField(max_length=500)
-    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT)
+    roasterId = models.ForeignKey(Roaster, on_delete=models.DO_NOTHING, db_column='roasterId', null=True, blank=True)
+    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId', null=True)
+    pickup_location = models.CharField(max_length=500, null=True)
+    drop_location = models.CharField(max_length=500, null=True)
+    details = models.CharField(max_length=500, null=True)
+    remarks = models.CharField(max_length=500, null=True)
+    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT, null=True, blank=True)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
@@ -246,7 +304,7 @@ class PlayerTransportationDetails(models.Model):
         return f"{self.playerId.name} - {self.pickup_location} to {self.drop_location}"
     
     class Meta:
-        db_table = 'PlayerTransportationDetails'
+        db_table = 'PlayerTransportationDetails' 
         
 
 class PlayerComplaint(models.Model):
@@ -266,6 +324,7 @@ class PlayerComplaint(models.Model):
     player = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    department = models.ForeignKey(Department, on_delete=models.DO_NOTHING, db_column='departmentId')
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
@@ -387,6 +446,7 @@ class PlayerRegistrationAuditLog(models.Model):
     updated_by = models.IntegerField(null=True, blank=True)
     details = models.TextField(null=True, blank=True)
     room_cleaning_preference = models.CharField(max_length=15, choices=Players.ROOM_CLEANING_CHOICES, null=True, blank=True)
+    accompanying_persons = models.TextField(null=True)
     
     # Additional form fields that are not in Players model
     food_allergies = models.TextField(null=True, blank=True, help_text="Food allergies information from form")
@@ -426,3 +486,103 @@ class PlayerRegistrationAuditLog(models.Model):
             self.processed_at = timezone.now()
         super().save(*args, **kwargs)
 
+
+
+class EnquiryDetails(models.Model):
+    id = models.AutoField(primary_key=True)
+    player= models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
+    message = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+    
+    class Meta:
+        db_table = 'EnquiryDetails'
+
+
+class EmailLog(models.Model):
+    
+    STATUS_CHOICES = [
+        ('SENT', 'Sent'),
+        ('FAILED', 'Failed'),
+        ('PENDING', 'Pending'),
+    ]
+    
+    # Basic email information
+    email_type = models.CharField(max_length=20, default='WELCOME')
+    subject = models.CharField(max_length=255)
+    recipient_email = models.EmailField()
+    
+    # Status and tracking
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    sent_at = models.DateTimeField(auto_now_add=True)
+    error_message = models.TextField(blank=True, null=True)
+    
+    # Related objects
+    player = models.ForeignKey('Players', on_delete=models.CASCADE, related_name='email_logs', blank=True, null=True)
+    audit_log = models.ForeignKey('PlayerRegistrationAuditLog', on_delete=models.SET_NULL, blank=True, null=True)
+    
+    # Email content (for debugging)
+    html_content = models.TextField(blank=True, null=True)
+    text_content = models.TextField(blank=True, null=True)
+    
+    # Technical details
+    message_id = models.CharField(max_length=255, blank=True, null=True)  # SMTP message ID
+    retry_count = models.IntegerField(default=0)
+    
+    # Standard fields
+    status_flag = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'email_log'
+        verbose_name = 'Email Log'
+        verbose_name_plural = 'Email Logs'
+    
+    def __str__(self):
+        return f"{self.email_type} to {self.recipient_email} - {self.status}"
+    
+    
+    
+class CustomerLoginOtpVerification(models.Model):
+    class Meta:
+        unique_together = (('mobileno', 'source'))
+
+    id = models.AutoField(primary_key=True)
+    mobileno = models.BigIntegerField(null=True)
+    email = models.CharField(max_length=200, null=True)
+    secureotp = models.CharField(max_length=256)
+    source = models.CharField(max_length=50, null=True)
+    flag = models.CharField(max_length=100, null=True)
+    device_id = models.TextField(max_length=500, null=True)
+    device_type = models.CharField(max_length=250, null=True)
+    user_id = models.IntegerField(null=True)
+    user_type = models.CharField(max_length=50, null=True)
+    otp_expired_on = models.DateTimeField(null=True)
+    support_remarks = models.TextField(max_length=500, null=True)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+    
+    def __int__(self):
+        return self.id
+    
+    class Meta:
+        db_table = 'PlayerLoginOtpVerification'
+    
+    
+class UserDeviceToken(models.Model):
+    id = models.AutoField(primary_key=True)
+    user_email = models.CharField(max_length=200, null=True)
+    device_token = models.TextField(max_length=500, null=True)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+    
+    def __int__(self):
+        return self.id
+    
+    class Meta:
+        db_table = 'UserDeviceToken'

@@ -12,6 +12,9 @@
   {% include 'sidebar.html' %}
   <main class="main-content">
     <div class="page-header"><h1>Manage Users</h1></div>
+    <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <!-- Messages will be dynamically inserted here -->
+      </div>
     <div class="toolbar">
       <div class="search-box">
         <input type="text" id="user-search" placeholder="Search Users">
@@ -100,7 +103,7 @@
       <div class="form-group"><label>Name</label><input type="text" name="name" required></div>
       <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
       <div class="form-group"><label>Username</label><input type="test" name="username" required></div>
-      <div class="form-group"><label>Phone</label><input type="text" name="phone" required></div>
+      <div class="form-group"><label>Phone</label><input type="text" name="phone" maxlength="10" pattern="\d*" placeholder="Enter 10-digit mobile number" required></div>
       <div class="form-group"><label>Password</label><input type="password" name="password" required></div>
       <div class="form-group"><label>Confirm Password</label><input type="password" name="confirmPassword" required></div>
       <div class="form-group">
@@ -168,6 +171,7 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{% static 'assets/js/app.js' %}"></script>
 <script>
 $(document).ready(function() {
 
@@ -206,7 +210,7 @@ $(document).ready(function() {
         const confirmPass = $(this).find('input[name="confirm_password"]').val();
   
         if (newPass !== confirmPass) {
-            alert("Passwords do not match!");
+            showMessage("Passwords do not match!");
             return;
         }
 
@@ -223,15 +227,15 @@ $(document).ready(function() {
             data: data,
             success: function(res) {
                 if (res.success) {
-                    alert(res.message);
+                    showMessage(res.message);
                     $('#change-password-modal').removeClass('active');
                     $('#change-password-form')[0].reset();
                 } else {
-                    alert(res.message);
+                    showMessage(res.message);
                 }
             },
             error: function() {
-                alert("Something went wrong. Please try again.");
+                showMessage("Something went wrong. Please try again.");
             }
         });
     });
@@ -242,7 +246,7 @@ $(document).ready(function() {
       const password = $(this).find('input[name="password"]').val();
       const confirmPassword = $(this).find('input[name="confirmPassword"]').val();
       if (password !== confirmPassword) {
-          alert('Passwords do not match! Please check.');
+          showMessage('Passwords do not match! Please check.');
           $(this).find('input[name="confirmPassword"]').focus();
           return false;
       }
@@ -252,16 +256,16 @@ $(document).ready(function() {
           data: $(this).serialize(),
           success: function(res) {
               if (res.success) {
-                  alert(res.message);
+                  showMessage(res.message);
                   $('#add-user-modal').removeClass('active');
                   $('#add-user-form')[0].reset();            
-                  location.reload();                         
+                  setTimeout(() => window.location.reload(), 1900);                        
               } else {
-                  alert(res.message);
+                  showMessage(res.message);
               }
           },
           error: function() {
-              alert("Something went wrong. Please try again.");
+              showMessage("Something went wrong. Please try again.");
           }
       });
     });
@@ -276,8 +280,9 @@ $(document).ready(function() {
             data: $(this).serialize(),
             success: function(res) {
                 if (res.success) {
-                    alert(res.message);
-                    location.reload();
+                     $('#edit-user-modal').removeClass('active');
+                    showMessage(res.message);
+                    setTimeout(() => window.location.reload(), 1500);
                 }
             }
         });
@@ -294,7 +299,7 @@ $(document).ready(function() {
           data: { csrfmiddlewaretoken: '{{ csrf_token }}' },
           success: function(res) {
             if (res.success) {
-              alert(res.message);
+              showMessage(res.message);
               row.remove();
             }
           }
@@ -318,6 +323,11 @@ $(document).ready(function() {
                     modal.find('input[name="edit_phone"]').val(u.mobilenumber);
                     modal.find('select[name="edit_department"]').val(u.department);
                     modal.find('select[name="edit_role"]').val(u.roleid);
+                    // **Toggle department visibility based on role**
+                    toggleDepartmentDropdown(
+                        modal.find('select[name="edit_role"]'),
+                        modal.find('select[name="edit_department"]')
+                    );
                     modal.attr('data-id', userId).addClass('active');
                 }
             }
@@ -325,6 +335,34 @@ $(document).ready(function() {
     });
 
 });
+
+function toggleDepartmentDropdown(roleSelect, departmentSelect) {
+        const roleId = parseInt(roleSelect.val());
+        if (roleId === 2) {
+            departmentSelect.closest('.form-group').show();
+            departmentSelect.prop('required', true);
+        } else {
+            departmentSelect.closest('.form-group').hide();
+            departmentSelect.prop('required', false);
+            departmentSelect.val(''); // submit empty/null
+        }
+    }
+
+    // Initial toggle on page load for Add User
+    toggleDepartmentDropdown($('#user-role'), $('#user-department'));
+
+    // Toggle on role change for Add User
+    $('#user-role').on('change', function() {
+        toggleDepartmentDropdown($(this), $('#user-department'));
+    });
+
+    // Initial toggle on page load for Edit User
+    toggleDepartmentDropdown($('#edit-user-form select[name="edit_role"]'), $('#edit-user-form select[name="edit_department"]'));
+
+    // Toggle on role change for Edit User
+    $('#edit-user-form select[name="edit_role"]').on('change', function() {
+        toggleDepartmentDropdown($(this), $('#edit-user-form select[name="edit_department"]'));
+    });
 </script>
 </body>
 </html>

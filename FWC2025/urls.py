@@ -40,7 +40,9 @@ urlpatterns = [
     path('users/change-password/', ChangeUserPasswordView.as_view(), name='change_user_password'),
     path("activity-log/", UserActivityLogView.as_view(), name="activity_log"),
     path('player-registration/', PlayerRegistrationView.as_view(), name='player_registration'),
-
+    path("logistics/roasters/", RoasterListView.as_view(), name="roaster_list"),
+    path('logistics/roasters/add/', RoasterAddView.as_view(), name='add_roaster'),
+    path('logistics/roasters/edit/<int:roaster_id>/', RoasterEditView.as_view(), name='edit_roaster'),
 ]
 
 if settings.DEBUG:

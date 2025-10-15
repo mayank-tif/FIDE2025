@@ -131,7 +131,7 @@
 
             <!-- Transportation Tab -->
     <div id="tab-transportation" class="tab-content">
-      <div class="profile-card">
+      {% comment %} <div class="profile-card">
         <h3>Add Transportation Details</h3>
         <form id="transport-form" class="profile-form">
           <div class="form-row">
@@ -184,7 +184,7 @@
             <button type="button" class="btn btn--secondary">Cancel</button>
           </div>
         </form>
-      </div>
+      </div> {% endcomment %}
 
       <div class="profile-card">
         <h3>Transportation Details</h3>
@@ -203,14 +203,16 @@
         <span class="badge badge--completed">Completed</span>
       </div>
       <div class="item-actions">
-        <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button>
+        {% comment %} <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button> {% endcomment %}
       </div>
     </li>
   </template>
     </main>
   </div>
 
-  <script>
+  <script src="{% static 'assets/js/app.js' %}"></script>
+
+  <script>           
     document.addEventListener("DOMContentLoaded", function() {
       const profileForm = document.getElementById("profile-form");
       const uploadBtn = document.getElementById("upload-photo-btn");
@@ -316,93 +318,93 @@
       });
     });
   </script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const transportForm = document.getElementById("transport-form");
-    const transportLog = document.getElementById("transport-log");
-    const transportTemplate = document.getElementById("tpl-transport-item");
-    const csrfToken = "{{ csrf_token }}";
-    const playerId = "{{ player.id }}";
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      const transportForm = document.getElementById("transport-form");
+      const transportLog = document.getElementById("transport-log");
+      const transportTemplate = document.getElementById("tpl-transport-item");
+      const csrfToken = "{{ csrf_token }}";
+      const playerId = "{{ player.id }}";
 
-    let editTransportId = null; // To track if we are editing an existing record
+      let editTransportId = null; // To track if we are editing an existing record
 
-    // Fetch existing transportation data for this player
-    function loadTransportData() {
-        fetch(`/player/${playerId}/transport/`) // create this API in Django
-        .then(res => res.json())
-        .then(data => {
-            transportLog.innerHTML = ""; // clear existing list
-            data.forEach(item => {
-                const li = transportTemplate.content.cloneNode(true).querySelector("li");
-                li.dataset.id = item.id;
-                li.dataset.pickup = item.pickup_location;
-                li.dataset.dropoff = item.drop_location;
-                li.dataset.type = item.transportation_type;
-                li.dataset.details = item.details;
-                li.dataset.remarks = item.remarks;
-                li.dataset.status = item.status;
+      // Fetch existing transportation data for this player
+      function loadTransportData() {
+          fetch(`/player/${playerId}/transport/`) // create this API in Django
+          .then(res => res.json())
+          .then(data => {
+              transportLog.innerHTML = ""; // clear existing list
+              data.forEach(item => {
+                  const li = transportTemplate.content.cloneNode(true).querySelector("li");
+                  li.dataset.id = item.id;
+                  li.dataset.pickup = item.pickup_location;
+                  li.dataset.dropoff = item.drop_location;
+                  li.dataset.type = item.transportation_type;
+                  li.dataset.details = item.details;
+                  li.dataset.remarks = item.remarks;
+                  li.dataset.status = item.status;
 
-                li.querySelector("strong").textContent = item.transportation_type_name;
-                li.querySelector(".details").textContent = item.details;
-                li.querySelector(".route").textContent = `${item.pickup_location} → ${item.drop_location}`;
-                li.querySelector(".datetime").textContent = new Date(item.created_on).toLocaleString();
-                li.querySelector(".badge").textContent = item.status;
+                  li.querySelector("strong").textContent = item.transportation_type_name;
+                  li.querySelector(".details").textContent = item.details;
+                  li.querySelector(".route").textContent = `${item.pickup_location} → ${item.drop_location}`;
+                  li.querySelector(".datetime").textContent = new Date(item.created_on).toLocaleString();
+                  li.querySelector(".badge").textContent = item.status;
 
-                // Edit button
-                li.querySelector(".btn--edit").addEventListener("click", () => {
-                    editTransportId = item.id;
-                    transportForm["pickup"].value = item.pickup_location;
-                    transportForm["dropoff"].value = item.drop_location;
-                    transportForm["details"].value = item.details;
-                    transportForm["type"].value = item.transportation_type;
-                    transportForm["remarks"].value = item.remarks;
-                    transportForm["status"].value = item.status;
-                });
+                  // Edit button
+                  //li.querySelector(".btn--edit").addEventListener("click", () => {
+                  //    editTransportId = item.id;
+                  //    transportForm["pickup"].value = item.pickup_location;
+                  //    transportForm["dropoff"].value = item.drop_location;
+                  //    transportForm["details"].value = item.details;
+                  //    transportForm["type"].value = item.transportation_type;
+                  //    transportForm["remarks"].value = item.remarks;
+                  //    transportForm["status"].value = item.status;
+                  //});
 
-                transportLog.appendChild(li);
-            });
-        });
-    }
+                  transportLog.appendChild(li);
+              });
+          });
+      }
 
-    loadTransportData();
+      loadTransportData();
 
-    // Handle form submission for add/edit
-    transportForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-
-        const formData = new FormData();
-        formData.append("player_id", playerId);
-        formData.append("pickup_location", transportForm["pickup"].value);
-        formData.append("drop_location", transportForm["dropoff"].value);
-        formData.append("details", transportForm["details"].value);
-        formData.append("transportation_type", transportForm["type"].value);
-        formData.append("remarks", transportForm["remarks"].value);
-        formData.append("status", transportForm["status"].value)
-        if (editTransportId) formData.append("id", editTransportId);
-
-        fetch("{% url 'save_player_transport' %}", {
-            method: "POST",
-            headers: { "X-CSRFToken": csrfToken },
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert("Transportation details saved!");
-                transportForm.reset();
-                editTransportId = null;
-                loadTransportData(); // reload updated list
-            } else {
-                alert("Error saving transportation data.");
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Something went wrong.");
-        });
-    });
-});
-</script>
+      // Handle form submission for add/edit
+      //transportForm.addEventListener("submit", function(e) {
+      //    e.preventDefault();
+//
+      //    const formData = new FormData();
+      //    formData.append("player_id", playerId);
+      //    formData.append("pickup_location", transportForm["pickup"].value);
+      //    formData.append("drop_location", transportForm["dropoff"].value);
+      //    formData.append("details", transportForm["details"].value);
+      //    formData.append("transportation_type", transportForm["type"].value);
+      //    formData.append("remarks", transportForm["remarks"].value);
+      //    formData.append("status", transportForm["status"].value)
+      //    if (editTransportId) formData.append("id", editTransportId);
+//
+      //    fetch("{% url 'save_player_transport' %}", {
+      //        method: "POST",
+      //        headers: { "X-CSRFToken": csrfToken },
+      //        body: formData
+      //    })
+      //    .then(res => res.json())
+      //    .then(data => {
+      //        if (data.success) {
+      //            alert("Transportation details saved!");
+      //            transportForm.reset();
+      //            editTransportId = null;
+      //            loadTransportData(); // reload updated list
+      //        } else {
+      //            alert("Error saving transportation data.");
+      //        }
+      //    })
+      //    .catch(err => {
+      //        console.error(err);
+      //        alert("Something went wrong.");
+      //    });
+      //});
+  });
+  </script>
 
 
 </body>
