@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Roaster - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <style>
     #playersDropdownWrapper {
       position: relative;
@@ -24,9 +26,17 @@
     #playersDropdownWrapper.show #playersDropdownMenu {
       display: block;
     }
+    .player-counter {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
+  <div class="app-shell">
+    {% include 'sidebar.html' %}
+    <main class="main-content">
   <div class="form-page">
     <div class="form-header">
       <button class="btn-back-arrow" onclick="goBack()">←</button>
@@ -38,6 +48,7 @@
         {% csrf_token %}
         <input type="hidden" name="current_page" value="{{ current_page }}">
         <div class="form-grid">
+
           <div class="form-group">
             <label for="vehicleType">Vehicle Type</label>
             <select id="vehicleType" name="vehicleType" required>
@@ -76,8 +87,8 @@
             <label for="status-type">Status</label>
             <select id="status-type" name="status" required>
               <option value="">Select Status</option>
-              {% for key, value in roaster_status_choices %}
-                  <option value="{{ key }}" {% if roaster.status == key %}selected{% endif %}>{{ value }}</option>
+              {% for key, value in status_choices %}
+                  <option value="{{ key }}" {% if current_status == key %}selected{% endif %}>{{ value }}</option>
               {% endfor %}
             </select>
           </div>
@@ -103,8 +114,9 @@
 
           <div class="form-group">
             <label for="date">Date & Time</label>
-            <input type="datetime-local" id="date" name="travel_date" value="{{ roaster.travel_date|date:'Y-m-d\TH:i' }}" required>
+            <input type="datetime-local" id="date" name="travel_date" value="{{ current_travel_date|date:'Y-m-d\\TH:i' }}" required>
           </div>
+
         </div>
 
         <div class="form-actions">
@@ -114,51 +126,177 @@
       </form>
     </div>
   </div>
+  </main>
+</div>
+  <script>
+    flatpickr("#date", {
+      enableTime: true,
+      enableTime: true,
+      dateFormat: "Y-m-d h:i K",
+      time_24hr: false 
+    });
+  </script>
 
   <script>
     const currentPage = "{{ current_page }}";
-    function goBack() {
-      const url = new URL("{% url 'roaster_list' %}", window.location.origin);
-      url.searchParams.set('page', currentPage);
-      window.location.href = url.toString();
+
+function goBack() {
+  const url = new URL("{% url 'roaster_list' %}", window.location.origin);
+  url.searchParams.set('page', currentPage);
+  window.location.href = url.toString();
+}
+
+const numberOfSeatsInput = document.getElementById('numberOfSeats');
+const playerCounter = document.getElementById('playerCounter');
+const playerSearch = document.getElementById('playerSearch');
+const playersDropdownMenu = document.getElementById('playersDropdownMenu');
+const playersSelectButton = document.getElementById('playersSelectButton');
+const playerOptions = Array.from(playersDropdownMenu.querySelectorAll('.player-option'));
+const playersDropdownWrapper = document.getElementById('playersDropdownWrapper');
+const roasterForm = document.querySelector('form');
+
+let selectedPlayers = [];
+
+// Toggle dropdown
+playersSelectButton.addEventListener('click', () => {
+  playersDropdownWrapper.classList.toggle('show');
+});
+
+document.addEventListener('click', function(e) {
+  if (!playersDropdownWrapper.contains(e.target)) {
+    playersDropdownWrapper.classList.remove('show');
+  }
+});
+
+// Get current seat count and validation status
+function getSeatInfo() {
+  const totalSeats = parseInt(numberOfSeatsInput.value) || 0;
+  const assigned = selectedPlayers.length;
+  const isValid = totalSeats === 0 || assigned <= totalSeats;
+  const availableSeats = totalSeats - assigned;
+  
+  return { totalSeats, assigned, isValid, availableSeats };
+}
+
+// Update player counter and UI
+function updatePlayerCounter() {
+  const checkboxes = playersDropdownMenu.querySelectorAll('input[type="checkbox"]');
+  
+  selectedPlayers = Array.from(checkboxes)
+    .filter(checkbox => checkbox.checked)
+    .map(checkbox => checkbox.value);
+  
+  const { totalSeats, assigned, isValid, availableSeats } = getSeatInfo();
+  
+  // Update counter display
+  if (totalSeats === 0) {
+    playerCounter.textContent = `${assigned} players assigned (no seat limit)`;
+    playerCounter.style.color = assigned === 0 ? '#555' : 'green';
+  } else {
+    playerCounter.textContent = `${assigned}/${totalSeats} players assigned`;
+    playerCounter.style.color = isValid ? (assigned === 0 ? '#555' : 'green') : 'red';
+    
+    if (!isValid) {
+      playerCounter.textContent += ' - Too many players!';
+    } else if (availableSeats === 0) {
+      playerCounter.textContent += ' - Vehicle full!';
     }
-
-    const numberOfSeatsInput = document.getElementById('numberOfSeats');
-    const playerCounter = document.getElementById('playerCounter');
-    const playerSearch = document.getElementById('playerSearch');
-    const playersDropdownMenu = document.getElementById('playersDropdownMenu');
-    const playersSelectButton = document.getElementById('playersSelectButton');
-    const playerOptions = Array.from(playersDropdownMenu.querySelectorAll('.player-option'));
-    const playersDropdownWrapper = document.getElementById('playersDropdownWrapper');
-
-    playersSelectButton.addEventListener('click', () => {
-      playersDropdownWrapper.classList.toggle('show');
-    });
-
-    document.addEventListener('click', function(e) {
-      if (!playersDropdownWrapper.contains(e.target)) {
-        playersDropdownWrapper.classList.remove('show');
+  }
+  
+  // Update selected players text
+  const selectedPlayersText = document.getElementById('selectedPlayersText');
+  if (assigned === 0) {
+    selectedPlayersText.textContent = 'Select';
+  } else {
+    selectedPlayersText.textContent = `${assigned} player${assigned > 1 ? 's' : ''} selected`;
+  }
+  
+  // Disable/enable checkboxes based on seat availability
+  if (totalSeats > 0 && assigned >= totalSeats) {
+    checkboxes.forEach(checkbox => {
+      if (!checkbox.checked) {
+        checkbox.disabled = true;
+        checkbox.parentElement.style.opacity = '0.5';
       }
     });
-
-    function updatePlayerCounter() {
-      const checkboxes = playersDropdownMenu.querySelectorAll('input[type="checkbox"]:checked');
-      const totalSeats = parseInt(numberOfSeatsInput.value || 0);
-      playerCounter.textContent = `${checkboxes.length} players assigned`;
-    }
-
-    playersDropdownMenu.addEventListener('change', updatePlayerCounter);
-    numberOfSeatsInput.addEventListener('input', updatePlayerCounter);
-
-    playerSearch.addEventListener('input', function() {
-      const query = this.value.toLowerCase();
-      playerOptions.forEach(option => {
-        option.style.display = option.dataset.name.includes(query) ? 'block' : 'none';
-      });
+  } else {
+    checkboxes.forEach(checkbox => {
+      checkbox.disabled = false;
+      checkbox.parentElement.style.opacity = '1';
     });
+  }
+  
+  return isValid;
+}
 
-    // Initialize counter on page load
-    document.addEventListener('DOMContentLoaded', updatePlayerCounter);
+// Validate before form submission
+function validateForm() {
+  const { totalSeats, assigned, isValid } = getSeatInfo();
+  
+  if (!isValid) {
+    alert(`Error: You have assigned ${assigned} players but the vehicle only has ${totalSeats} seats. Please remove ${assigned - totalSeats} player(s).`);
+    return false;
+  }
+  
+  if (assigned === 0) {
+    alert('Please select at least one player for this roaster.');
+    return false;
+  }
+  
+  if (!numberOfSeatsInput.value || parseInt(numberOfSeatsInput.value) < 1) {
+    alert('Please enter a valid number of seats (minimum 1).');
+    numberOfSeatsInput.focus();
+    return false;
+  }
+  
+  return true;
+}
+
+// Event listeners
+playersDropdownMenu.addEventListener('change', updatePlayerCounter);
+numberOfSeatsInput.addEventListener('input', updatePlayerCounter);
+
+// Form submission handler
+roasterForm.addEventListener('submit', function(e) {
+  if (!validateForm()) {
+    e.preventDefault();
+    return false;
+  }
+});
+
+// Player search
+playerSearch.addEventListener('input', function() {
+  const query = this.value.toLowerCase();
+  playerOptions.forEach(option => {
+    if (option.dataset.name.includes(query)) {
+      option.style.display = 'block';
+    } else {
+      option.style.display = 'none';
+    }
+  });
+});
+
+// Prevent checking if seats are exceeded - FIXED VERSION
+playersDropdownMenu.addEventListener('click', function(e) {
+  if (e.target.type === 'checkbox' && e.target.checked) {
+    const totalSeats = parseInt(numberOfSeatsInput.value) || 0;
+    const currentlyChecked = playersDropdownMenu.querySelectorAll('input[type="checkbox"]:checked').length;
+    
+    // If trying to check a new checkbox when seats are full
+    if (totalSeats > 0 && currentlyChecked >= totalSeats) {
+      alert(`Cannot select more than ${totalSeats} players for this vehicle.`);
+      e.preventDefault();
+      e.target.checked = false;
+      updatePlayerCounter();
+      return;
+    }
+  }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  updatePlayerCounter();
+});
   </script>
 </body>
 </html>

@@ -93,6 +93,7 @@
         <thead>
           <tr>
             <th>User</th>
+            <th>Role</th>
             <th>Action</th>
             <th>Description</th>
             <th>Date</th>
@@ -108,6 +109,7 @@
                  {{ log.user.loginname }}
                {% endif %}
              </td>
+             <td>{{ log.user.roleid.role_name }}</td>
              <td>{{ log.action }}</td>
              <td>{{ log.description|default:"—" }}</td>
              <td>{{ log.created_on|date:"Y-m-d H:i:s" }}</td>

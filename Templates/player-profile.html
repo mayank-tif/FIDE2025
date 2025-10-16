@@ -6,6 +6,231 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Player Profile - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    /* Add styles for multiple file upload */
+    .file-upload-multiple {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 10px;
+        margin-top: 8px;
+
+    }
+    
+    .file-upload-multiple:hover {
+        border-color: #5a8372;
+        background: #f8f9fa;
+    }
+    
+    .file-list {
+        margin-top: 15px;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: #e9ecef;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+    
+    .file-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .file-size {
+        color: #6c757d;
+        font-size: 12px;
+    }
+    
+    .remove-file {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 4px;
+        border-radius: 3px;
+    }
+    
+    .remove-file:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .existing-documents {
+        margin-top: 15px;
+    }
+    
+    .document-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 15px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .document-item:hover {
+        background: #e9ecef;
+        border-color: #5a8372;
+    }
+    
+    .document-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .btn--danger {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+    }
+    
+    .btn--danger:hover {
+        background: #c82333;
+    }
+    
+    .btn--secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+    }
+    
+    .btn--secondary:hover {
+        background: #545b62;
+    }
+    
+    .file-icon {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+    }
+    
+    .no-documents {
+        text-align: center;
+        color: #6c757d;
+        padding: 1px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+    }
+    /* Transportation Styles */
+.item-log {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.item-entry {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.item-entry:hover {
+    border-color: #5a8372;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.item-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.item-line > div {
+    flex: 1;
+}
+
+.details {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.route {
+    color: #495057;
+    font-weight: 500;
+}
+
+.datetime {
+    color: #6c757d;
+    font-size: 13px;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.badge--completed {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.badge--in-progress {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.badge--pending {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .item-line {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .item-line > div {
+        width: 100%;
+    }
+}
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -45,11 +270,12 @@
                 </div>
                 <div class="form-group">
                   <label for="profile-age">Age</label>
-                  <input type="number" id="profile-age" name="age" value="{{ player.age }}" required>
+                  <input type="number" id="profile-age" name="age" value="{{ player.age }}">
                 </div>
                 <div class="form-group">
                   <label for="profile-gender">Gender</label>
-                  <select id="profile-gender" name="gender" required>
+                  <select id="profile-gender" name="gender">
+                    <option value="">Select</option>
                     <option value="MALE" {% if player.gender == 'MALE' %}selected{% endif %}>Male</option>
                     <option value="FEMALE" {% if player.gender == 'FEMALE' %}selected{% endif %}>Female</option>
                     <option value="OTHER" {% if player.gender == 'OTHER' %}selected{% endif %}>Other</option>
@@ -60,7 +286,8 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="profile-country">Country</label>
-                  <select id="profile-country" name="country" required>
+                  <select id="profile-country" name="country">
+                    <option value="">Select</option>
                     {% for country in countries %}
                       <option value="{{ country.country_id }}" {% if player.countryid_id == country.country_id %}selected{% endif %}>
                         {{ country.country_name }}
@@ -82,7 +309,20 @@
                 </div>
               </div>
 
-              <!-- New Fields from Registration Form -->
+              <!-- Accompanying Persons Field -->
+              <div class="form-row">
+                <div class="form-group full-width">
+                  <label for="profile-accompanying-persons">Accompanying Persons</label>
+                  <input type="text" 
+                         id="profile-accompanying-persons" 
+                         name="accompanying_persons" 
+                         value="{{ player.accompanying_persons|default:'' }}" 
+                         placeholder="Enter names of accompanying persons separated by commas (e.g., John Doe, Jane Smith)">
+                  <small>If traveling with family members or companions, please enter their full names separated by commas</small>
+                </div>
+              </div>
+
+              <!-- Food Allergies Field -->
               <div class="form-row">
                 <div class="form-group full-width">
                   <label for="profile-food-allergies">Food Allergies & Dietary Restrictions</label>
@@ -94,29 +334,50 @@
                 <div class="form-group">
                   <label for="profile-room-cleaning">Room Cleaning Preference</label>
                   <select id="profile-room-cleaning" name="room_cleaning_preference" required>
-                    <option value="MORNING" {% if player.room_cleaning_preference == 'AFTERNOON' %}selected{% endif %}>Between 3:00 PM – 6:00 PM (during game hours)</option>
-                    <option value="AFTERNOON" {% if player.room_cleaning_preference == 'MORNING' %}selected{% endif %}>Morning slot (while you are likely to be in the room)</option>
+                    <option value="MORNING" {% if player.room_cleaning_preference == 'MORNING' %}selected{% endif %}>Morning slot (while you are likely to be in the room)</option>
+                    <option value="AFTERNOON" {% if player.room_cleaning_preference == 'AFTERNOON' %}selected{% endif %}>Between 3:00 PM – 6:00 PM (during game hours)</option>
                     <option value="EVENING" {% if player.room_cleaning_preference == 'EVENING' %}selected{% endif %}>Evening slot (after games, while you are likely to be in the room)</option>
                     <option value="AT_HOTEL" {% if player.room_cleaning_preference == 'AT_HOTEL' %}selected{% endif %}>Will give instructions at hotel</option>                  
                   </select>
                 </div>
+                
+                <!-- UPDATED: Multiple Documents Upload with Delete Option -->
                 <div class="form-group">
                   <label>Documents</label>
                   <div class="documents-section">
-                    {% if player.documents %}
-                      <div class="document-item">
-                        <span>📝</span>
-                        <a href="{{ player.documents.url }}" target="_blank" class="btn btn--small btn--secondary">View</a>
+                    <!-- Existing Documents -->
+                    <div class="existing-documents" id="existing-documents">
+                      {% for doc in player_documents %}
+                        <div class="document-item" id="document-{{ doc.id }}">
+                          <div class="file-info">
+                            <span class="file-icon">📄</span>
+                            <div>
+                              <div>{{ doc.original_filename }}</div>
+                              <div class="file-size">{{ doc.file_size|filesizeformat }} • {{ doc.document_type }}</div>
+                            </div>
+                          </div>
+                          <div class="document-actions">
+                            <a href="{{ doc.reg_document.url }}" target="_blank" class="btn btn--primary">View</a>
+                            <button type="button" class="btn btn--secondary remove-document-btn" data-document-id="{{ doc.id }}">Delete</button>
+                          </div>
+                        </div>
+                      {% empty %}
+                        <div class="no-documents">
+                          <span>No documents uploaded</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+
+                    <!-- Multiple File Upload -->
+                    <div class="file-upload-multiple" id="fileUploadArea">
+                      <div class="file-label">
+                        <div style="font-size: 13px;"><strong>Click to upload</strong> or drag and drop</div>
+                        <div style="font-size: 11px; margin-top: 3px;">PDF or Image files (Max 10 MB per file)</div>
+                        <div style="font-size: 11px; margin-top: 2px;">You can select multiple files</div>
                       </div>
-                    {% else %}
-                      <div class="document-item">
-                        <span>No documents uploaded</span>
-                      </div>
-                    {% endif %}
-                    <button type="button" class="btn btn--small btn--secondary upload-new-btn" id="upload-document-btn">
-                      Upload New Document
-                    </button>
-                    <input type="file" id="upload-document-input" name="document" accept=".pdf,image/*" style="display: none;">
+                    </div>
+                    <input type="file" id="upload-document-input" name="documents" accept=".pdf,image/*" multiple style="display: none;">
+                    <div class="file-list" id="fileList"></div>
                   </div>
                 </div>
               </div>
@@ -192,21 +453,22 @@
         </ul>
       </div
 
+
       </div>
 
       <template id="tpl-transport-item">
-    <li class="item-entry" data-pickup="" data-dropoff="" data-type="" data-details="" data-remarks="" data-status="">
-      <div class="item-line">
-        <div>
-          <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
-        </div>
-        <span class="badge badge--completed">Completed</span>
-      </div>
-      <div class="item-actions">
-        {% comment %} <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button> {% endcomment %}
-      </div>
-    </li>
-  </template>
+        <li class="item-entry" data-pickup="" data-dropoff="" data-type="" data-details="" data-remarks="" data-status="">
+          <div class="item-line">
+            <div>
+              <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
+            </div>
+            <span class="badge badge--completed">Completed</span>
+          </div>
+          <div class="item-actions">
+            {% comment %} <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button> {% endcomment %}
+          </div>
+        </li>
+      </template>
     </main>
   </div>
 
@@ -217,17 +479,144 @@
       const profileForm = document.getElementById("profile-form");
       const uploadBtn = document.getElementById("upload-photo-btn");
       const uploadInput = document.getElementById("upload-photo-input");
-      const uploadDocBtn = document.getElementById("upload-document-btn");
+      const fileUploadArea = document.getElementById("fileUploadArea");
       const uploadDocInput = document.getElementById("upload-document-input");
+      const fileList = document.getElementById("fileList");
       const avatarDiv = document.getElementById("profile-avatar");
       const csrfToken = "{{ csrf_token }}";
       const playerId = "{{ player.id }}";
 
+      let selectedFiles = [];
+
       // Open file picker for profile photo
       uploadBtn.addEventListener("click", () => uploadInput.click());
 
-      // Open file picker for document
-      uploadDocBtn.addEventListener("click", () => uploadDocInput.click());
+      // Open file picker for documents
+      fileUploadArea.addEventListener("click", () => uploadDocInput.click());
+
+      // Multiple file upload functionality
+      uploadDocInput.addEventListener("change", function(e) {
+        handleFiles(this.files);
+      });
+
+      // Drag and drop for documents
+      fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+      });
+
+      fileUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+      });
+
+      fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+
+      function handleFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          
+          // Check file size (10MB limit)
+          if (file.size > 10 * 1024 * 1024) {
+            showMessage(`File "${file.name}" exceeds 10 MB size limit. Please choose a smaller file.`);
+            continue;
+          }
+          
+          // Check if file already exists
+          if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            selectedFiles.push(file);
+          }
+        }
+        updateFileList();
+        updateFileInput();
+      }
+
+      function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+          dataTransfer.items.add(file);
+        });
+        uploadDocInput.files = dataTransfer.files;
+      }
+
+      function updateFileList() {
+        fileList.innerHTML = '';
+        
+        if (selectedFiles.length === 0) {
+          return;
+        }
+        
+        selectedFiles.forEach((file, index) => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'file-item';
+          
+          const fileSize = (file.size / 1024 / 1024).toFixed(2);
+          
+          fileItem.innerHTML = `
+            <div class="file-info">
+              <span>📎</span>
+              <span>${file.name}</span>
+              <span class="file-size">(${fileSize} MB)</span>
+            </div>
+            <button type="button" class="remove-file" data-index="${index}">×</button>
+          `;
+          
+          fileList.appendChild(fileItem);
+        });
+
+        // Add remove file handlers
+        document.querySelectorAll('.remove-file').forEach(button => {
+          button.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            selectedFiles.splice(index, 1);
+            updateFileList();
+            updateFileInput();
+          });
+        });
+      }
+
+      // Delete existing document functionality
+      document.querySelectorAll('.remove-document-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const documentId = this.getAttribute('data-document-id');
+          const documentElement = document.getElementById(`document-${documentId}`);
+          const fileName = documentElement.querySelector('.file-info div:first-child').textContent;
+          
+          if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+            const formData = new FormData();
+            formData.append("document_id", documentId);
+            formData.append("csrfmiddlewaretoken", csrfToken);
+            
+            fetch("{% url 'delete_player_document' %}", {
+              method: "POST",
+              body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                documentElement.remove();
+                showMessage("Document deleted successfully!");
+                
+                // If no documents left, show empty state
+                const existingDocuments = document.getElementById('existing-documents');
+                if (existingDocuments.children.length === 0) {
+                  existingDocuments.innerHTML = '<div class="no-documents"><span>No documents uploaded</span></div>';
+                }
+              } else {
+                showMessage("Error deleting document: " + data.error);
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              showMessage("Something went wrong while deleting the document.");
+            });
+          }
+        });
+      });
 
       // Preview selected profile image instantly
       uploadInput.addEventListener("change", function() {
@@ -249,15 +638,6 @@
         }
       });
 
-      // Handle document upload preview
-      uploadDocInput.addEventListener("change", function() {
-        if (this.files && this.files[0]) {
-          const fileName = this.files[0].name;
-          // You could add preview logic for documents here
-          console.log("Document selected:", fileName);
-        }
-      });
-
       // Handle profile form submission
       profileForm.addEventListener("submit", function(e) {
         e.preventDefault();
@@ -273,14 +653,16 @@
         formData.append("status", profileForm.status.value);
         formData.append("food_allergies", profileForm.food_allergies.value);
         formData.append("room_cleaning_preference", profileForm.room_cleaning_preference.value);
+        formData.append("accompanying_persons", profileForm.accompanying_persons.value);
 
         if (uploadInput.files.length > 0) {
           formData.append("profile_pic", uploadInput.files[0]);
         }
 
-        if (uploadDocInput.files.length > 0) {
-          formData.append("documents", uploadDocInput.files[0]);
-        }
+        // Add all selected documents
+        selectedFiles.forEach(file => {
+          formData.append("documents", file);
+        });
 
         fetch("{% url 'update_player_profile' %}", {
           method: "POST",
@@ -290,15 +672,15 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert("Profile updated successfully!");
-            window.location.reload(true);
+            showMessage("Profile updated successfully!");
+            setTimeout(() => window.location.reload(true), 1500);
           } else {
-            alert("Error updating profile: " + (data.error || "Please try again."));
+            showMessage("Error updating profile: " + (data.error || "Please try again."));
           }
         })
         .catch(err => {
           console.error(err);
-          alert("Something went wrong.");
+          showMessage("Something went wrong.");
         });
       });
 
@@ -320,92 +702,92 @@
   </script>
   <script>
   document.addEventListener("DOMContentLoaded", function() {
-      const transportForm = document.getElementById("transport-form");
-      const transportLog = document.getElementById("transport-log");
-      const transportTemplate = document.getElementById("tpl-transport-item");
-      const csrfToken = "{{ csrf_token }}";
-      const playerId = "{{ player.id }}";
+    const transportLog = document.getElementById("transport-log");
+    const csrfToken = "{{ csrf_token }}";
+    const playerId = "{{ player.id }}";
 
-      let editTransportId = null; // To track if we are editing an existing record
+    const statusBadgeMap = {
+        'ARRIVED_AIRPORT': 'badge--info',
+        'ENTROUTE_HOTEL': 'badge--warning', 
+        'REACHED_HOTEL': 'badge--success',
+        'IN_TRANSIT': 'badge--warning',
+        'REACHED_DESTINATION': 'badge--success',
+        'DEPARTED_AIRPORT': 'badge--info',
+        'REACHED_AIRPORT_DEPARTURE': 'badge--info'
+    };
 
-      // Fetch existing transportation data for this player
-      function loadTransportData() {
-          fetch(`/player/${playerId}/transport/`) // create this API in Django
-          .then(res => res.json())
-          .then(data => {
-              transportLog.innerHTML = ""; // clear existing list
-              data.forEach(item => {
-                  const li = transportTemplate.content.cloneNode(true).querySelector("li");
-                  li.dataset.id = item.id;
-                  li.dataset.pickup = item.pickup_location;
-                  li.dataset.dropoff = item.drop_location;
-                  li.dataset.type = item.transportation_type;
-                  li.dataset.details = item.details;
-                  li.dataset.remarks = item.remarks;
-                  li.dataset.status = item.status;
+    // Load transportation data when transportation tab is clicked
+    document.querySelector('[data-tab="transportation"]').addEventListener('click', function() {
+        loadTransportData();
+    });
 
-                  li.querySelector("strong").textContent = item.transportation_type_name;
-                  li.querySelector(".details").textContent = item.details;
-                  li.querySelector(".route").textContent = `${item.pickup_location} → ${item.drop_location}`;
-                  li.querySelector(".datetime").textContent = new Date(item.created_on).toLocaleString();
-                  li.querySelector(".badge").textContent = item.status;
+    function loadTransportData() {
+        fetch(`/player/${playerId}/transport/`)
+        .then(response => response.json())
+        .then(data => {
+            transportLog.innerHTML = ""; // clear existing list
+            
+            if (data.error) {
+                transportLog.innerHTML = `<li class="no-data">Error loading transportation data: ${data.error}</li>`;
+                return;
+            }
+            
+            if (data.length === 0) {
+                transportLog.innerHTML = '<li class="no-data">No transportation details found for this player.</li>';
+                return;
+            }
+            
+            data.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'item-entry';
+                const badgeClass = statusBadgeMap[item.status] || 'badge--primary';
+                
+                li.innerHTML = `
+                    <div class="item-line">
+                        <div>
+                            <strong>${item.transportation_type_name}</strong> |
+                            {% comment %} From: <span class="route">${item.pickup_location} → ${item.drop_location}</span> |  {% endcomment %}
+                            <span class="datetime">${item.travel_date}</span>
+                        </div>
+                        <span class="badge ${badgeClass}">${item.status_display}</span>
+                    </div>
+                    <div class="transport-details" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        ${item.vehicle_type ? `
+                        <div style="display: flex; gap: 15px; font-size: 13px;">
+                            <span><strong>Vehicle:</strong> ${item.vehicle_type} - ${item.vehicle_number}</span>
+                            <span><strong>Driver:</strong> ${item.driver_name}</span>
+                        </div>
+                        ` : ''}
+                        ${item.details && item.details !== 'No details provided' ? `
+                        <div style="margin-bottom: 8px; font-size: 13px;">
+                            <strong>Details:</strong> ${item.details}
+                        </div>
+                        ` : ''}
+                        ${item.remarks && item.remarks !== 'No remarks' ? `
+                        <div style="margin-top: 5px; font-size: 13px;">
+                            <strong>Remarks:</strong> ${item.remarks}
+                        </div>
+                        ` : ''}
+                        <div style="margin-top: 5px; font-size: 12px; color: #6c757d;">
+                            Assigned on: ${item.created_on}
+                        </div>
+                    </div>
+                `;
+                
+                transportLog.appendChild(li);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading transportation data:', error);
+            transportLog.innerHTML = '<li class="no-data">Error loading transportation details. Please try again.</li>';
+        });
+    }
 
-                  // Edit button
-                  //li.querySelector(".btn--edit").addEventListener("click", () => {
-                  //    editTransportId = item.id;
-                  //    transportForm["pickup"].value = item.pickup_location;
-                  //    transportForm["dropoff"].value = item.drop_location;
-                  //    transportForm["details"].value = item.details;
-                  //    transportForm["type"].value = item.transportation_type;
-                  //    transportForm["remarks"].value = item.remarks;
-                  //    transportForm["status"].value = item.status;
-                  //});
-
-                  transportLog.appendChild(li);
-              });
-          });
-      }
-
-      loadTransportData();
-
-      // Handle form submission for add/edit
-      //transportForm.addEventListener("submit", function(e) {
-      //    e.preventDefault();
-//
-      //    const formData = new FormData();
-      //    formData.append("player_id", playerId);
-      //    formData.append("pickup_location", transportForm["pickup"].value);
-      //    formData.append("drop_location", transportForm["dropoff"].value);
-      //    formData.append("details", transportForm["details"].value);
-      //    formData.append("transportation_type", transportForm["type"].value);
-      //    formData.append("remarks", transportForm["remarks"].value);
-      //    formData.append("status", transportForm["status"].value)
-      //    if (editTransportId) formData.append("id", editTransportId);
-//
-      //    fetch("{% url 'save_player_transport' %}", {
-      //        method: "POST",
-      //        headers: { "X-CSRFToken": csrfToken },
-      //        body: formData
-      //    })
-      //    .then(res => res.json())
-      //    .then(data => {
-      //        if (data.success) {
-      //            alert("Transportation details saved!");
-      //            transportForm.reset();
-      //            editTransportId = null;
-      //            loadTransportData(); // reload updated list
-      //        } else {
-      //            alert("Error saving transportation data.");
-      //        }
-      //    })
-      //    .catch(err => {
-      //        console.error(err);
-      //        alert("Something went wrong.");
-      //    });
-      //});
-  });
+    // Load data initially if transportation tab is active
+    if (document.getElementById('tab-transportation').classList.contains('active')) {
+        loadTransportData();
+    }
+});
   </script>
-
-
 </body>
 </html>

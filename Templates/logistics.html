@@ -50,7 +50,8 @@
                 <td>{{ r.driver_name }}</td>
                 <td>{{ r.number_of_seats }}</td>
                 <td>
-                  {% with players_list=r.playertransportationdetails_set.all %}
+                  {% with players_list=r.distinct_players %}
+                    {% comment %} Show player names {% endcomment %}
                     {% if players_list|length <= 3 %}
                       {% for p in players_list %}
                         {{ p.playerId.name }}{% if not forloop.last %}, {% endif %}
@@ -63,8 +64,15 @@
                         +{{ players_list|length|add:"-3" }} more
                       </span>
                     {% endif %}
+                    
+                    {% comment %} Show player count / total seats {% endcomment %}
+                    <div style="font-size: 12px; color: #6c757d;">
+                      ({{ players_list|length }} / {{ r.number_of_seats }} seats)
+                    </div>
                   {% endwith %}
                 </td>
+
+
 
                 <td>
                   <button class="edit-roaster-btn btn-icon" data-roaster-id="{{ r.id }}">✏️</button>

@@ -227,32 +227,12 @@ class TransportationType(models.Model):
         
         
 class Roaster(models.Model):
-    STATUS_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
-    STATUS_ENTROUTE_HOTEL = "ENTROUTE_HOTEL"
-    STATUS_REACHED_HOTEL = "REACHED_HOTEL"
-    STATUS_IN_TRANSIT = "IN_TRANSIT"
-    STATUS_REACHED_DESTINATION = "REACHED_DESTINATION"
-    STATUS_DEPARTED_AIRPORT = "DEPARTED_AIRPORT"
-    STATUS_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
-
-    STATUS_CHOICES = [
-        (STATUS_ARRIVED_AIRPORT, "Arrived at Airport"),
-        (STATUS_ENTROUTE_HOTEL, "Entroute to Hotel"),
-        (STATUS_REACHED_HOTEL, "Reached Hotel"),
-        (STATUS_IN_TRANSIT, "In Transit"),
-        (STATUS_REACHED_DESTINATION, "Reached Destination"),
-        (STATUS_DEPARTED_AIRPORT, "Departed for Airport"),
-        (STATUS_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
-    ]
-    
     id = models.AutoField(primary_key=True)
     vechicle_no = models.CharField(max_length=100, null=False)
     vechicle_type = models.TextField(null=False)
     number_of_seats = models.IntegerField(null=False)
     driver_name = models.CharField(max_length=100, null=False)
     transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
-    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT, null=True, blank=True)
-    travel_date = models.DateTimeField(null=True)
     status_flag = models.IntegerField(default=1)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
@@ -295,10 +275,12 @@ class PlayerTransportationDetails(models.Model):
     details = models.CharField(max_length=500, null=True)
     remarks = models.CharField(max_length=500, null=True)
     status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT, null=True, blank=True)
+    travel_date = models.DateTimeField(null=True)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
+    status_flag = models.IntegerField(default=1)
 
     def __str__(self):
         return f"{self.playerId.name} - {self.pickup_location} to {self.drop_location}"

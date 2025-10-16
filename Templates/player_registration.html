@@ -548,6 +548,18 @@
           align-items: center;
         }
 
+        #registrationForm {
+            position: relative;
+            z-index: 2;
+            padding-bottom: env(safe-area-inset-bottom); /* Handles iPhone notches + dynamic toolbar */
+            margin-bottom: 40px; /* extra space to avoid overlap */
+        }
+        button, input[type="submit"] {
+            -webkit-appearance: none;
+            touch-action: manipulation;
+            cursor: pointer;
+        }
+
         .loader {
           border: 6px solid #f3f3f3;
           border-top: 6px solid #271F64;
@@ -555,6 +567,42 @@
           width: 50px;
           height: 50px;
           animation: spin 1s linear infinite;
+        }
+
+        rukkh .marquee-container {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        .image-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: space-between; 
+            gap: 1px; 
+        }
+
+        .img-box {
+            flex: 0 0 auto; 
+            width: calc((100% / 6) - (5px / 6)); 
+            
+            aspect-ratio: 1 / 1; 
+            overflow: hidden; 
+            border-radius: 8px;
+            margin-bottom: 10px; 
+            
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+
+        .img-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; 
+        image-rendering: -webkit-optimize-contrast; 
+        display: block;
         }
 
         @keyframes spin {
@@ -695,6 +743,15 @@
 
                 <button type="submit" class="submit-btn">Submit Information</button>
             </form>
+            <div class="marquee-container">
+                <div class="image-grid">
+                    <div class="img-box"><img src="{% static 'assets/images/image4.png' %}" alt=""></div>
+                    <div class="img-box"><img src="{% static 'assets/images/image5.png' %}" alt=""></div>
+                    <div class="img-box"><img src="{% static 'assets/images/image3.png' %}" alt=""></div>
+                    <div class="img-box"><img src="{% static 'assets/images/image1.png' %}" alt=""></div>
+                    <div class="img-box"><img src="{% static 'assets/images/image2.png' %}" alt=""></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -703,109 +760,109 @@
     <script>
     $(document).ready(function() {    
         const fileInput = document.getElementById('fileUpload');
-        const fileUploadArea = document.getElementById('fileUploadArea'); // Added this line
-        const fileList = document.getElementById('fileList'); // Added this line
-        const loader = document.getElementById("loaderOverlay");
-        const submitBtn = document.querySelector(".submit-btn");
-        
-        let selectedFiles = [];
-        
-        // File upload area click handler
-        fileUploadArea.addEventListener('click', function() {
-            fileInput.click();
-        });
+    const fileUploadArea = document.getElementById('fileUploadArea'); // Added this line
+    const fileList = document.getElementById('fileList'); // Added this line
+    const loader = document.getElementById("loaderOverlay");
+    const submitBtn = document.querySelector(".submit-btn");
     
-        // Drag and drop functionality
-        fileUploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            fileUploadArea.classList.add('dragover');
-        });
-    
-        fileUploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            fileUploadArea.classList.remove('dragover');
-        });
-    
-        fileUploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            fileUploadArea.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-    
-        // File input change handler
-        fileInput.addEventListener('change', function(e) {
-            handleFiles(this.files);
-        });
-    
-        function handleFiles(files) {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                
-                // Check file size (10MB limit)
-                if (file.size > 10 * 1024 * 1024) {
-                    alert(`File "${file.name}" exceeds 10 MB size limit. Please choose a smaller file.`);
-                    continue;
-                }
-                
-                // Check if file already exists
-                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                    selectedFiles.push(file);
-                }
-            }
-            updateFileList();
-            updateFileInput(); // Add this line to update the actual file input
-            clearFieldError(fileInput);
-        }
-    
-        // NEW FUNCTION: Update the actual file input with all selected files
-        function updateFileInput() {
-            // Create a new DataTransfer object
-            const dataTransfer = new DataTransfer();
+    let selectedFiles = [];
+
+    // File upload area click handler
+    fileUploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // Drag and drop functionality
+    fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(this.files);
+    });
+
+    function handleFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
             
-            // Add all selected files to the DataTransfer object
-            selectedFiles.forEach(file => {
-                dataTransfer.items.add(file);
-            });
-            
-            // Update the file input with the new FileList
-            fileInput.files = dataTransfer.files;
-        }
-    
-        function updateFileList() {
-            fileList.innerHTML = '';
-            
-            if (selectedFiles.length === 0) {
-                return;
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert(`File "${file.name}" exceeds 10 MB size limit. Please choose a smaller file.`);
+                continue;
             }
             
-            selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <span>📎</span>
-                        <span>${file.name}</span>
-                        <span class="file-size">(${fileSize} MB)</span>
-                    </div>
-                    <button type="button" class="remove-file" data-index="${index}">×</button>
-                `;
-                
-                fileList.appendChild(fileItem);
-            });
-        
-            // Add remove file handlers
-            document.querySelectorAll('.remove-file').forEach(button => {
-                button.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    selectedFiles.splice(index, 1);
-                    updateFileList();
-                    updateFileInput(); // Update file input when removing files
-                });
-            });
+            // Check if file already exists
+            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                selectedFiles.push(file);
+            }
         }
+        updateFileList();
+        updateFileInput(); // Add this line to update the actual file input
+        clearFieldError(fileInput);
+    }
+
+    // NEW FUNCTION: Update the actual file input with all selected files
+    function updateFileInput() {
+        // Create a new DataTransfer object
+        const dataTransfer = new DataTransfer();
+        
+        // Add all selected files to the DataTransfer object
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        
+        // Update the file input with the new FileList
+        fileInput.files = dataTransfer.files;
+    }
+
+    function updateFileList() {
+        fileList.innerHTML = '';
+        
+        if (selectedFiles.length === 0) {
+            return;
+        }
+        
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <span>📎</span>
+                    <span>${file.name}</span>
+                    <span class="file-size">(${fileSize} MB)</span>
+                </div>
+                <button type="button" class="remove-file" data-index="${index}">×</button>
+            `;
+            
+            fileList.appendChild(fileItem);
+        });
+
+        // Add remove file handlers
+        document.querySelectorAll('.remove-file').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                selectedFiles.splice(index, 1);
+                updateFileList();
+                updateFileInput(); // Update file input when removing files
+            });
+        });
+    }
 
         // Function to show error below field
         function showFieldError(field, message) {
