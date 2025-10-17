@@ -38,14 +38,22 @@
           <span class="nav-icon">📩</span>
           <span>Enquiry</span>
       </a>
+    {% endif %}
 
-    {% elif request.session.roleid == 2 %}
+    {% if request.session.roleid == 2 or request.session.roleid == 3 %}
       <!-- Department sees only Complaints -->
       <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
         <span class="nav-icon">📋</span>
         <span>Complaints</span>
       </a>
-    {% elif request.session.roleid == 3 %}
+      {% if request.session.department == 1 or request.session.department == 2 %}
+      <a href="{% url 'DeptPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptPlayers' %}active{% endif %}">
+        <span class="nav-icon">👥</span>
+        <span>Players</span>
+      </a>
+      {% endif %}
+    {% endif %}
+    {% if request.session.roleid == 3 %}
       <!-- Logistics sees only Roaster/Logistics -->
       <a href="{% url 'roaster_list' %}" class="nav-link {% if request.resolver_match.url_name == 'roaster_list' %}active{% endif %}">
         <span class="nav-icon">🚗</span>

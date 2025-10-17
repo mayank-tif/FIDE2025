@@ -21,4 +21,5 @@ urlpatterns = [
     path("complaint/raise/", RaiseComplaintView.as_view(), name="raise_complaint"),
     path("complaint/edit/", EditComplaintRemarkView.as_view(), name="edit_complaint"),
     path("home-images/", HomeImageDataView.as_view(), name="home_images"),
+    path('departure-details/', DepartureDetailsAPIView.as_view(), name='create-departure-details-alt'),
 ]

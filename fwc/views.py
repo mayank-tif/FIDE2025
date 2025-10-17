@@ -488,9 +488,20 @@ class ComplaintListView(View):
 
         # Apply department filter based on role
         if role_id == 2 and user_dept_id:
-            # Normal department user – see only their department’s data
-            complaints_qs = complaints_qs.filter(department_id=user_dept_id)
-            selected_department = user_dept_id
+            if user_dept_id in [1, 2]:
+                # Show both Accommodation and Food & Beverages department complaints
+                complaints_qs = complaints_qs.filter(department_id__in=[1, 2])
+                # Set selected_department to show both or keep current selection
+                if not selected_department:
+                    selected_department = "2,3"  # Indicate both departments are selected
+            else:
+                # For other department users - see only their department's data
+                complaints_qs = complaints_qs.filter(department_id=user_dept_id)
+                selected_department = user_dept_id
+        elif role_id == 3:
+            # Logistics user – see only Transport department (id=3) complaints
+            complaints_qs = complaints_qs.filter(department_id=3)  # Transport department
+            selected_department = "3"
         elif role_id == 1:
             # Admin can view all and optionally filter by dropdown
             if selected_department:
@@ -965,3 +976,68 @@ class EnquiryListView(View):
         }
         return render(request, self.template_name, context)
 
+
+
+class DeptPlayerView(View):
+    template_name = "dept_player.html"
+
+    def get(self, request):
+        """
+        Render player management page with players data and search functionality.
+        """
+        # Get search query
+        search_query = request.GET.get('q', '')
+        
+        # Filter players
+        players = Players.objects.filter(status_flag=1).order_by("-id")
+        
+        # Apply search filter
+        if search_query:
+            players = players.filter(
+                models.Q(name__icontains=search_query) |
+                models.Q(email__icontains=search_query) |
+                models.Q(fide_id__icontains=search_query) |
+                models.Q(countryid__country_name__icontains=search_query)
+            )
+        
+        # Pagination
+        page = request.GET.get('page', 1)
+        paginator = Paginator(players, per_page)
+        current_page = paginator.page(page)
+
+        # Get countries for dropdown (if still needed)
+        countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
+        
+        context = {
+            "players": current_page,
+            "countries": countries,
+            "MstUserLogins": MstUserLogins,
+            "search_query": search_query,
+            "paginator": paginator,
+            "page_obj": current_page,
+        }
+        
+        return render(request, self.template_name, context)
+    
+        
+        
+class DeptPlayerProfile(View):
+    template_name = "dept_player_profile.html"
+
+    def get(self, request, player_id):
+        player = get_object_or_404(Players, id=player_id, status_flag=1)
+        countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
+        TransportationTypes = TransportationType.objects.filter(status_flag=1).order_by("Name")
+        player_documents = PlayerDocument.objects.filter(player=player, status_flag=1)
+        
+        transportation_details = PlayerTransportationDetails.objects.filter(
+            playerId=player, 
+        ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+        
+        return render(request, self.template_name, {
+            "player": player, 
+            "countries": countries, 
+            "TransportationTypes": TransportationTypes,
+            "player_documents": player_documents,
+            "transportation_details": transportation_details
+        })

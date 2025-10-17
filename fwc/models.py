@@ -99,7 +99,7 @@ class MstUserLogins(models.Model):
     email = models.CharField(max_length=50, null=True)
     loginname = models.CharField(max_length=20)
     securepassword = models.CharField(max_length=200, null=True)
-    roleid = models.ForeignKey(MstRole, on_delete=models.DO_NOTHING, null=True, db_column='roleId')
+    roleid = models.ForeignKey(MstRole, on_delete=models.DO_NOTHING, null=False, db_column='roleId')
     countryid = models.ForeignKey(CountryMst, on_delete=models.DO_NOTHING, null=True, db_column='countryId')
     mobilenumber = models.CharField(max_length=15, null=True)
     deactivated_by = models.IntegerField(null=True)
@@ -183,6 +183,12 @@ class Players(models.Model):
     room_cleaning_preference = models.CharField(max_length=15,choices=ROOM_CLEANING_CHOICES,null=True,blank=True)
     is_self_registered = models.BooleanField(default=True)
     accompanying_persons = models.TextField(null=True)
+    departure_flight_date = models.DateField(null=True)
+    departure_flight_time = models.TimeField(null=True)
+    departure_airport = models.CharField(max_length=300, null=True)
+    arrival_airport = models.CharField(max_length=300, null=True)
+    arrival_flight_date = models.DateField(null=True)
+    arrival_flight_time = models.TimeField(null=True)
 
     def __str__(self):
         return self.loginname

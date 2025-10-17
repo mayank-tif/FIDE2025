@@ -1,0 +1,270 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Players - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
+  <style>
+    /* Avatar Styles */
+    .avatar-wrapper {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e9ecef;
+      font-weight: bold;
+      font-size: 14px;
+      color: #495057;
+    }
+    
+    .player-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* Badge Styles */
+    .badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    
+    .badge--active {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .badge--departed {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .badge--knocked {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    /* Button Styles */
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .btn-icon:hover {
+      background: #f8f9fa;
+    }
+    
+    /* Message Styles */
+    .message {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .message.warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    {% include 'sidebar.html' %}
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Manage Players</h1>
+      </div>
+      
+      <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        <!-- Messages will be dynamically inserted here -->
+      </div>
+
+      <div class="toolbar">
+        <div class="logistics-search">
+          <form method="GET" action="{% url 'DeptPlayers' %}" class="search-form" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" 
+                   name="q" 
+                   value="{{ search_query }}" 
+                   placeholder="Search by name, email, FIDE ID, or country..." 
+                   style="margin: 0; height: 31px; padding: 0 8px;">
+            <button type="submit" class="btn btn--primary" style="height: 31px;">Search</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="logistics-table-container">
+        <div class="logistics-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>S.No.</th>
+                <th>Photo</th>
+                <th>Player Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Country</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for player in players %}
+              <tr>
+                <td>{{ forloop.counter0|add:players.start_index }}</td>
+                <td>
+                  {% if player.image %}
+                    <div class="avatar-wrapper">
+                      <img src="{{ player.image.url }}" class="player-avatar" alt="{{ player.name }}">
+                    </div>
+                  {% else %}
+                    <div class="avatar-wrapper">
+                      {{ player.name|slice:":2"|upper|default:"P" }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>{{ player.name|default:"" }}</td>
+                <td>{{ player.age|default:"" }}</td>
+                <td>{{ player.gender|default:"" }}</td>
+                <td>{{ player.countryid.country_name|default:"" }}</td>
+                <td>{{ player.email|default:"" }}</td>
+                <td>
+                  {% if player.status == "ACTIVE" %}
+                    <span class="badge badge--active">Active</span>
+                  {% elif player.status == "DEPARTED" %}
+                    <span class="badge badge--departed">Departed</span>
+                  {% elif player.status == "KNOCKED_OUT" %}
+                    <span class="badge badge--knocked">Knocked Out</span>
+                  {% else %}
+                    <span class="badge">{{ player.status|default:"" }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{% url 'DeptPlayerProfile' player.id %}" 
+                     class="btn-icon profile-view-btn" 
+                     title="View Profile"
+                     data-player-id="{{ player.id }}">👁️</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 20px;">
+                  No players found
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if players.paginator.num_pages > 1 %}
+        <div class="pagination" id="paginationContainer">
+          {% if players.has_previous %}
+            <a href="?page={{ players.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
+          {% endif %}
+          
+          <span>Page {{ players.number }} of {{ players.paginator.num_pages }}</span>
+          
+          {% if players.has_next %}
+            <a href="?page={{ players.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Store current page and search state when viewing profile
+      const profileButtons = document.querySelectorAll('.profile-view-btn');
+      
+      profileButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          // Get current URL parameters to maintain search and pagination
+          const currentUrl = window.location.search;
+          sessionStorage.setItem('playersListUrl', currentUrl);
+        });
+      });
+      
+      // Focus search input on page load if empty
+      const searchInput = document.querySelector('input[name="q"]');
+      if (searchInput && searchInput.value === '') {
+        searchInput.focus();
+      }
+
+      // Show Django messages in side popup
+      {% if messages %}
+        {% for message in messages %}
+          showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+        {% endfor %}
+      {% endif %}
+    });
+
+    // Message display function (same as your logistics page)
+    function showMessage(message, type) {
+      const messageContainer = document.getElementById('message-container');
+      const messageDiv = document.createElement('div');
+      
+      // Map Django message tags to CSS classes
+      let messageClass = 'message';
+      if (type === 'success') messageClass += ' success';
+      else if (type === 'error') messageClass += ' error';
+      else if (type === 'warning') messageClass += ' warning';
+      else if (type === 'info') messageClass += ' info';
+      else messageClass += ' info'; // default
+      
+      messageDiv.className = messageClass;
+      messageDiv.textContent = message;
+      messageContainer.appendChild(messageDiv);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (messageDiv.parentNode) {
+          messageDiv.parentNode.removeChild(messageDiv);
+        }
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

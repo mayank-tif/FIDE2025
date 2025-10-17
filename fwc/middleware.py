@@ -120,11 +120,22 @@ class RoleBasedAccessMiddleware:
             'logout',
         }
         
+        self.allowed_urls_role_2_dept_1_or_2 = {
+            'DeptPlayers',
+            'DeptPlayerProfile',
+            'complaint_list', 
+            'complaint_update',
+            'login',
+            'logout',
+        }
+        
         # Allowed URLs for Role ID 3
         self.allowed_urls_role_3 = {
             'roaster_list',
             'add_roaster',
             'edit_roaster',
+            'complaint_list', 
+            'complaint_update',
             'login',
             'logout',
         }
@@ -134,12 +145,19 @@ class RoleBasedAccessMiddleware:
         
         if request.session.get('is_active'):
             role_id = request.session.get('roleid', None)
+            dept_id = request.session.get('department', None)
             resolver_match = resolve(request.path_info)
             current_url_name = resolver_match.url_name  
-            print("Current URL name:", current_url_name, role_id)
+            print("Current URL name:", current_url_name, role_id, dept_id)
 
-            if role_id == 2 and current_url_name and current_url_name not in self.allowed_urls_role_2:
-                return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
+            if role_id == 2:
+                if dept_id in [1, 2]:
+                    allowed_urls = self.allowed_urls_role_2_dept_1_or_2
+                else:
+                    allowed_urls = self.allowed_urls_role_2
+
+                if current_url_name and current_url_name not in allowed_urls:
+                    return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
             
             if role_id == 3 and current_url_name and current_url_name not in self.allowed_urls_role_3:
                 return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')

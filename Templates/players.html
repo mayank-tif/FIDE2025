@@ -324,8 +324,8 @@
 
           $(document).on("click", ".profileView", function() {
               const playerId = $(this).data("id"); 
-              const url = `/player/${playerId}/`;  // matches your urls.py pattern
-              window.open(url, "_blank"); // open in new tab
+              const url = `/player/${playerId}/`;
+              window.location.href = url;
           });
 
 

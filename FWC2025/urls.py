@@ -45,7 +45,9 @@ urlpatterns = [
     path('logistics/roasters/edit/<int:roaster_id>/', RoasterEditView.as_view(), name='edit_roaster'),
     path('delete-player-document/', DeletePlayerDocument.as_view(), name='delete_player_document'),
     path('enquiries/', EnquiryListView.as_view(), name='enquiry_list'),
-    path('mapi/', include('MAppApis.urls', namespace='MAppApis'))
+    path('mapi/', include('MAppApis.urls', namespace='MAppApis')),
+    path('dept/players/', DeptPlayerView.as_view(), name='DeptPlayers'),
+    path('dept/player/<int:player_id>/', DeptPlayerProfile.as_view(), name='DeptPlayerProfile'),
 ]
 
 if settings.DEBUG:

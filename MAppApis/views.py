@@ -615,6 +615,41 @@ class ContactFormView(APIView):
                 status_flag=1
             )
             
+            html_message = render_to_string(
+               'contact_us.html',
+               {
+                    'name': name,
+                    'email': email,
+                    'subject': subject,
+                    'message': message,
+                    'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
+               }
+            )
+            
+            subject = f"Contact Form: {subject}"
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='CONTACT_US',
+                subject=subject,
+                recipient_email=CHESS_FWC_2025_EMAIL,
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[CHESS_FWC_2025_EMAIL],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
+            
             # Prepare success response
             response_data = {
                 "success": True,
@@ -667,6 +702,41 @@ class EnquiryFormView(APIView):
                 response="",  # Empty response initially
                 status_flag=1
             )
+            
+            html_message = render_to_string(
+               'enquiry_email.html',
+               {
+                    'player_name': player.name,
+                    'player_fide_id': player.fide_id or 'Not provided',
+                    'player_email': player.email,
+                    'message': message,
+                    'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
+               }
+            )
+            
+            subject = f"Player Enquiry from {player.name}"
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='ENQUIRY',
+                subject=subject,
+                recipient_email=CHESS_FWC_2025_EMAIL,
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[CHESS_FWC_2025_EMAIL],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
             
             response_data = {
                 "success": True,
@@ -853,6 +923,45 @@ class RaiseComplaintView(APIView):
                 status='OPEN',
                 status_flag=1
             )
+            
+            context = {
+                'player_name': player.name,
+                'player_fide_id': player.fide_id or 'Not provided',
+                'player_email': player.email,
+                'player_id': player.id,
+                'complaint_id': complaint.id,
+                'description': description,
+                'department_name': department.name,
+                'status': complaint.status,
+                'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+            }
+            
+            # Render HTML email template
+            html_message = render_to_string('complaint_email.html', context)
+
+            subject = f"COMPLAINT from {player.name} - #C{complaint.id} - {department.name}"
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='COMPLAINT',
+                subject=subject,
+                recipient_email=CHESS_FWC_2025_EMAIL,
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[CHESS_FWC_2025_EMAIL],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
             
             response_data = {
                 "success": True,
@@ -1044,3 +1153,60 @@ class HomeImageDataView(APIView):
             return base_home_path
         
         return None
+
+class DepartureDetailsAPIView(APIView):
+    
+    def post(self, request, player_id=None):
+        """
+        Create/Update departure details for a player
+        """
+        try:
+            validate_email_and_device_with_token(request)
+            
+            if player_id is None:
+                player_id = request.data.get('player_id')
+            
+            if not player_id:
+                return Response(
+                    {"error": "Player ID is required"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            player = get_object_or_404(Players, id=player_id)
+            departure_data = request.data.copy()
+            
+            if 'departure_flight_date' in departure_data:
+                player.departure_flight_date = departure_data['departure_flight_date']
+            if 'departure_flight_time' in departure_data:
+                player.departure_flight_time = departure_data['departure_flight_time']
+            if 'departure_airport' in departure_data:
+                player.departure_airport = departure_data['departure_airport']
+            
+            player.updated_on = timezone.now()
+            player.save()
+            
+            return Response({
+                "message": "Departure details updated successfully",
+                "data": {
+                    "id": player.id,
+                    "departure_flight_date": player.departure_flight_date,
+                    "departure_flight_time": player.departure_flight_time,
+                    "departure_airport": player.departure_airport,
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Players.DoesNotExist:
+            return Response(
+                {"error": "Player not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": dict(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

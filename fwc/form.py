@@ -4,6 +4,7 @@ import os
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from FWC2025.env_details import *
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -365,7 +366,7 @@ class PlayerRegistrationForm(forms.ModelForm):
                 player=instance,
                 audit_log=audit_log_instance,
                 html_content=html_message,
-                text_content="",  # You can generate a text version if needed
+                text_content="", 
             )
 
             send_mail(
@@ -383,18 +384,18 @@ class PlayerRegistrationForm(forms.ModelForm):
             email_log1 = EmailLog.objects.create(
                 email_type='WELCOME',
                 subject=subject,
-                recipient_email='mayankary.ma@gmail.com',
+                recipient_email=[CHESS_FWC_2025_EMAIL],
                 status='PENDING',
                 player=instance,
                 audit_log=audit_log_instance,
                 html_content=html_message,
-                text_content="",  # You can generate a text version if needed
+                text_content="",
             )
             send_mail(
                 subject="Welcome to FIDE World Cup 2025",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=["chesswc2025@gmail.com"],
+                recipient_list=[CHESS_FWC_2025_EMAIL],
                 html_message=html_message,
                 fail_silently=False,
             )
