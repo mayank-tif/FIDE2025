@@ -98,8 +98,10 @@ class CheckFideIDAPIView(APIView):
                     }
                     response_data["message"] = "Player already registered"
                 else:
-                    response_data["player_registered"] = False
-                    response_data["message"] = "Player not registered."
+                    response_data = {
+                        "player_registered": False,
+                        "message": "Player not registered"
+                    }
                 
                 return Response(response_data, status=status.HTTP_200_OK)
                 
@@ -112,59 +114,105 @@ class CheckFideIDAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
      
 
-class SendRegistrationOTPAPIView(APIView):
+class SendOTPAPIView(APIView):
     def post(self, request):
-        validate_app_and_device_with_token(request)
+        # Validate based on OTP type
+        otp_type = request.data.get('otp_type')
+        
+        if otp_type in ['registration', 'forgot_password']:
+            validate_app_and_device_with_token(request)
+        elif otp_type in ['change_password']:
+            validate_email_and_device_with_token(request)
+        
         serializer = PlayerOTPSerializer(data=request.data)
         
         if serializer.is_valid():
             email = serializer.validated_data['email']
+            otp_type = serializer.validated_data['otp_type']
+            fide_id = serializer.validated_data['fide_id']
 
+            # Generate OTP
             otp = GenerateOTP.generate_otp()
             enc_otp = str_encrypt(str(otp))
 
+            # Update or create OTP record
             existing = CustomerLoginOtpVerification.objects.filter(
-                email=email, status_flag=1, flag='register'
+                email=email, status_flag=1, flag=otp_type
             )
+            
             if existing.exists():
                 existing.update(
                     secureotp=enc_otp,
                     source='WebApp',
                     updated_on=datetime.datetime.now(),
-                    flag='register',
-                    support_remarks=otp
+                    flag=otp_type,
+                    support_remarks=otp,
                 )
             else:
                 CustomerLoginOtpVerification.objects.create(
                     email=email,
                     secureotp=enc_otp,
                     source='WebApp',
-                    flag='register',
-                    support_remarks=otp
+                    flag=otp_type,
+                    support_remarks=otp,
                 )
             
-            html_message = render_to_string(
-               'email.html',
-               {
-                   'otp': otp,
-               }
-            )
-            
-            subject = "OTP for Registration"
-            
-            # Create email log entry
-            email_log = EmailLog.objects.create(
-                email_type='REGISTRATION',
-                subject=subject,
-                recipient_email=email,
-                status='PENDING',
-                html_content=html_message,
-                text_content="", 
-            )
+            # Send email based on OTP type
+            self.send_otp_email(email, otp, otp_type, fide_id)
 
+            return Response({
+                "message": "OTP sent successfully",
+                "otp_type": otp_type
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def send_otp_email(self, email, otp, otp_type, fide_id):
+        """Send OTP email based on type"""
+        email_config = {
+            'registration': {
+                'template': 'email.html',
+                'subject': 'Registration OTP - FIDE World Cup 2025',
+                'email_type': 'REGISTRATION'
+            },
+            'change_password': {
+                'template': 'change_password_email.html',
+                'subject': 'Password Change OTP - FIDE World Cup 2025',
+                'email_type': 'CHANGE_PASSWORD'
+            },
+            'forgot_password': {
+                'template': 'forget_password_email.html',
+                'subject': 'Password Reset OTP - FIDE World Cup 2025',
+                'email_type': 'FORGOT_PASSWORD'
+            }
+        }
+        
+        config = email_config.get(otp_type, email_config['registration'])
+        
+        # Render HTML email template
+        html_message = render_to_string(
+            config['template'],
+            {
+                'otp': otp,
+                'fide_id': fide_id,
+                'email': email
+            }
+        )
+                
+        # Create email log entry
+        email_log = EmailLog.objects.create(
+            email_type=config['email_type'],
+            subject=config['subject'],
+            recipient_email=email,
+            status='PENDING',
+            html_content=html_message,
+            text_content='',
+        )
+
+        try:
             send_mail(
-                subject=subject,
-                message="",
+                subject=config['subject'],
+                message='',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 html_message=html_message,
@@ -173,13 +221,18 @@ class SendRegistrationOTPAPIView(APIView):
             # Update email log with success
             email_log.status = 'SENT'
             email_log.save()
+            
+        except Exception as e:
+            email_log.status = 'FAILED'
+            email_log.error_message = str(e)
+            email_log.save()
+            # Re-raise or handle as needed
+            raise
+    
 
-            return Response({"message": "OTP sent successfully"}, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-def verify_otp(email, otp, flag='register'):
+def verify_otp(email, otp, flag='registration'):
     """
     Verify OTP for registration
     """
@@ -229,7 +282,7 @@ class RegisterPlayerAPIView(APIView):
             
             try:
                 # Step 1: Verify OTP
-                otp_valid, otp_message = verify_otp(email, otp, 'register')
+                otp_valid, otp_message = verify_otp(email, otp, 'registration')
                 if not otp_valid:
                     return Response({
                         "error": "OTP verification failed",
@@ -510,6 +563,34 @@ class ChangePasswordAPIView(APIView):
             
         serializer = ResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp = serializer.validated_data['otp']
+            otp_valid, otp_message = verify_otp(email, otp, 'change_password')
+            if not otp_valid:
+                return Response({
+                    "error": "OTP verification failed",
+                    "message": otp_message
+                }, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class ForgetPasswordAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request, *args, **kwargs):
+        validate_app_and_device_with_token(request)
+            
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp = serializer.validated_data['otp']
+            otp_valid, otp_message = verify_otp(email, otp, 'forgot_password')
+            if not otp_valid:
+                return Response({
+                    "error": "OTP verification failed",
+                    "message": otp_message
+                }, status=status.HTTP_400_BAD_REQUEST)
             serializer.save()
             return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

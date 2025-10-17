@@ -6,6 +6,394 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Enquiry Details - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    /* Filter Section Styles */
+    .filter-section {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .filter-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #495057;
+    }
+    
+    .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+    
+    .date-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .date-separator {
+      color: #6c757d;
+      font-weight: bold;
+    }
+    
+    .apply-filters-btn {
+      background: #5a8372;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+    }
+    
+    .apply-filters-btn:hover {
+      background: #4a7261;
+    }
+    
+    .clear-filters-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .clear-filters-btn:hover {
+      background: #545b62;
+    }
+
+    /* Expandable Content Styles (from player table) */
+    .expandable-content {
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .truncated-text {
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      color: #6c757d;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+    
+    .truncated-text:hover {
+      background: #e9ecef;
+    }
+    
+    .truncated-text.expanded {
+      white-space: normal;
+      max-width: none;
+      background: #fff3cd;
+      border-color: #ffeaa7;
+    }
+    
+    .expand-indicator {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: #6c757d;
+    }
+    
+    .full-content {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 2px solid #5a8372;
+    }
+    
+    .full-content h4 {
+      margin-top: 0;
+      color: #495057;
+      border-bottom: 2px solid #5a8372;
+      padding-bottom: 8px;
+    }
+    
+    .full-content .content {
+      margin: 15px 0;
+      line-height: 1.5;
+      color: #495057;
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #6c757d;
+    }
+    
+    .close-btn:hover {
+      color: #495057;
+    }
+    
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+
+    /* Reply Popup Styles */
+    .reply-popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .reply-popup-overlay.active {
+      display: flex;
+    }
+    
+    .reply-popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .reply-popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #5a8372;
+    }
+    
+    .reply-popup-header h3 {
+      margin: 0;
+      color: #495057;
+    }
+    
+    .close-reply-popup {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6c757d;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .close-reply-popup:hover {
+      color: #495057;
+    }
+    
+    .enquiry-details {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      border-left: 4px solid #5a8372;
+    }
+    
+    .enquiry-player {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 8px;
+    }
+    
+    .enquiry-message-popup {
+      color: #495057;
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    .response-section-popup {
+      margin-top: 20px;
+    }
+    
+    .response-label-popup {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .response-input-popup {
+      width: 100%;
+      min-height: 150px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 15px;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+    
+    .response-input-popup:focus {
+      outline: none;
+      border-color: #5a8372;
+    }
+    
+    .popup-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    .btn-popup-cancel {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-popup-cancel:hover {
+      background: #545b62;
+    }
+    
+    .btn-popup-save {
+      background: #5a8372;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-popup-save:hover {
+      background: #4a7261;
+    }
+    
+    .btn-popup-save:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    /* Table Styles */
+    .reply-btn-table {
+      background: #5a8372;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .reply-btn-table:hover {
+      background: #4a7261;
+    }
+    
+    .has-response {
+      background: #e7f3ff;
+      color: #0066cc;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .no-response {
+      color: #6c757d;
+      font-style: italic;
+    }
+    
+    .message-preview {
+      max-width: 300px;
+    }
+    
+    .response-preview {
+      max-width: 250px;
+      color: #6c757d;
+      font-size: 12px;
+    }
+    
+    @media (max-width: 768px) {
+      .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-input {
+        min-width: 100%;
+      }
+      
+      .reply-popup-content {
+        margin: 20px;
+        width: calc(100% - 40px);
+      }
+      
+      .popup-actions {
+        flex-direction: column;
+      }
+      
+      .truncated-text {
+        max-width: 120px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .truncated-text {
+        max-width: 100px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -18,9 +406,30 @@
         <!-- Messages will be dynamically inserted here -->
       </div>
 
+      <!-- CSRF Token for AJAX requests -->
+      {% csrf_token %}
+
+      <!-- Filters Section -->
+      <div class="filter-section">
+        <div class="filter-group">
+          <label class="filter-label">Date Range</label>
+          <div class="date-input-group">
+            <input type="date" name="start_date" id="start-date" class="filter-input" value="{{ start_date }}">
+            <span class="date-separator">to</span>
+            <input type="date" name="end_date" id="end-date" class="filter-input" value="{{ end_date }}">
+          </div>
+        </div>
+        
+        <button class="apply-filters-btn" id="apply-filters">Apply Filters</button>
+        
+        {% if start_date or end_date or search_query %}
+        <a href="{% url 'enquiry_list' %}" class="clear-filters-btn">Clear Filters</a>
+        {% endif %}
+      </div>
+
       <div class="toolbar">
         <div class="logistics-search">
-          <input type="text" id="searchInput" placeholder="Search Player" value="{{ search_query }}">
+          <input type="text" id="searchInput" placeholder="Search Player or Enquiry" value="{{ search_query }}">
           <button id="searchBtn" style="height: 31px;">Search</button>
         </div>
       </div>
@@ -31,53 +440,346 @@
             <thead>
               <tr>
                 <th>Player Name</th>
-                <th>Enquiry</th>
-                <th>Recieved on</th>
+                <th>Enquiry Message</th>
+                <th>Response</th>
+                <th>Received On</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {% for e in enquiries %}
               <tr>
                 <td>{{ e.player.name }}</td>
-                <td>{{ e.message }}</td>
-                <td>{{ e.created_on }}</td>
+                <td>
+                  <div class="expandable-content" data-player-name="{{ e.player.name }}" data-type="enquiry" data-content="{{ e.message }}">
+                    <div class="truncated-text">
+                      {{ e.message|truncatechars:80 }}
+                      <span class="expand-indicator"></span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if e.response %}
+                    <div class="expandable-content" data-player-name="{{ e.player.name }}" data-type="response" data-content="{{ e.response }}">
+                      <div class="truncated-text">
+                        {{ e.response|truncatechars:60 }}
+                        <span class="expand-indicator"></span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="no-response">No response yet</span>
+                  {% endif %}
+                </td>
+                <td>{{ e.created_on|date:"M d, Y H:i" }}</td>
+                <td>
+                  {% if e.response %}
+                    <span class="has-response">Replied</span>
+                  {% else %}
+                    <span style="color: #dc3545; font-weight: 600;">Pending</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not e.response %}
+                    <button class="reply-btn-table" data-enquiry-id="{{ e.id }}">
+                      Reply
+                    </button>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;">-</span>
+                  {% endif %}
+                </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="2" class="text-center">No enquiries found.</td>
+                <td colspan="6" class="text-center">No enquiries found.</td>
               </tr>
               {% endfor %}
             </tbody>
-
           </table>
         </div>
 
         <div class="pagination" id="paginationContainer">
           {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Previous</a>
           {% endif %}
           <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
           {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Next</a>
           {% endif %}
         </div>
       </div>
     </main>
   </div>
+
+  <!-- Full Content Modal (for viewing messages) -->
+  <div class="overlay" id="contentOverlay"></div>
+  <div class="full-content" id="fullContent">
+    <button class="close-btn" id="closeContent">&times;</button>
+    <h4 id="contentTitle"></h4>
+    <div class="content" id="contentBody"></div>
+  </div>
+
+  <!-- Reply Popup -->
+  <div class="reply-popup-overlay" id="replyPopup">
+    <div class="reply-popup-content">
+      <div class="reply-popup-header">
+        <h3 id="popupTitle">Reply to Enquiry</h3>
+        <button class="close-reply-popup" id="closeReplyPopup">&times;</button>
+      </div>
+      
+      <div class="enquiry-details">
+        <div class="enquiry-player" id="popupPlayerName"></div>
+        <p class="enquiry-message-popup" id="popupEnquiryMessage"></p>
+      </div>
+      
+      <div class="response-section-popup">
+        <label class="response-label-popup" for="responseInput">Your Response:</label>
+        <textarea 
+          class="response-input-popup" 
+          id="responseInput" 
+          placeholder="Type your response here..."
+        ></textarea>
+        
+        <div class="popup-actions">
+          <button class="btn-popup-cancel" id="cancelReply">Cancel</button>
+          <button class="btn-popup-save" id="saveResponse">Save Response</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="{% static 'assets/js/app.js' %}"></script>
-<script>
-  document.getElementById("searchBtn").addEventListener("click", function() {
-    const query = document.getElementById("searchInput").value;
-    window.location.href = `?search=${encodeURIComponent(query)}`;
-  });
-
-  document.getElementById("searchInput").addEventListener("keypress", function(e) {
-    if (e.key === 'Enter') {
-      const query = this.value;
-      window.location.href = `?search=${encodeURIComponent(query)}`;
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    function getCSRFToken() {
+      return document.querySelector('[name=csrfmiddlewaretoken]').value;
     }
-  });
-</script>
 
+    // Message popup elements (from player table)
+    const expandableContents = document.querySelectorAll('.expandable-content');
+    const overlay = document.getElementById('contentOverlay');
+    const fullContent = document.getElementById('fullContent');
+    const contentTitle = document.getElementById('contentTitle');
+    const contentBody = document.getElementById('contentBody');
+    const closeBtn = document.getElementById('closeContent');
+    
+    // Reply popup elements
+    const replyPopup = document.getElementById('replyPopup');
+    const closeReplyPopup = document.getElementById('closeReplyPopup');
+    const cancelReply = document.getElementById('cancelReply');
+    const saveResponse = document.getElementById('saveResponse');
+    const responseInput = document.getElementById('responseInput');
+    const popupPlayerName = document.getElementById('popupPlayerName');
+    const popupEnquiryMessage = document.getElementById('popupEnquiryMessage');
+    const popupTitle = document.getElementById('popupTitle');
+
+    let currentEnquiryId = null;
+
+    // Function to build query string from all filters
+    function buildQueryString() {
+      const params = new URLSearchParams();
+      
+      // Search query
+      const searchQuery = document.getElementById('searchInput').value.trim();
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+      
+      // Date filters
+      const startDate = document.getElementById('start-date').value;
+      const endDate = document.getElementById('end-date').value;
+      if (startDate) {
+        params.append('start_date', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+      }
+      
+      return params.toString();
+    }
+
+    // Apply filters button
+    document.getElementById('apply-filters').addEventListener('click', () => {
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+
+    // Search functionality
+    document.getElementById("searchBtn").addEventListener("click", function() {
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+
+    document.getElementById("searchInput").addEventListener("keypress", function(e) {
+      if (e.key === 'Enter') {
+        const queryString = buildQueryString();
+        window.location.href = `?${queryString}`;
+      }
+    });
+
+    // Message popup functionality (from player table)
+    expandableContents.forEach(content => {
+      content.addEventListener('click', function(e) {
+        const playerName = this.getAttribute('data-player-name');
+        const contentType = this.getAttribute('data-type');
+        const contentText = this.getAttribute('data-content');
+        
+        // Set modal content
+        if (contentType === 'enquiry') {
+          contentTitle.textContent = `${playerName} - Enquiry Message`;
+        } else {
+          contentTitle.textContent = `${playerName} - Response`;
+        }
+        
+        contentBody.textContent = contentText;
+        
+        // Show modal
+        overlay.style.display = 'block';
+        fullContent.style.display = 'block';
+      });
+    });
+    
+    // Close message modal
+    function closeMessageModal() {
+      overlay.style.display = 'none';
+      fullContent.style.display = 'none';
+    }
+    
+    closeBtn.addEventListener('click', closeMessageModal);
+    overlay.addEventListener('click', closeMessageModal);
+    
+    // Close message modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeMessageModal();
+      }
+    });
+
+    // Open reply popup
+    document.querySelectorAll('.reply-btn-table').forEach(button => {
+      button.addEventListener('click', function() {
+        currentEnquiryId = this.getAttribute('data-enquiry-id');
+        
+        // Find the enquiry row
+        const row = this.closest('tr');
+        const playerName = row.cells[0].textContent;
+        const enquiryMessageElement = row.cells[1].querySelector('.expandable-content');
+        const enquiryMessage = enquiryMessageElement ? enquiryMessageElement.getAttribute('data-content') : '';
+        
+        // Populate popup
+        popupPlayerName.textContent = playerName;
+        popupEnquiryMessage.textContent = enquiryMessage;
+        popupTitle.textContent = 'Reply to Enquiry';
+        responseInput.value = '';
+        
+        // Show popup
+        replyPopup.classList.add('active');
+        responseInput.focus();
+      });
+    });
+
+    // Close reply popup functions
+    function closeReplyPopupFunc() {
+      replyPopup.classList.remove('active');
+      currentEnquiryId = null;
+      responseInput.value = '';
+    }
+
+    closeReplyPopup.addEventListener('click', closeReplyPopupFunc);
+    cancelReply.addEventListener('click', closeReplyPopupFunc);
+
+    // Close reply popup when clicking outside
+    replyPopup.addEventListener('click', function(e) {
+      if (e.target === replyPopup) {
+        closeReplyPopupFunc();
+      }
+    });
+
+    // Save response
+    saveResponse.addEventListener('click', function() {
+      const responseText = responseInput.value.trim();
+      
+      if (!responseText) {
+        showMessage('Please enter a response before saving.', 'error');
+        return;
+      }
+
+      if (!currentEnquiryId) {
+        showMessage('No enquiry selected.', 'error');
+        return;
+      }
+
+      // Disable button and show loading state
+      const originalText = this.textContent;
+      this.textContent = 'Saving...';
+      this.disabled = true;
+
+      // Send response via AJAX
+      fetch('{% url "enquiry_list" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+          enquiry_id: currentEnquiryId,
+          response: responseText
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showMessage(data.message, 'success');
+          closeReplyPopupFunc();
+          // Reload page to reflect changes
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          showMessage(data.error || 'Failed to save response', 'error');
+          this.textContent = originalText;
+          this.disabled = false;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showMessage('An error occurred while saving the response', 'error');
+        this.textContent = originalText;
+        this.disabled = false;
+      });
+    });
+
+    // Show Django messages
+    {% if messages %}
+      {% for message in messages %}
+        showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    {% endif %}
+  });
+
+  // Message display function
+  function showMessage(message, type) {
+    const messageContainer = document.getElementById('message-container');
+    const messageDiv = document.createElement('div');
+    
+    let messageClass = 'message';
+    if (type === 'success') messageClass += ' success';
+    else if (type === 'error') messageClass += ' error';
+    else if (type === 'warning') messageClass += ' warning';
+    else if (type === 'info') messageClass += ' info';
+    else messageClass += ' info';
+    
+    messageDiv.className = messageClass;
+    messageDiv.textContent = message;
+    messageContainer.appendChild(messageDiv);
+    
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 5000);
+  }
+  </script>
 </body>
 </html>

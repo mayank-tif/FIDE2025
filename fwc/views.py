@@ -471,6 +471,9 @@ class ComplaintListView(View):
     def get(self, request):
         search_query = request.GET.get("q", "")
         selected_department = request.GET.get("department", "")
+        status_filter = request.GET.get("status", "")
+        start_date = request.GET.get("start_date", "")
+        end_date = request.GET.get("end_date", "")
 
         role_id = request.session.get("roleid")
         user_dept_id = request.session.get("department")
@@ -493,23 +496,44 @@ class ComplaintListView(View):
                 complaints_qs = complaints_qs.filter(department_id__in=[1, 2])
                 # Set selected_department to show both or keep current selection
                 if not selected_department:
-                    selected_department = "2,3"  # Indicate both departments are selected
+                    selected_department = "1,2"
             else:
                 # For other department users - see only their department's data
                 complaints_qs = complaints_qs.filter(department_id=user_dept_id)
                 selected_department = user_dept_id
         elif role_id == 3:
             # Logistics user – see only Transport department (id=3) complaints
-            complaints_qs = complaints_qs.filter(department_id=3)  # Transport department
+            complaints_qs = complaints_qs.filter(department_id=3)
             selected_department = "3"
         elif role_id == 1:
             # Admin can view all and optionally filter by dropdown
             if selected_department:
                 complaints_qs = complaints_qs.filter(department_id=selected_department)
 
+        # Apply status filter
+        if status_filter:
+            complaints_qs = complaints_qs.filter(status=status_filter)
+
+        # Apply date range filter
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                complaints_qs = complaints_qs.filter(created_on__date__gte=start_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore the filter
+
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                complaints_qs = complaints_qs.filter(created_on__date__lte=end_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore the filter
+
         # Apply search filter
         if search_query:
-            complaints_qs = complaints_qs.filter(player__name__icontains=search_query)
+            complaints_qs = complaints_qs.filter(
+                models.Q(player__name__icontains=search_query) |
+                models.Q(description__icontains=search_query) )
 
         paginator = Paginator(complaints_qs, per_page)
         page_number = request.GET.get("page", 1)
@@ -524,6 +548,10 @@ class ComplaintListView(View):
             "departments": departments,
             "selected_department": str(selected_department),
             "role_id": role_id,
+            "status_filter": status_filter,
+            "start_date": start_date,
+            "end_date": end_date,
+            "status_choices": PlayerComplaint.STATUS_CHOICES,
         })
 
 
@@ -755,9 +783,14 @@ class UserActivityLogView(TemplateView):
     def get(self, request):
         page = request.GET.get("page", 1)
         search = request.GET.get("search", "")
+        start_date = request.GET.get("start_date", "")
+        end_date = request.GET.get("end_date", "")
+        sort_by = request.GET.get("sort_by", "created_on")
+        sort_order = request.GET.get("sort_order", "desc")
 
-        logs = UserActivityLog.objects.select_related("user", "user__roleid").all().order_by('-created_on') 
+        logs = UserActivityLog.objects.select_related("user", "user__roleid").all()
             
+        # Apply search filter
         if search:
             logs = logs.filter(
                 Q(user__loginname__icontains=search) |
@@ -767,12 +800,31 @@ class UserActivityLogView(TemplateView):
                 Q(description__icontains=search)
             )
 
+        # Apply date filter
+        if start_date:
+            logs = logs.filter(created_on__gte=start_date)
+        if end_date:
+            # Add one day to include the entire end date
+            import datetime
+            end_date_obj = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+            end_date_plus_one = end_date_obj + datetime.timedelta(days=1)
+            logs = logs.filter(created_on__lt=end_date_plus_one)
+
+        # Apply sorting
+        if sort_order == 'desc':
+            sort_by = f'-{sort_by}'
+        logs = logs.order_by(sort_by)
+
         paginator = Paginator(logs, per_page)
         page_obj = paginator.get_page(page)
 
         return render(request, self.template_name, {
             "page_obj": page_obj,
             "search": search,
+            "start_date": start_date,
+            "end_date": end_date,
+            "sort_by": sort_by.lstrip('-'),  # Remove the '-' for display
+            "sort_order": sort_order,
         })
 
 
@@ -951,30 +1003,68 @@ class RoasterEditView(View):
 
 class EnquiryListView(View):
     template_name = "enquiry.html"
-    per_page = 10  # adjust pagination size
 
     def get(self, request):
         search_query = request.GET.get('search', '')
+        start_date = request.GET.get('start_date', '')
+        end_date = request.GET.get('end_date', '')
         page_number = request.GET.get('page', 1)
 
-        # Filter enquiries, include player name if search query exists
         enquiries = EnquiryDetails.objects.filter(status_flag=1).select_related('player').order_by('-created_on')
 
+        # Apply search filter
         if search_query:
             enquiries = enquiries.filter(
                 Q(player__name__icontains=search_query) |
-                Q(message__icontains=search_query)
+                Q(message__icontains=search_query) |
+                Q(response__icontains=search_query)
             )
 
-        paginator = Paginator(enquiries, self.per_page)
+        # Apply date range filter
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                enquiries = enquiries.filter(created_on__date__gte=start_date_obj)
+            except ValueError:
+                pass
+
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                enquiries = enquiries.filter(created_on__date__lte=end_date_obj)
+            except ValueError:
+                pass
+
+        paginator = Paginator(enquiries, per_page)
         page_obj = paginator.get_page(page_number)
 
         context = {
             'page_obj': page_obj,
             'enquiries': page_obj.object_list,
             'search_query': search_query,
+            'start_date': start_date,
+            'end_date': end_date,
         }
         return render(request, self.template_name, context)
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            enquiry_id = data.get('enquiry_id')
+            response_text = data.get('response')
+
+            if not enquiry_id or not response_text:
+                return JsonResponse({'success': False, 'error': 'Enquiry ID and response are required'})
+
+            enquiry = EnquiryDetails.objects.get(id=enquiry_id, status_flag=1)
+            enquiry.response = response_text
+            enquiry.save()
+
+            return JsonResponse({'success': True, 'message': 'Response saved successfully'})
+        except EnquiryDetails.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Enquiry not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
 
 
 

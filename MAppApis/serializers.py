@@ -20,12 +20,50 @@ class FideIDCheckSerializer(serializers.Serializer):
 class PlayerOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     fide_id = serializers.CharField(max_length=250, required=True, allow_blank=False)
+    otp_type = serializers.ChoiceField(
+        choices=[
+            ('registration', 'Registration'),
+            ('change_password', 'Change Password'),
+            ('forgot_password', 'Forgot Password')
+        ],
+        required=True
+    )
 
     def validate(self, attrs):
         fide_id = attrs.get("fide_id")
-        fide = FideIDMst.objects.filter(fide_id=fide_id).first()
-        if not fide: 
-            raise serializers.ValidationError({"error": {"message": "The provided FIDE ID is not registered. Please check your FIDE ID or contact administrators.."}})
+        otp_type = attrs.get("otp_type")
+        
+        # For registration, check if FIDE ID exists
+        if otp_type == 'registration':
+            fide = FideIDMst.objects.filter(fide_id=fide_id).first()
+            if not fide: 
+                raise serializers.ValidationError({
+                    "error": {
+                        "message": "The provided FIDE ID is not registered. Please check your FIDE ID or contact administrators."
+                    }
+                })
+        
+        elif otp_type =='change_password':
+            try:
+                user = Players.objects.get(email=attrs.get('email'), fide_id=fide_id, status_flag=1)
+            except Players.DoesNotExist:
+                if otp_type == 'change_password':
+                    raise serializers.ValidationError({
+                        "error": {
+                            "message": "User not found with this email."
+                        }
+                    })
+        elif otp_type == 'forgot_password':
+            try:
+                user = Players.objects.get(email=attrs.get('email'), status_flag=1)
+            except Players.DoesNotExist:
+                if otp_type == 'change_password':
+                    raise serializers.ValidationError({
+                        "error": {
+                            "message": "User not found with this email."
+                        }
+                    })
+        
         return attrs
 
 class PlayerRegistrationSerializer(serializers.Serializer):
@@ -40,6 +78,11 @@ class PlayerRegistrationSerializer(serializers.Serializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Enter a valid email address.")
+        
+        existing_player = Players.objects.filter(email=value, status_flag=1).first()
+        if existing_player:
+            raise serializers.ValidationError("This email is already registered. Please use a different email.")
+        
         return value
 
     def validate_password(self, value):
@@ -172,6 +215,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
     new_password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
+    otp = serializers.CharField(max_length=6, required=True, write_only=True)
 
     def validate(self, data):
         # check password match

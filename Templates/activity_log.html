@@ -57,13 +57,193 @@
       color: #007bff;
     }
     .pagination a:hover {
-      background: #f8f9fa;
+      background: #101213ff;
     }
     .current-search {
       margin: 10px 0;
       padding: 10px;
-      background: #e9ecef;
+      background: #0e1013ff;
       border-radius: 4px;
+    }
+
+    /* Filter Section Styles */
+    .filter-section {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .filter-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #495057;
+    }
+    
+    .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+    
+    .date-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .date-separator {
+      color: #6c757d;
+      font-weight: bold;
+    }
+    
+    .apply-filters-btn {
+      background: #5a8372;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+    }
+    
+    .apply-filters-btn:hover {
+      background: #4a7261;
+    }
+    
+    .clear-filters-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .clear-filters-btn:hover {
+      background: #545b62;
+    }
+
+    /* Enhanced Sorting Styles */
+    .sortable-header {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 25px;
+      transition: none;
+    }
+    
+    .sortable-header:hover {
+      background: inherit;
+    }
+    
+    .sort-indicator {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      font-weight: bold;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+    }
+    
+    /* Default state: show both arrows (up and down) for all sortable headers */
+    .sort-indicator::before,
+    .sort-indicator::after {
+      position: absolute;
+      font-size: 10px;
+      line-height: 1;
+    }
+    
+    .sort-indicator::before {
+      content: "▲";
+      top: -2px;
+      opacity: 0.6;
+    }
+    
+    .sort-indicator::after {
+      content: "▼";
+      bottom: -2px;
+      opacity: 0.6;
+    }
+    
+    /* Active sorting states - highlight the active arrow */
+    .sort-asc .sort-indicator::before {
+      opacity: 1;
+      font-size: 12px;
+    }
+    
+    .sort-asc .sort-indicator::after {
+      opacity: 0.3;
+    }
+    
+    .sort-desc .sort-indicator::before {
+      opacity: 0.3;
+    }
+    
+    .sort-desc .sort-indicator::after {
+      opacity: 1;
+      font-size: 12px;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-input {
+        min-width: 100%;
+      }
+      
+      .search-input {
+        width: 200px;
+      }
+      
+      .sort-indicator {
+        font-size: 14px;
+      }
+      
+      .sort-indicator::before,
+      .sort-indicator::after {
+        font-size: 9px;
+      }
+      
+      .sort-asc .sort-indicator::before,
+      .sort-desc .sort-indicator::after {
+        font-size: 11px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .search-form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-input {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -75,8 +255,25 @@
       <h1>Users Activity</h1>
     </div>
     
+    <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+      <!-- Messages will be dynamically inserted here -->
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-section">
+      <div class="filter-group">
+        <label class="filter-label">Date Range</label>
+        <div class="date-input-group">
+          <input type="date" name="start_date" id="start-date" class="filter-input" value="{{ start_date }}">
+          <span class="date-separator">to</span>
+          <input type="date" name="end_date" id="end-date" class="filter-input" value="{{ end_date }}">
+        </div>
+      </div>
+      <button class="apply-filters-btn" id="apply-filters">Apply Filters</button>
+    </div>
+
     <div class="toolbar">
-      <form method="get" class="search-form">
+      <form method="get" class="search-form" id="search-form">
         <input 
           type="text" 
           name="search" 
@@ -88,74 +285,201 @@
       </form>
     </div>
 
-    <div class="table-container">
-      <table id="users-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Action</th>
-            <th>Description</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for log in page_obj %}
-           <tr>
-             <td>
-               {% if log.user.name %}
-                 {{ log.user.name }} ({{ log.user.loginname }})
-               {% else %}
-                 {{ log.user.loginname }}
-               {% endif %}
-             </td>
-             <td>{{ log.user.roleid.role_name }}</td>
-             <td>{{ log.action }}</td>
-             <td>{{ log.description|default:"—" }}</td>
-             <td>{{ log.created_on|date:"Y-m-d H:i:s" }}</td>
-           </tr>
-          {% empty %}
-           <tr>
-             <td colspan="4" class="text-center">
-               {% if search %}
-                 No activity logs found for "{{ search }}"
-               {% else %}
-                 No activity logs found.
-               {% endif %}
-             </td>
-           </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="logistics-table-container">
+      <div class="logistics-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable-header {% if sort_by == 'user__name' %}sort-{{ sort_order }}{% endif %}" data-sort="user__name">
+                User
+                <span class="sort-indicator"></span>
+              </th>
+              <th class="sortable-header {% if sort_by == 'user__roleid__role_name' %}sort-{{ sort_order }}{% endif %}" data-sort="user__roleid__role_name">
+                Role
+                <span class="sort-indicator"></span>
+              </th>
+              <th class="sortable-header {% if sort_by == 'action' %}sort-{{ sort_order }}{% endif %}" data-sort="action">
+                Action
+                <span class="sort-indicator"></span>
+              </th>
+              <th>Description</th>
+              <th class="sortable-header {% if sort_by == 'created_on' %}sort-{{ sort_order }}{% endif %}" data-sort="created_on">
+                Date
+                <span class="sort-indicator"></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in page_obj %}
+             <tr>
+               <td>
+                 {% if log.user.name %}
+                   {{ log.user.name }} ({{ log.user.loginname }})
+                 {% else %}
+                   {{ log.user.loginname }}
+                 {% endif %}
+               </td>
+               <td>{{ log.user.roleid.role_name }}</td>
+               <td>{{ log.action }}</td>
+               <td>{{ log.description|default:"—" }}</td>
+               <td>{{ log.created_on|date:"Y-m-d H:i:s" }}</td>
+             </tr>
+            {% empty %}
+             <tr>
+               <td colspan="5" class="text-center">
+                 {% if search or start_date or end_date %}
+                   No activity logs found matching your criteria.
+                 {% else %}
+                   No activity logs found.
+                 {% endif %}
+               </td>
+             </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       
       <!-- Pagination -->
       {% if page_obj.paginator.num_pages > 1 %}
       <div class="pagination">
         {% if page_obj.has_previous %}
-          <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">← Previous</a>
+          <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}{% if sort_order %}&sort_order={{ sort_order }}{% endif %}">← Previous</a>
         {% endif %}
         
         <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         
         {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">Next →</a>
+          <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}{% if sort_order %}&sort_order={{ sort_order }}{% endif %}">Next →</a>
         {% endif %}
       </div>
       {% endif %}
     </div>
   </main>
 </div>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="{% static 'assets/js/app.js' %}"></script>
+
 <script>
-  // Auto-submit form when pressing Enter (optional)
-  $(document).ready(function() {
-    $('.search-input').keypress(function(e) {
-      if (e.which === 13) {
-        $(this).closest('form').submit();
+  document.addEventListener('DOMContentLoaded', function() {
+    // Function to build query string from all filters
+    function buildQueryString() {
+      const params = new URLSearchParams();
+      
+      // Search query
+      const searchQuery = document.querySelector('input[name="search"]').value.trim();
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+      
+      // Date filters
+      const startDate = document.getElementById('start-date').value;
+      const endDate = document.getElementById('end-date').value;
+      if (startDate) {
+        params.append('start_date', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+      }
+      
+      // Sorting
+      const currentSortBy = '{{ sort_by }}';
+      const currentSortOrder = '{{ sort_order }}';
+      if (currentSortBy) {
+        params.append('sort_by', currentSortBy);
+        params.append('sort_order', currentSortOrder);
+      }
+      
+      return params.toString();
+    }
+
+    // Apply filters button
+    document.getElementById('apply-filters').addEventListener('click', () => {
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+
+    // Search form submission
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+
+    // Auto-submit form when pressing Enter in search
+    document.querySelector('.search-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const queryString = buildQueryString();
+        window.location.href = `?${queryString}`;
       }
     });
+
+    // Sorting functionality
+    document.querySelectorAll('.sortable-header').forEach(header => {
+      header.addEventListener('click', function() {
+        const sortField = this.getAttribute('data-sort');
+        const currentSortBy = '{{ sort_by }}';
+        const currentSortOrder = '{{ sort_order }}';
+        
+        let newSortOrder = 'asc';
+        
+        // If already sorting by this field, toggle the order
+        if (currentSortBy === sortField) {
+          newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+        }
+        
+        const params = new URLSearchParams();
+        
+        // Preserve existing filters
+        const searchQuery = document.querySelector('input[name="search"]').value.trim();
+        if (searchQuery) {
+          params.append('search', searchQuery);
+        }
+        
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        if (startDate) {
+          params.append('start_date', startDate);
+        }
+        if (endDate) {
+          params.append('end_date', endDate);
+        }
+        
+        // Add sorting parameters
+        params.append('sort_by', sortField);
+        params.append('sort_order', newSortOrder);
+        
+        window.location.href = `?${params.toString()}`;
+      });
+    });
+
+    // Show Django messages in side popup
+    {% if messages %}
+      {% for message in messages %}
+        showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    {% endif %}
   });
+
+  // Message display function
+  function showMessage(message, type) {
+    const messageContainer = document.getElementById('message-container');
+    const messageDiv = document.createElement('div');
+    
+    let messageClass = 'message';
+    if (type === 'success') messageClass += ' success';
+    else if (type === 'error') messageClass += ' error';
+    else if (type === 'warning') messageClass += ' warning';
+    else if (type === 'info') messageClass += ' info';
+    else messageClass += ' info';
+    
+    messageDiv.className = messageClass;
+    messageDiv.textContent = message;
+    messageContainer.appendChild(messageDiv);
+    
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 5000);
+  }
 </script>
 </body>
 </html>

@@ -6,6 +6,276 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Complaints - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    .filter-section {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .filter-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #495057;
+    }
+    
+    .filter-select, .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+    
+    .date-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .date-separator {
+      color: #6c757d;
+      font-weight: bold;
+    }
+    
+    .apply-filters-btn {
+      background: #5a8372;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+    }
+    
+    .apply-filters-btn:hover {
+      background: #4a7261;
+    }
+    
+    .clear-filters-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .clear-filters-btn:hover {
+      background: #545b62;
+    }
+    
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .search-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Expand/Collapse Styles */
+    .complaint-card {
+      transition: all 0.3s ease;
+    }
+    
+    .complaint-header {
+      cursor: pointer;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .complaint-header:hover {
+      background: #e9ecef;
+    }
+    
+    .complaint-header h3 {
+      margin: 0;
+      color: #495057;
+    }
+    
+    .complaint-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #6c757d;
+    }
+    
+    .expand-icon {
+      font-size: 18px;
+      transition: transform 0.3s ease;
+      color: #5a8372;
+    }
+    
+    .expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+    
+    .complaint-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      background: white;
+    }
+    
+    .complaint-body.expanded {
+      max-height: 1000px;
+      padding: 20px;
+      border: 1px solid #e9ecef;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+    }
+    
+    .complaint-description {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #5a8372;
+    }
+    
+    .conversations-section {
+      margin: 20px 0;
+    }
+    
+    .conversations-toggle {
+      background: none;
+      border: none;
+      color: #5a8372;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+    
+    .conversations-toggle:hover {
+      color: #4a7261;
+    }
+    
+    .conversations-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .conversations-list.expanded {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .admin-reply {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid #6c757d;
+    }
+    
+    .remark-item {
+      font-size: 14px;
+    }
+    
+    .remark-item strong {
+      color: #495057;
+    }
+    
+    .remark-item p {
+      margin: 8px 0 0 0;
+      color: #495057;
+      line-height: 1.4;
+    }
+    
+    .no-remarks {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+      padding: 20px;
+    }
+    
+    .remarks-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .remarks-input {
+      width: 100%;
+      min-height: 80px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+    
+    .remarks-input:focus {
+      outline: none;
+      border-color: #5a8372;
+    }
+    
+    @media (max-width: 768px) {
+      .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        width: 100%;
+      }
+      
+      .filter-select, .filter-input {
+        min-width: 100%;
+      }
+      
+      .complaint-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .complaint-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -18,32 +288,61 @@
         <!-- Messages will be dynamically inserted here -->
       </div>
       
-      <div class="toolbar">
+      <!-- Filters Section -->
+      <div class="filter-section">
         {% if role_id == 1 %}
-          <form method="get" id="filter-form" style="margin-bottom: 15px;">
-            <label for="department" style="font-weight: 600;">Department:</label>
-            <select name="department" id="department" onchange="document.getElementById('filter-form').submit()" class="dept-select">
-              <option value="">All Departments</option>
-              {% for dept in departments %}
-                <option value="{{ dept.id }}" {% if dept.id|stringformat:"s" == selected_department %}selected{% endif %}>{{ dept.name }}</option>
-              {% endfor %}
-            </select>
-          </form>
+        <div class="filter-group">
+          <label class="filter-label">Department</label>
+          <select name="department" id="department" class="filter-select">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+              <option value="{{ dept.id }}" {% if dept.id|stringformat:"s" == selected_department %}selected{% endif %}>{{ dept.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
         {% endif %}
+        
+        <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select name="status" id="status-filter" class="filter-select">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Date Range</label>
+          <div class="date-input-group">
+            <input type="date" name="start_date" id="start-date" class="filter-input" value="{{ request.GET.start_date }}">
+            <span class="date-separator">to</span>
+            <input type="date" name="end_date" id="end-date" class="filter-input" value="{{ request.GET.end_date }}">
+          </div>
+        </div>
+        
+        <button class="apply-filters-btn" id="apply-filters">Apply Filters</button>
+      </div>
 
+      <div class="toolbar">
         <div class="search-box">
           <input type="text" id="complaint-search" placeholder="Search Complaints" value="{{ search_query }}">
+          <button class="btn btn--primary" id="search-btn">Search</button>
         </div>
       </div>
+
       <div class="complaints-list">
         {% for c in complaints %}
         <article class="complaint-card" data-id="{{ c.id }}" data-status="{{ c.status }}">
-          <div class="complaint-header">
-            <h3>#C{{ c.id }}</h3>
+          <div class="complaint-header" data-complaint-id="{{ c.id }}">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="expand-icon">▼</span>
+              <h3>#C{{ c.id }}</h3>
+            </div>
             <div class="complaint-meta">
-              <span class="player-name">{{ c.player.name }} |</span>
+              <span class="player-name">{{ c.player.name }}</span>
               {% if c.department %}
-                <span class="complaint-dept">{{ c.department.name }} |</span>
+                <span class="complaint-dept">{{ c.department.name }}</span>
               {% endif %}
               <span class="complaint-date">{{ c.created_on|date:"M d, Y" }}</span>
             </div>
@@ -54,30 +353,39 @@
             </select>
           </div>
         
-          <div class="complaint-body">
+          <div class="complaint-body" id="complaint-body-{{ c.id }}">
             <p class="complaint-description">{{ c.description }}</p>
             
-            {% if c.conversations.all %}
-                {% for convo in c.conversations.all %}
-                  <div class="admin-reply" data-complaint-id="{{ c.id }}">
-                    <div class="remark-item">
-                      <strong>
-                        {% if convo.sender_player %}
-                          {{ convo.sender_player.name }}
-                        {% elif convo.sender_user %}
-                          {{ convo.sender_user.name }}
-                        {% else %}
-                          Unknown
-                        {% endif %}
-                      </strong>
-                      ({{ convo.created_on|date:"M d, Y H:i" }}):
-                      <p>{{ convo.message }}</p>
+            <div class="conversations-section">
+              <button class="conversations-toggle" data-complaint-id="{{ c.id }}">
+                <span class="toggle-icon">▼</span>
+                Conversations ({{ c.conversations.all|length }})
+              </button>
+              
+              <div class="conversations-list" id="conversations-{{ c.id }}">
+                {% if c.conversations.all %}
+                  {% for convo in c.conversations.all %}
+                    <div class="admin-reply">
+                      <div class="remark-item">
+                        <strong>
+                          {% if convo.sender_player %}
+                            {{ convo.sender_player.name }}
+                          {% elif convo.sender_user %}
+                            {{ convo.sender_user.name }}
+                          {% else %}
+                            Unknown
+                          {% endif %}
+                        </strong>
+                        ({{ convo.created_on|date:"M d, Y H:i" }}):
+                        <p>{{ convo.message }}</p>
+                      </div>
                     </div>
-                  </div>
-                {% endfor %}
-            {% else %}
-                <p class="no-remarks">No remarks yet.</p>
-            {% endif %}  
+                  {% endfor %}
+                {% else %}
+                  <p class="no-remarks">No remarks yet.</p>
+                {% endif %}
+              </div>
+            </div>
             
             <div class="remarks-section">
               <textarea class="remarks-input" placeholder="Write remarks..." data-complaint-id="{{ c.id }}"></textarea>
@@ -85,44 +393,149 @@
             </div>
           </div>
         </article>
-  {% empty %}
-    <div class="no-complaints-card">
-      <div class="no-complaints-icon">📭</div>
-      <h3>No Complaints Found</h3>
-      <p>There are currently no complaints submitted by any players.</p>
-    </div>
-  {% endfor %}
-  </div>
-  <div class="pagination">
-    {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}">Previous</a>
-    {% endif %}
-  
-    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-  
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}">Next</a>
-    {% endif %}
-  </div>
+        {% empty %}
+        <div class="no-complaints-card">
+          <div class="no-complaints-icon">📭</div>
+          <h3>No Complaints Found</h3>
+          <p>There are currently no complaints matching your filters.</p>
+        </div>
+        {% endfor %}
+      </div>
 
-
+      <!-- Pagination with preserved filters -->
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Previous</a>
+        {% endif %}
+      
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Next</a>
+        {% endif %}
+      </div>
     </main>
   </div>
+
   <script src="{% static 'assets/js/app.js' %}"></script> 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
+    // Expand/Collapse complaint cards
+    document.querySelectorAll('.complaint-header').forEach(header => {
+      header.addEventListener('click', (e) => {
+        // Don't trigger if clicking on status select
+        if (e.target.closest('.status-select')) return;
+        
+        const complaintId = header.getAttribute('data-complaint-id');
+        const body = document.getElementById(`complaint-body-${complaintId}`);
+        const card = header.closest('.complaint-card');
+        const expandIcon = header.querySelector('.expand-icon');
+        
+        card.classList.toggle('expanded');
+        body.classList.toggle('expanded');
+        
+        // Close other expanded complaints (optional - remove if you want multiple open)
+        document.querySelectorAll('.complaint-card').forEach(otherCard => {
+          if (otherCard !== card && otherCard.classList.contains('expanded')) {
+            const otherComplaintId = otherCard.querySelector('.complaint-header').getAttribute('data-complaint-id');
+            const otherBody = document.getElementById(`complaint-body-${otherComplaintId}`);
+            const otherExpandIcon = otherCard.querySelector('.expand-icon');
+            
+            otherCard.classList.remove('expanded');
+            otherBody.classList.remove('expanded');
+          }
+        });
+      });
+    });
 
+    // Expand/Collapse conversations
+    document.querySelectorAll('.conversations-toggle').forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering complaint card toggle
+        const complaintId = toggle.getAttribute('data-complaint-id');
+        const conversationsList = document.getElementById(`conversations-${complaintId}`);
+        const toggleIcon = toggle.querySelector('.toggle-icon');
+        
+        conversationsList.classList.toggle('expanded');
+        toggleIcon.textContent = conversationsList.classList.contains('expanded') ? '▲' : '▼';
+      });
+    });
+
+    // Function to build query string from all filters
+    function buildQueryString() {
+      const params = new URLSearchParams();
+      
+      // Search query
+      const searchQuery = document.getElementById('complaint-search').value.trim();
+      if (searchQuery) {
+        params.append('q', searchQuery);
+      }
+      
+      // Department filter
+      const department = document.getElementById('department')?.value;
+      if (department) {
+        params.append('department', department);
+      }
+      
+      // Status filter
+      const status = document.getElementById('status-filter').value;
+      if (status) {
+        params.append('status', status);
+      }
+      
+      // Date filters
+      const startDate = document.getElementById('start-date').value;
+      const endDate = document.getElementById('end-date').value;
+      if (startDate) {
+        params.append('start_date', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+      }
+      
+      return params.toString();
+    }
+    
+    // Apply filters button
+    document.getElementById('apply-filters').addEventListener('click', () => {
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+    
+    // Search button
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const queryString = buildQueryString();
+      window.location.href = `?${queryString}`;
+    });
+    
     // Enter key press in search input
     document.getElementById("complaint-search").addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const query = e.target.value.trim();
-        const dept = document.getElementById("department")?.value || "";
-        window.location.href = `?q=${encodeURIComponent(query)}&department=${encodeURIComponent(dept)}`;
+        const queryString = buildQueryString();
+        window.location.href = `?${queryString}`;
       }
     });
+    
+    // Department filter change (for admin) - auto-apply
+    const departmentFilter = document.getElementById('department');
+    if (departmentFilter) {
+      departmentFilter.addEventListener('change', () => {
+        const queryString = buildQueryString();
+        window.location.href = `?${queryString}`;
+      });
+    }
 
-    // Send remark
+    // Status filter change - auto-apply
+    const statusFilter = document.getElementById('status-filter');
+    if (statusFilter) {
+      statusFilter.addEventListener('change', () => {
+        const queryString = buildQueryString();
+        window.location.href = `?${queryString}`;
+      });
+    }
+
+    // Send remark functionality
     document.querySelectorAll("[data-action='send-remark']").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.complaintId;
@@ -151,7 +564,39 @@
         });
       });
     });
+
+    // Show Django messages
+    {% if messages %}
+      {% for message in messages %}
+        showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    {% endif %}
   });
+
+  // Message display function
+  function showMessage(message, type) {
+    const messageContainer = document.getElementById('message-container');
+    const messageDiv = document.createElement('div');
+    
+    // Map Django message tags to CSS classes
+    let messageClass = 'message';
+    if (type === 'success') messageClass += ' success';
+    else if (type === 'error') messageClass += ' error';
+    else if (type === 'warning') messageClass += ' warning';
+    else if (type === 'info') messageClass += ' info';
+    else messageClass += ' info'; // default
+    
+    messageDiv.className = messageClass;
+    messageDiv.textContent = message;
+    messageContainer.appendChild(messageDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 5000);
+  }
   </script>
 </body>
 </html>
