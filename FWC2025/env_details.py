@@ -4,13 +4,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-RFAPI_USERNAME = os.getenv('API_USERNAME')
-RFAPI_PASSWORD = os.getenv('API_PASSWORD')
-
-KX_SMS_API_KEY = os.getenv('KX_SMS_API_SECRET_KEY')
-
-CRM_APP_API_RF_USERNAME = os.getenv('CRM_APP_API_RF_USERNAME')
-CRM_APP_API_RF_PASSWORD = os.getenv('CRM_APP_API_RF_PASSWORD')
+FWC_APP_API_USERNAME = os.getenv('API_USERNAME')
+FWC_APP_API_PASSWORD = os.getenv('API_PASSWORD')
 
 SCHEDULE_LOGGER_NAME = os.getenv('SCHEDULE_LOGGER_NAME')
 SCHEDULE_LOG_FILE_NAME = os.getenv('SCHEDULE_LOG_FILE_NAME')

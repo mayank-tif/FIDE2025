@@ -14,6 +14,94 @@
       min-height: 38px;
       padding: 4px 8px;
     }
+    /* Announcement Recipients Styles */
+    .announcement-recipients {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .recipients-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    
+    .player-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #495057;
+    }
+    
+    .player-tag[data-status="ACTIVE"] {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    
+    .player-tag[data-status="DEPARTED"] {
+      background: #fff3cd;
+      border-color: #ffeaa7;
+      color: #856404;
+    }
+    
+    .player-tag[data-status="KNOCKED_OUT"] {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    
+    .player-tag small {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+    
+    .recipients-count {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    .no-recipients {
+      font-style: italic;
+      color: #6c757d;
+      font-size: 14px;
+    }
+    
+    /* Make announcement cards more spacious */
+    .announcement-card {
+      padding: 20px;
+      margin-bottom: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .announcement-card h3 {
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    
+    .announcement-meta {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #6c757d;
+    }
+    
+    .announcement-body {
+      line-height: 1.6;
+      color: #495057;
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -40,9 +128,33 @@
             <h3>{{ announcement.title }}</h3>
             <div class="announcement-meta">
               <span class="announcement-date">{{ announcement.created_on|date:"M d, Y" }}</span>
-              <span class="announcement-author">{{ announcement.created_by.name }}</span>
+              <span class="announcement-author">By {{ announcement.created_by.name }}</span>
             </div>
             <p class="announcement-body">{{ announcement.details }}</p>
+
+            <!-- Recipients Section -->
+            <div class="announcement-recipients">
+              <strong>Sent to:</strong>
+              {% with recipients=announcement.recipients.all %}
+                {% if recipients %}
+                  <div class="recipients-list">
+                    {% for recipient in recipients %}
+                      <span class="player-tag" data-status="{{ recipient.player.status }}">
+                        {{ recipient.player.name }}
+                        {% if recipient.player.status != "ACTIVE" %}
+                          <small>({{ recipient.player.status }})</small>
+                        {% endif %}
+                      </span>
+                    {% endfor %}
+                  </div>
+                  <div class="recipients-count">
+                    Total: {{ recipients|length }} player{{ recipients|length|pluralize }}
+                  </div>
+                {% else %}
+                  <span class="no-recipients">No recipients assigned</span>
+                {% endif %}
+              {% endwith %}
+            </div>
           </article>
           {% empty %}
           <p>No announcements found.</p>
@@ -127,6 +239,16 @@
   <script src="{% static 'assets/js/app.js' %}"></script>
   <script>
   $(document).ready(function() {
+
+    // Toggle recipients list
+    $(document).on('click', '.btn-toggle-recipients', function() {
+      const announcementId = $(this).data('announcement-id');
+      const recipientsDiv = $('#recipients-' + announcementId);
+      const isVisible = recipientsDiv.is(':visible');
+
+      recipientsDiv.slideToggle();
+      $(this).text(isVisible ? 'Show List' : 'Hide List');
+    });
 
     $(document).on("click", "[data-modal-open]", function() {
         const modalId = $(this).data("modal-open");

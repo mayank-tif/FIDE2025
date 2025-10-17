@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'fwc',
     'rest_framework_simplejwt',
+    'MAppApis',
 ]
 
 MIDDLEWARE = [

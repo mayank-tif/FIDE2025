@@ -47,13 +47,10 @@ class View_platformlogin(TemplateView):
         return render(request,"login.html",{'msg': msg, 'site_key': RECAPTCHA_SITE_KEY})
     
     def post(self, request):
-        print("post")
         username = request.POST.get('username')
         pswd = request.POST.get('password')
         enc_pswd = str_encrypt(str(pswd))
         pswd = enc_pswd
-        print("enc_pswd", enc_pswd)
-        print("username", username)
 
         try:
             # Get reCAPTCHA response from form
@@ -78,10 +75,8 @@ class View_platformlogin(TemplateView):
             
             if username is not None and pswd is not None:
                 user_dtls = MstUserLogins.objects.filter(loginname=username, securepassword=pswd,status_flag=1)
-                print("user_dtls", user_dtls)
 
                 if len(user_dtls) > 0:
-                    log_user_activity(request, "Login", f"User '{username}' logged in successfully")
                     request.session['loginid'] = user_dtls[0].id
                     request.session['loginname'] = user_dtls[0].loginname
                     request.session['roleid'] = user_dtls[0].roleid.id if user_dtls[0].roleid else None
@@ -89,7 +84,7 @@ class View_platformlogin(TemplateView):
                     request.session['is_active'] = True
                     request.session['loggedin_user_name'] = user_dtls[0].name
                     request.session['loggedin_user_email'] = user_dtls[0].email
-                    print("user_dtls[0].roleid.id", user_dtls[0].roleid.id)
+                    log_user_activity(request, "Login", f"User '{username}' logged in successfully")
                     if user_dtls[0].roleid.id == 2:
                         return redirect("/complaints")
                     elif user_dtls[0].roleid.id == 3:
@@ -121,7 +116,7 @@ class Dashboard(TemplateView):
             active_players = Players.objects.filter(status="ACTIVE", status_flag=1).count()
 
             # Pending complaints (assuming status='Pending')
-            pending_complaints = PlayerComplaint.objects.filter(status='OPEN', status_flag=1).count()
+            pending_complaints = PlayerComplaint.objects.filter(status__in=['OPEN', 'IN_PROGRESS'], status_flag=1).count()
 
             # Total announcements
             total_announcements = Announcements.objects.count()
@@ -318,18 +313,26 @@ class PlayerProfile(View):
         player = get_object_or_404(Players, id=player_id, status_flag=1)
         countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
         TransportationTypes = TransportationType.objects.filter(status_flag=1).order_by("Name")
-        print("status", player.status)
+        player_documents = PlayerDocument.objects.filter(player=player, status_flag=1)
+        
+        transportation_details = PlayerTransportationDetails.objects.filter(
+            playerId=player, 
+        ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+        
         return render(request, self.template_name, {
             "player": player, 
             "countries": countries, 
-            "TransportationTypes": TransportationTypes
+            "TransportationTypes": TransportationTypes,
+            "player_documents": player_documents,
+            "transportation_details": transportation_details
         })
     
     
 class UpdatePlayerProfile(View):
     def post(self, request):
         player_id = request.POST.get("player_id")
-        print("request", request.POST)
+        print("request post update profile", request.POST)
+        print("request.FILES", request.FILES)
         player = get_object_or_404(Players, id=player_id, status_flag=1)
 
         fide_id = request.POST.get("fide_id")
@@ -341,31 +344,52 @@ class UpdatePlayerProfile(View):
         # Check if FIDE ID is already assigned to another player
         if Players.objects.filter(fide_id=fide_id).exclude(id=player_id).exists():
             return JsonResponse({"success": False, "error": "This FIDE ID is already registered with another player."})
+        
+        age = request.POST.get("age")
+        if age == '':
+            age = None
+        else:
+            try:
+                age = int(age) if age else None
+            except (ValueError, TypeError):
+                age = None
 
         # Update player details
         player.name = request.POST.get("name")
         player.fide_id = fide_id
-        player.age = request.POST.get("age")
+        player.age = age
         player.gender = request.POST.get("gender")
         player.email = request.POST.get("email")
         player.status = request.POST.get("status")
         player.countryid_id = request.POST.get("country")
         player.details = request.POST.get("food_allergies", player.details)
         player.room_cleaning_preference = request.POST.get("room_cleaning_preference", player.room_cleaning_preference)
+        player.accompanying_persons = request.POST.get("accompanying_persons", player.accompanying_persons)  # NEW
 
         # Handle profile picture upload
         if "profile_pic" in request.FILES: 
             player.image = request.FILES["profile_pic"]
 
-        # Handle documents upload
+        # Handle multiple documents upload - UPDATED
         if "documents" in request.FILES:
-            document = request.FILES["documents"]
-            original_name = document.name
-            extension = os.path.splitext(original_name)[1]  # Get file extension
-            new_name = f"{fide_id}_{original_name}"
+            documents = request.FILES.getlist("documents")  # Get all files
+            fide_id = player.fide_id
             
-            # Save file with new name
-            player.documents.save(new_name, ContentFile(document.read()), save=False)
+            for document in documents:
+                original_name = document.name
+                new_filename = f"{fide_id}_{original_name}"
+                
+                # Create PlayerDocument record
+                player_doc = PlayerDocument(
+                    player=player,
+                    reg_document=document,
+                    original_filename=original_name,
+                    file_size=document.size,
+                    document_type='IDENTIFICATION'
+                )
+                # Rename the file
+                player_doc.reg_document.name = new_filename
+                player_doc.save()
 
         # Set update timestamp and user
         player.updated_on = timezone.now()
@@ -375,78 +399,69 @@ class UpdatePlayerProfile(View):
         data = {"success": True}
         if player.image:
             data["image_url"] = player.image.url
-        if player.documents:
-            data["documents_url"] = player.documents.url
+        
+        # Get documents for response
+        player_documents = PlayerDocument.objects.filter(player=player, status_flag=1)
+        if player_documents.exists():
+            data["documents"] = [doc.original_filename for doc in player_documents]
 
         log_user_activity(request, "Update Player Profile", f"Player '{player.name}' profile updated successfully")
         return JsonResponse(data)
+    
+
+class DeletePlayerDocument(View):
+    def post(self, request):
+        document_id = request.POST.get("document_id")
+        try:
+            document = PlayerDocument.objects.get(id=document_id, status_flag=1)
+            document.status_flag = 0  # Soft delete
+            document.save()
+            
+            return JsonResponse({"success": True, "message": "Document deleted successfully"})
+        except PlayerDocument.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Document not found"})
     
     
 class PlayerTransportView(View):
     
     def get(self, request, player_id, *args, **kwargs):
-        transports = PlayerTransportationDetails.objects.filter(playerId_id=player_id)
-        data = []
-        for t in transports:
-            data.append({
-                "id": t.id,
-                "pickup_location": t.pickup_location,
-                "drop_location": t.drop_location,
-                "details": t.details,
-                "transportation_type": t.transportationTypeId.id,
-                "transportation_type_name": t.transportationTypeId.Name,
-                "remarks": t.remarks,
-                "status": t.status,
-                "created_on": t.created_on.strftime("%Y-%m-%d %H:%M:%S"),
-            })
-        return JsonResponse(data, safe=False)
-
-    def post(self, request, *args, **kwargs):
-        """Create or update a transport record"""
         try:
-            data = request.POST
-            transport_id = data.get("id")
-            player_id = data.get("player_id")
-            pickup = data.get("pickup_location")
-            dropoff = data.get("drop_location")
-            details = data.get("details")
-            transport_type_id = data.get("transportation_type")
-            remarks = data.get("remarks")
-            status = data.get("status", PlayerTransportationDetails.STATUS_IN_TRANSIT)
-            player = Players.objects.filter(id=player_id).first()
-
-            # Get TransportationType object
-            transport_type_obj = TransportationType.objects.get(id=transport_type_id)
-
-            if transport_id:  # Update existing record
-                transport = PlayerTransportationDetails.objects.get(id=transport_id)
-                transport.pickup_location = pickup
-                transport.drop_location = dropoff
-                transport.details = details
-                transport.transportationTypeId = transport_type_obj
-                transport.remarks = remarks
-                transport.status = status
-                transport.updated_on = timezone.now()
-                transport.updated_by = request.session.get("loginid")
-                transport.save()
-                log_user_activity(request, "Update Transport", f"Transport ID({transport_id}) updated successfully")
-            else:  # Create new
-                PlayerTransportationDetails.objects.create(
-                    playerId_id=player_id,
-                    pickup_location=pickup,
-                    drop_location=dropoff,
-                    details=details,
-                    transportationTypeId=transport_type_obj,
-                    remarks=remarks,
-                    status=status,
-                    created_by=request.session.get("loginid")
-                )
-                log_user_activity(request, "Create Transport", f"Transport created successfully for Player ID({player_id}), name({player.name})")
-
-            return JsonResponse({"success": True})
-
+            transports = PlayerTransportationDetails.objects.filter(
+                playerId_id=player_id, 
+            ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+            
+            data = []
+            for t in transports:
+                transport_data = {
+                    "id": t.id,
+                    "pickup_location": t.pickup_location or "Not specified",
+                    "drop_location": t.drop_location or "Not specified",
+                    "details": t.details or "No details provided",
+                    "transportation_type": t.transportationTypeId.id if t.transportationTypeId else None,
+                    "transportation_type_name": t.transportationTypeId.Name if t.transportationTypeId else "",
+                    "remarks": t.remarks or "No remarks",
+                    "status": t.status,
+                    "status_display": t.get_status_display(),
+                    "travel_date": t.travel_date.strftime("%b %d, %Y %I:%M %p") if t.travel_date else "",
+                    "created_on": t.created_on.strftime("%b %d, %Y %I:%M %p"),
+                }
+                
+                # Add roaster details if available
+                if t.roasterId:
+                    transport_data.update({
+                        "vehicle_type": t.roasterId.vechicle_type,
+                        "vehicle_number": t.roasterId.vechicle_no,
+                        "driver_name": t.roasterId.driver_name,
+                        "seats": t.roasterId.number_of_seats,
+                        "roaster_id": t.roasterId.id,
+                    })
+                
+                data.append(transport_data)
+                
+            return JsonResponse(data, safe=False)
+            
         except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"error": str(e)}, status=500)
         
 
 
@@ -527,7 +542,10 @@ class AnnouncementListView(View):
     def get(self, request):
         search_query = request.GET.get("q", "")
 
-        announcements = Announcements.objects.select_related("created_by").all().order_by("-created_on")
+        announcements = Announcements.objects.select_related("created_by").prefetch_related(
+            'recipients__player'
+        ).all().order_by("-created_on")
+        
         if search_query:
             announcements = announcements.filter(title__icontains=search_query)
 
@@ -535,7 +553,7 @@ class AnnouncementListView(View):
         page_number = request.GET.get("page", 1)
         page_obj = paginator.get_page(page_number)
 
-        players = Players.objects.filter(status_flag=1).order_by("name")  # For dropdown
+        players = Players.objects.filter(status_flag=1).order_by("name")
 
         return render(request, "announcements.html", {
             "page_obj": page_obj,
@@ -668,7 +686,7 @@ class EditUserView(View):
             "department": user.department.id if user.department else None,
             "roleid": user.roleid.id if user.roleid else None,
         }
-        log_user_activity(request, "Fetch Data To Edit User", f"User ID({user_id}) - {user.loginname} edited")
+        log_user_activity(request, "Fetch Data To Edit User", f"User ID({user_id}) - {user.name} edited")
         return JsonResponse({"success": True, "data": data})
     
     def post(self, request, user_id):
@@ -690,7 +708,7 @@ class EditUserView(View):
         user.updated_on = timezone.now()
         user.updated_by = request.session.get("edit_loginid")
         user.save()
-        log_user_activity(request, "Update User", f"User ID({user_id}) - {user.loginname} updated")
+        log_user_activity(request, "Update User", f"User ID({user_id}) - {user.name} updated")
         return JsonResponse({"success": True, "message": "User updated successfully."})
     
     
@@ -699,7 +717,6 @@ class ChangeUserPasswordView(View):
         user_id = request.POST.get("userId")
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
-        print("request.POST", request.POST)
 
         if not new_password or not confirm_password:
             return JsonResponse({"success": False, "message": "Please fill in all fields."})
@@ -728,12 +745,13 @@ class UserActivityLogView(TemplateView):
         page = request.GET.get("page", 1)
         search = request.GET.get("search", "")
 
-        logs = UserActivityLog.objects.select_related("user").all().order_by('-created_on') 
-
+        logs = UserActivityLog.objects.select_related("user", "user__roleid").all().order_by('-created_on') 
+            
         if search:
             logs = logs.filter(
                 Q(user__loginname__icontains=search) |
                 Q(user__name__icontains=search) |
+                Q(user__roleid__role_name__icontains=search) |
                 Q(action__icontains=search) |
                 Q(description__icontains=search)
             )
@@ -782,6 +800,20 @@ class RoasterListView(View):
                 Q(playertransportationdetails__playerId__name__icontains=search_query)
             ).distinct()
 
+        # Prefetch related PlayerTransportationDetails
+        roasters = roasters.prefetch_related('playertransportationdetails_set')
+
+        # Prepare distinct players for each roaster in Python
+        for r in roasters:
+            players = r.playertransportationdetails_set.all()
+            seen = set()
+            distinct_players = []
+            for p in players:
+                if p.playerId.id not in seen:
+                    distinct_players.append(p)
+                    seen.add(p.playerId.id)
+            r.distinct_players = distinct_players
+
         paginator = Paginator(roasters, per_page)
         page_obj = paginator.get_page(page_number)
 
@@ -790,7 +822,8 @@ class RoasterListView(View):
             'roasters': page_obj.object_list,
             'search_query': search_query,
         }
-        return render(request, self.template_name, context)  
+        return render(request, self.template_name, context)
+  
     
     
 class RoasterAddView(View):
@@ -803,12 +836,11 @@ class RoasterAddView(View):
         return render(request, self.template_name, {
             'players': players,
             'transportation_types': transportation_types,
-            'roaster_status_choices': Roaster.STATUS_CHOICES,
+            'status_choices': PlayerTransportationDetails.STATUS_CHOICES,
             'current_page': current_page
         })
 
     def post(self, request):
-        print(request.POST)
         vehicle_type = request.POST.get('vehicleType')
         vehicle_number = request.POST.get('vehicleNumber')
         number_of_seats = request.POST.get('number_of_seats')
@@ -818,7 +850,8 @@ class RoasterAddView(View):
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
         travel_date_str = request.POST.get('travel_date')
-        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%dT%H:%M") if travel_date_str else None
+        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
+
 
         roaster = Roaster.objects.create(
             vechicle_type=vehicle_type,
@@ -826,25 +859,25 @@ class RoasterAddView(View):
             number_of_seats=number_of_seats,
             driver_name=driver_name,
             transportationTypeId_id=transportation_type_id,
-            travel_date=travel_date,
-            status=status,
-            status_flag=1
+            status_flag=1,
+            created_by=request.session.get('user_id'),
         )
 
+        # Create player transport log entries
         for player_id in assigned_players:
             player = Players.objects.get(id=player_id)
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 roasterId=roaster,
-                pickup_location="",
-                drop_location="",
-                details="",
-                remarks="",
+                status=status,
+                travel_date=travel_date,
+                transportationTypeId_id=transportation_type_id,
+                created_by=request.session.get('user_id')
             )
 
-        messages.success(request, "Information added successfully!")
-
+        messages.success(request, "Roaster and player travel details added successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
+
     
 
 class RoasterEditView(View):
@@ -854,20 +887,19 @@ class RoasterEditView(View):
         roaster = get_object_or_404(Roaster, id=roaster_id)
         players = Players.objects.filter(status_flag=1).order_by("name")
         assigned_player_ids = roaster.playertransportationdetails_set.values_list('playerId__id', flat=True)
-        current_page = request.GET.get('page', 1)
         transportation_types = TransportationType.objects.filter(status_flag=1)
+        current_page = request.GET.get('page', 1)
 
         return render(request, self.template_name, {
             'roaster': roaster,
             'players': players,
             'assigned_player_ids': assigned_player_ids,
-            'current_page': current_page,
             'transportation_types': transportation_types,
-            'roaster_status_choices': Roaster.STATUS_CHOICES,
+            'status_choices': PlayerTransportationDetails.STATUS_CHOICES,
+            'current_page': current_page
         })
 
     def post(self, request, roaster_id):
-        print("request", request.POST)
         roaster = get_object_or_404(Roaster, id=roaster_id)
         vehicle_type = request.POST.get('vehicleType')
         vehicle_number = request.POST.get('vehicleNumber')
@@ -878,30 +910,58 @@ class RoasterEditView(View):
         transportation_type_id = request.POST.get('transportationTypeId')
         status = request.POST.get('status')
         travel_date_str = request.POST.get('travel_date')
-        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%dT%H:%M") if travel_date_str else None
-        
+        travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
 
         roaster.vechicle_type = vehicle_type
         roaster.vechicle_no = vehicle_number
         roaster.number_of_seats = number_of_seats
         roaster.driver_name = driver_name
         roaster.transportationTypeId_id = transportation_type_id
-        roaster.travel_date = travel_date 
-        roaster.status = status
+        roaster.updated_by = request.session.get('user_id')
+        roaster.updated_on = timezone.now()
         roaster.save()
 
-        # Update player assignments
-        PlayerTransportationDetails.objects.filter(roasterId=roaster).delete()
+        # Append a new transport log for each selected player
         for player_id in assigned_players:
             player = Players.objects.get(id=player_id)
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 roasterId=roaster,
-                pickup_location="",
-                drop_location="",
-                details="",
-                remarks="",
+                status=status,
+                travel_date=travel_date,
+                transportationTypeId_id=transportation_type_id,
+                created_by=request.session.get('user_id')
             )
-            
-        messages.success(request, "Information Edited successfully!")
+
+        messages.success(request, "Roaster updated successfully! Player travel logs recorded.")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
+    
+    
+
+class EnquiryListView(View):
+    template_name = "enquiry.html"
+    per_page = 10  # adjust pagination size
+
+    def get(self, request):
+        search_query = request.GET.get('search', '')
+        page_number = request.GET.get('page', 1)
+
+        # Filter enquiries, include player name if search query exists
+        enquiries = EnquiryDetails.objects.filter(status_flag=1).select_related('player').order_by('-created_on')
+
+        if search_query:
+            enquiries = enquiries.filter(
+                Q(player__name__icontains=search_query) |
+                Q(message__icontains=search_query)
+            )
+
+        paginator = Paginator(enquiries, self.per_page)
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'page_obj': page_obj,
+            'enquiries': page_obj.object_list,
+            'search_query': search_query,
+        }
+        return render(request, self.template_name, context)
+

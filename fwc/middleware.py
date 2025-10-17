@@ -136,6 +136,7 @@ class RoleBasedAccessMiddleware:
             role_id = request.session.get('roleid', None)
             resolver_match = resolve(request.path_info)
             current_url_name = resolver_match.url_name  
+            print("Current URL name:", current_url_name, role_id)
 
             if role_id == 2 and current_url_name and current_url_name not in self.allowed_urls_role_2:
                 return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')

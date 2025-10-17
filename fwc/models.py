@@ -119,8 +119,7 @@ class MstUserLogins(models.Model):
         unique_together = (('loginname',),)
         db_table = 'UserLogins'
         
-        
-        
+                
         
 class Players(models.Model):
     STATUS_ACTIVE = "ACTIVE"
@@ -223,8 +222,7 @@ class TransportationType(models.Model):
     
     class Meta:
         db_table = 'TransportationType'
-        
-        
+                
         
 class Roaster(models.Model):
     id = models.AutoField(primary_key=True)
@@ -474,6 +472,7 @@ class EnquiryDetails(models.Model):
     id = models.AutoField(primary_key=True)
     player= models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     message = models.TextField()
+    response = models.TextField(null=True, blank=True)
     created_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
     
@@ -568,3 +567,19 @@ class UserDeviceToken(models.Model):
     
     class Meta:
         db_table = 'UserDeviceToken'
+        
+        
+class ContactUs(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=200, null=True)
+    email = models.CharField(max_length=200, null=True)
+    subject = models.CharField(max_length=500, null=True)
+    message = models.TextField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+    
+    def __int__(self):
+        return self.id
+    
+    class Meta:
+        db_table = 'ContactUs'
