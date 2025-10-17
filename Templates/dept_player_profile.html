@@ -267,7 +267,7 @@
                   <span class="info-label">FIDE ID</span>
                   <div class="info-value">{{ player.fide_id|default:"Not provided" }}</div>
                 </div>
-                <div class="info-group">
+                {% comment %} <div class="info-group">
                   <span class="info-label">Age</span>
                   <div class="info-value">{{ player.age|default:"Not provided" }}</div>
                 </div>
@@ -280,7 +280,7 @@
                     {% else %}Not provided
                     {% endif %}
                   </div>
-                </div>
+                </div> {% endcomment %}
               </div>
 
               <!-- Contact Information -->
@@ -290,15 +290,15 @@
                   <span class="info-label">Email</span>
                   <div class="info-value">{{ player.email|default:"Not provided" }}</div>
                 </div>
-                <div class="info-group">
+                {% comment %} <div class="info-group">
                   <span class="info-label">Country</span>
                   <div class="info-value">{{ player.countryid.country_name|default:"Not provided" }}</div>
-                </div>
-                <div class="info-group">
+                </div> {% endcomment %}
+                {% comment %} <div class="info-group">
                   <span class="info-label">Mobile Number</span>
                   <div class="info-value">{{ player.mobilenumber|default:"Not provided" }}</div>
-                </div>
-                <div class="info-group">
+                </div> {% endcomment %}
+                {% comment %} <div class="info-group">
                   <span class="info-label">Status</span>
                   <div class="info-value">
                     {% if player.status == "ACTIVE" %}
@@ -311,7 +311,7 @@
                       {{ player.status|default:"Not provided" }}
                     {% endif %}
                   </div>
-                </div>
+                </div> {% endcomment %}
               </div>
 
               <!-- Accommodation Preferences -->

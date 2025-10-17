@@ -56,6 +56,30 @@
       border: 1px solid #ffeaa7;
     }
     
+    .badge--morning {
+      background: #e7f3ff;
+      color: #0066cc;
+      border: 1px solid #b3d9ff;
+    }
+    
+    .badge--afternoon {
+      background: #fff0e6;
+      color: #cc6600;
+      border: 1px solid #ffd9b3;
+    }
+    
+    .badge--evening {
+      background: #f0e6ff;
+      color: #6600cc;
+      border: 1px solid #d9b3ff;
+    }
+    
+    .badge--hotel {
+      background: #e6ffe6;
+      color: #006600;
+      border: 1px solid #b3ffb3;
+    }
+    
     /* Button Styles */
     .btn-icon {
       background: none;
@@ -104,6 +128,123 @@
       color: #0c5460;
       border: 1px solid #bee5eb;
     }
+    
+    /* Expandable Content Styles */
+    .expandable-content {
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .truncated-text {
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      color: #6c757d;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+    
+    .truncated-text:hover {
+      background: #e9ecef;
+    }
+    
+    .truncated-text.expanded {
+      white-space: normal;
+      max-width: none;
+      background: #fff3cd;
+      border-color: #ffeaa7;
+    }
+    
+    .expand-indicator {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: #6c757d;
+    }
+    
+    .full-content {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 2px solid #5a8372;
+    }
+    
+    .full-content h4 {
+      margin-top: 0;
+      color: #495057;
+      border-bottom: 2px solid #5a8372;
+      padding-bottom: 8px;
+    }
+    
+    .full-content .content {
+      margin: 15px 0;
+      line-height: 1.5;
+      color: #495057;
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #6c757d;
+    }
+    
+    .close-btn:hover {
+      color: #495057;
+    }
+    
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+    
+    /* Responsive table styles */
+    @media (max-width: 768px) {
+      .logistics-table-wrapper {
+        overflow-x: auto;
+      }
+      
+      table {
+        min-width: 800px;
+      }
+      
+      .truncated-text {
+        max-width: 120px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .truncated-text {
+        max-width: 100px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -124,7 +265,7 @@
             <input type="text" 
                    name="q" 
                    value="{{ search_query }}" 
-                   placeholder="Search by name, email, FIDE ID, or country..." 
+                   placeholder="Search by name, email, FIDE ID, or preferences..." 
                    style="margin: 0; height: 31px; padding: 0 8px;">
             <button type="submit" class="btn btn--primary" style="height: 31px;">Search</button>
           </form>
@@ -139,9 +280,9 @@
                 <th>S.No.</th>
                 <th>Photo</th>
                 <th>Player Name</th>
-                <th>Age</th>
-                <th>Gender</th>
-                <th>Country</th>
+                <th>Room Cleaning</th>
+                <th>Accompanying Persons</th>
+                <th>Food Allergies</th>
                 <th>Email</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -163,9 +304,50 @@
                   {% endif %}
                 </td>
                 <td>{{ player.name|default:"" }}</td>
-                <td>{{ player.age|default:"" }}</td>
-                <td>{{ player.gender|default:"" }}</td>
-                <td>{{ player.countryid.country_name|default:"" }}</td>
+                
+                <!-- Room Cleaning Preference -->
+                <td>
+                  {% if player.room_cleaning_preference == "MORNING" %}
+                    <span class="badge badge--morning" title="Morning slot">Morning</span>
+                  {% elif player.room_cleaning_preference == "AFTERNOON" %}
+                    <span class="badge badge--afternoon" title="Afternoon slot (3:00 PM – 6:00 PM)">Afternoon</span>
+                  {% elif player.room_cleaning_preference == "EVENING" %}
+                    <span class="badge badge--evening" title="Evening slot">Evening</span>
+                  {% elif player.room_cleaning_preference == "AT_HOTEL" %}
+                    <span class="badge badge--hotel" title="Will give instructions at hotel">At Hotel</span>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;">Not specified</span>
+                  {% endif %}
+                </td>
+                
+                <!-- Accompanying Persons -->
+                <td>
+                  {% if player.accompanying_persons %}
+                    <div class="expandable-content" data-player-name="{{ player.name }}" data-type="accompanying" data-content="{{ player.accompanying_persons }}">
+                      <div class="truncated-text">
+                        {{ player.accompanying_persons|truncatechars:30 }}
+                        <span class="expand-indicator"></span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;"></span>
+                  {% endif %}
+                </td>
+                
+                <!-- Food Allergies & Dietary Restrictions -->
+                <td>
+                  {% if player.details %}
+                    <div class="expandable-content" data-player-name="{{ player.name }}" data-type="allergies" data-content="{{ player.details }}">
+                      <div class="truncated-text">
+                        {{ player.details|truncatechars:35 }}
+                        <span class="expand-indicator"></span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;"></span>
+                  {% endif %}
+                </td>
+                
                 <td>{{ player.email|default:"" }}</td>
                 <td>
                   {% if player.status == "ACTIVE" %}
@@ -214,6 +396,14 @@
     </main>
   </div>
 
+  <!-- Full Content Modal -->
+  <div class="overlay" id="contentOverlay"></div>
+  <div class="full-content" id="fullContent">
+    <button class="close-btn" id="closeContent">&times;</button>
+    <h4 id="contentTitle"></h4>
+    <div class="content" id="contentBody"></div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Store current page and search state when viewing profile
@@ -221,10 +411,54 @@
       
       profileButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-          // Get current URL parameters to maintain search and pagination
           const currentUrl = window.location.search;
           sessionStorage.setItem('playersListUrl', currentUrl);
         });
+      });
+      
+      // Expandable content functionality
+      const expandableContents = document.querySelectorAll('.expandable-content');
+      const overlay = document.getElementById('contentOverlay');
+      const fullContent = document.getElementById('fullContent');
+      const contentTitle = document.getElementById('contentTitle');
+      const contentBody = document.getElementById('contentBody');
+      const closeBtn = document.getElementById('closeContent');
+      
+      expandableContents.forEach(content => {
+        content.addEventListener('click', function(e) {
+          const playerName = this.getAttribute('data-player-name');
+          const contentType = this.getAttribute('data-type');
+          const contentText = this.getAttribute('data-content');
+          
+          // Set modal content
+          if (contentType === 'accompanying') {
+            contentTitle.textContent = `${playerName} - Accompanying Persons`;
+          } else {
+            contentTitle.textContent = `${playerName} - Food Allergies & Dietary Restrictions`;
+          }
+          
+          contentBody.textContent = contentText;
+          
+          // Show modal
+          overlay.style.display = 'block';
+          fullContent.style.display = 'block';
+        });
+      });
+      
+      // Close modal
+      function closeModal() {
+        overlay.style.display = 'none';
+        fullContent.style.display = 'none';
+      }
+      
+      closeBtn.addEventListener('click', closeModal);
+      overlay.addEventListener('click', closeModal);
+      
+      // Close modal with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
       });
       
       // Focus search input on page load if empty
@@ -241,24 +475,22 @@
       {% endif %}
     });
 
-    // Message display function (same as your logistics page)
+    // Message display function
     function showMessage(message, type) {
       const messageContainer = document.getElementById('message-container');
       const messageDiv = document.createElement('div');
       
-      // Map Django message tags to CSS classes
       let messageClass = 'message';
       if (type === 'success') messageClass += ' success';
       else if (type === 'error') messageClass += ' error';
       else if (type === 'warning') messageClass += ' warning';
       else if (type === 'info') messageClass += ' info';
-      else messageClass += ' info'; // default
+      else messageClass += ' info';
       
       messageDiv.className = messageClass;
       messageDiv.textContent = message;
       messageContainer.appendChild(messageDiv);
       
-      // Auto remove after 5 seconds
       setTimeout(() => {
         if (messageDiv.parentNode) {
           messageDiv.parentNode.removeChild(messageDiv);
