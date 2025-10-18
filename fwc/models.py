@@ -288,6 +288,16 @@ class PlayerTransportationDetails(models.Model):
 
     def __str__(self):
         return f"{self.playerId.name} - {self.pickup_location} to {self.drop_location}"
+        
+    @classmethod
+    def get_status_display_text(cls, status_value):
+        """Get display text for a status value without creating object"""
+        if not status_value:
+            return "No Status"
+        for value, display in cls.STATUS_CHOICES:
+            if value == status_value:
+                return display
+        return status_value
     
     class Meta:
         db_table = 'PlayerTransportationDetails' 

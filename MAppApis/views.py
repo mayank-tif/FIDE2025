@@ -22,6 +22,7 @@ from fwc.helpers import *
 from django.core.mail import send_mail
 from django.db.models import Q
 from fwc.helpers import *
+from rest_framework.decorators import api_view, permission_classes
 import hashlib
 from django.template.loader import render_to_string
 from django.db import transaction
@@ -286,7 +287,7 @@ class RegisterPlayerAPIView(APIView):
     
     @transaction.atomic
     def post(self, request):
-        # validate_app_and_device_with_token(request)
+        validate_app_and_device_with_token(request)
         serializer = PlayerRegistrationSerializer(data=request.data)
         
         if serializer.is_valid():
@@ -551,11 +552,11 @@ class PlayerTransportationAPIView(APIView):
 
 
 class DepartmentListAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
-            validate_email_and_device_with_token(request)
+            # validate_email_and_device_with_token(request)
 
             departments = Department.objects.filter(status_flag=1)
             serializer = DepartmentSerializer(departments, many=True)
@@ -1311,3 +1312,37 @@ class DepartureDetailsAPIView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            
+            
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_departments(request):
+    try:
+        validate_email_and_device_with_token(request)
+
+        departments = Department.objects.filter(status_flag=1)
+        departments_data = []
+        for dept in departments:
+            departments_data.append({
+                'id': dept.id,
+                'name': dept.name
+            })
+        
+        # departments_data = [
+        #     {"id": 1, "name": "Accomodation"},
+        #     {"id": 2, "name": "Food & Beverages"},
+        #     {"id": 3, "name": "Transport"},
+        #     {"id": 4, "name": "General"}
+        # ]
+        
+        return Response(
+            {
+                "departments": departments_data
+            },
+            status=status.HTTP_200_OK
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )

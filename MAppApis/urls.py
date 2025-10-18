@@ -11,9 +11,9 @@ urlpatterns = [
     path("login/", PlayerLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("player-transport/", PlayerTransportationAPIView.as_view(), name="player_transport"),
-    path("departments/", DepartmentListAPIView.as_view(), name="department_list"),
+    path("fwc-departmentlist/", DepartmentListAPIView.as_view(), name="fwc-departmentlist"),
     path("change-password/", ChangePasswordAPIView.as_view(), name="change-password"),
-    path("forgot-password/", ForgetPasswordAPIView.as_view(), name="change-password"),
+    path("forgot-password/", ForgetPasswordAPIView.as_view(), name="forgot-password"),
     path("notifications/", PlayerNotificationListView.as_view(), name="player_notifications"),
     path("contact/", ContactFormView.as_view(), name="contact_form"),
     path("enquiry/", EnquiryFormView.as_view(), name="enquiry_form"),
@@ -23,4 +23,5 @@ urlpatterns = [
     path("complaint/edit/", EditComplaintRemarkView.as_view(), name="edit_complaint"),
     path("home-images/", HomeImageDataView.as_view(), name="home_images"),
     path('departure-details/', DepartureDetailsAPIView.as_view(), name='create-departure-details-alt'),
+    path('fwc-dept-list/', get_departments, name='fwc-dept-list'),
 ]

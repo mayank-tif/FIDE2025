@@ -178,8 +178,15 @@ class PlayerView(View):
         """
         page = int(request.POST.get("page", 1))
 
-        # Filter only players
-        players = Players.objects.filter(status_flag=1).order_by("-id")
+        latest_transport = PlayerTransportationDetails.objects.filter(
+            playerId=OuterRef('pk'),
+            status_flag=1
+        ).order_by('-created_on')
+
+        players = Players.objects.filter(status_flag=1).annotate(
+            latest_status=Subquery(latest_transport.values('status')[:1]),
+            latest_travel_date=Subquery(latest_transport.values('travel_date')[:1])
+        ).order_by("-id")
 
         paginator = Paginator(players, per_page)
         current_page = paginator.get_page(page)
@@ -194,6 +201,7 @@ class PlayerView(View):
                 "country": player.countryid.country_name if player.countryid else "",
                 "email": player.email,
                 "status": player.get_status_display() if player.status else "",
+                "transportation_status": PlayerTransportationDetails.get_status_display_text(player.latest_status),
             }
             for player in current_page
         ]

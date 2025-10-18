@@ -2,11 +2,18 @@ from rest_framework import serializers
 from fwc.models import *
 from datetime import datetime
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.exceptions import AuthenticationFailed, ValidationError, APIException
 from FWC2025.env_details import *
 from fwc.helpers import *
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from rest_framework import status
+
+
+class Conflict409(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = 'Conflict: User already exists.'
+    default_code = 'conflict'
 
 
 class GenerateAppTokenSerializer(serializers.Serializer):
@@ -74,6 +81,14 @@ class PlayerOTPSerializer(serializers.Serializer):
                         "message": "The provided FIDE ID is not registered. Please check your FIDE ID or contact administrators."
                     }
                 })
+                
+            user = Players.objects.filter(email=email, fide_id=fide_id).first()
+            if user and user.securepassword:
+                raise Conflict409({
+                    "error": {
+                        "message": "User already registered.",
+                    }
+                })
         
         elif otp_type == 'change_password':
             if not email or not fide_id:
@@ -108,7 +123,7 @@ class PlayerRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("Enter a valid email address.")
         
         existing_player = Players.objects.filter(email=value, status_flag=1).first()
-        if existing_player:
+        if existing_player.securepassword:
             raise serializers.ValidationError("This email is already registered. Please use a different email.")
         
         return value

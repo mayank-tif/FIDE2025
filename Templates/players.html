@@ -36,6 +36,7 @@
               <th>Country</th>
               <th>Email</th>
               <th>Status</th>
+              <th>Transportation Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -258,6 +259,7 @@
                                   <td>${player.country|| ''}</td>
                                   <td>${player.email|| ''}</td>
                                   <td class="status">${getStatusBadge(player.status)}</td>
+                                  <td>${player.transportation_status|| ''}</td>
                                   <td>
                                       <button class="profileView btn-icon" data-action="view" title="View Profile" data-id="${player.id}">👁️</button>
                                       
