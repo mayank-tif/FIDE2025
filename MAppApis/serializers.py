@@ -292,12 +292,15 @@ class ResetPasswordSerializer(serializers.Serializer):
             
         return data
 
-    def save(self, **kwargs):
-        user = self.validated_data["user"]
-        new_password = self.validated_data["new_password"]
+    def create(self, validated_data):
+        user = validated_data['user']
+        new_password = validated_data['new_password']
         user.securepassword = str_encrypt(str(new_password))
         user.save()
-        return {"message": "Password updated successfully."}
+        return user
+
+    def update(self, instance, validated_data):
+        pass
      
 
 class AnnouncementNotificationSerializer(serializers.ModelSerializer):

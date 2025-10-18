@@ -603,7 +603,6 @@ class ForgetPasswordAPIView(APIView):
             email = serializer.validated_data['email']
             otp = serializer.validated_data['otp']
             
-            # Verify OTP
             otp_valid, otp_message = verify_otp(email, otp, 'forgot_password')
             if not otp_valid:
                 return Response({
@@ -611,7 +610,6 @@ class ForgetPasswordAPIView(APIView):
                     "message": otp_message
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Save the new password
             serializer.save()
             return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
         
