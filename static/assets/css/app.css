@@ -299,6 +299,7 @@ body {
   position: fixed;
   height: 100vh;
   overflow-y: auto;
+  z-index: 1000;
 }
 
 .sidebar-brand {
@@ -1201,6 +1202,7 @@ tbody tr:hover {
 /* ========== Responsive ========== */
 @media (max-width: 768px) {
   .sidebar {
+    z-index: 1050;
     width: 200px;
   }
   
@@ -1245,6 +1247,7 @@ tbody tr:hover {
 
 @media (max-width: 480px) {
   .sidebar {
+    z-index: 1050;
     width: 60px;
   }
   

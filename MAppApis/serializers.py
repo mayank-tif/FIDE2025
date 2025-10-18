@@ -18,8 +18,8 @@ class FideIDCheckSerializer(serializers.Serializer):
     
     
 class PlayerOTPSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-    fide_id = serializers.CharField(max_length=250, required=True, allow_blank=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    fide_id = serializers.CharField(max_length=250, required=False, allow_blank=True)
     otp_type = serializers.ChoiceField(
         choices=[
             ('registration', 'Registration'),
@@ -31,10 +31,42 @@ class PlayerOTPSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         fide_id = attrs.get("fide_id")
+        email = attrs.get("email")
         otp_type = attrs.get("otp_type")
         
-        # For registration, check if FIDE ID exists
-        if otp_type == 'registration':
+        if otp_type == 'forgot_password':
+            if not email and not fide_id:
+                raise serializers.ValidationError({
+                    "error": {
+                        "message": "Either email or FIDE ID is required for password reset."
+                    }
+                })
+            
+            if fide_id and not email:
+                try:
+                    player = Players.objects.get(fide_id=fide_id, status_flag=1)
+                    attrs['email'] = player.email
+                except Players.DoesNotExist:
+                    raise serializers.ValidationError({
+                    "error": {
+                        "message": "User does not exists."
+                    }
+                })
+            elif email and not fide_id:
+                try:
+                    player = Players.objects.get(email=email, status_flag=1)
+                    attrs['fide_id'] = player.fide_id
+                except Players.DoesNotExist:
+                    attrs['fide_id'] = "" 
+        
+        elif otp_type == 'registration':
+            if not fide_id:
+                raise serializers.ValidationError({
+                    "error": {
+                        "message": "FIDE ID is required for registration."
+                    }
+                })
+            
             fide = FideIDMst.objects.filter(fide_id=fide_id).first()
             if not fide: 
                 raise serializers.ValidationError({
@@ -43,26 +75,22 @@ class PlayerOTPSerializer(serializers.Serializer):
                     }
                 })
         
-        elif otp_type =='change_password':
+        elif otp_type == 'change_password':
+            if not email or not fide_id:
+                raise serializers.ValidationError({
+                    "error": {
+                        "message": "Both email and FIDE ID are required for password change."
+                    }
+                })
+            
             try:
-                user = Players.objects.get(email=attrs.get('email'), fide_id=fide_id, status_flag=1)
+                user = Players.objects.get(email=email, fide_id=fide_id, status_flag=1)
             except Players.DoesNotExist:
-                if otp_type == 'change_password':
-                    raise serializers.ValidationError({
-                        "error": {
-                            "message": "User not found with this email."
-                        }
-                    })
-        elif otp_type == 'forgot_password':
-            try:
-                user = Players.objects.get(email=attrs.get('email'), status_flag=1)
-            except Players.DoesNotExist:
-                if otp_type == 'change_password':
-                    raise serializers.ValidationError({
-                        "error": {
-                            "message": "User not found with this email."
-                        }
-                    })
+                raise serializers.ValidationError({
+                    "error": {
+                        "message": "User not found with this email and FIDE ID combination."
+                    }
+                })
         
         return attrs
 
@@ -212,30 +240,56 @@ class PlayerIDRequestSerializer(serializers.Serializer):
      
         
 class ResetPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(required=False)
+    fide_id = serializers.CharField(max_length=250, required=False)
     new_password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
     otp = serializers.CharField(max_length=6, required=True, write_only=True)
 
     def validate(self, data):
-        # check password match
-        if data["new_password"] != data["confirm_password"]:
-            raise serializers.ValidationError(
-                {"error": {"message": "New password and confirm password do not match."}}
-            )
-
         email = data.get("email")
-        user = Players.objects.filter(email=email).first()
+        fide_id = data.get("fide_id")
+        
+        if not email and not fide_id:
+            raise serializers.ValidationError({
+                "error": {
+                    "message": "Either email or FIDE ID is required."
+                }
+            })
+        
+        if data["new_password"] != data["confirm_password"]:
+            raise serializers.ValidationError({
+                "error": {
+                    "message": "New password and confirm password do not match."
+                }
+            })
+
+        user = None
+        if email:
+            user = Players.objects.filter(email=email, status_flag=1).first()
+        elif fide_id:
+            user = Players.objects.filter(fide_id=fide_id, status_flag=1).first()
+        
         if not user:
-            raise serializers.ValidationError(
-                {"error": {"message": "User with this email does not exist."}}
-            )
-        if user.status_flag==0:
-            raise serializers.ValidationError(
-                {"error": {"message": "User is deactivated. Please contact administrator."}}
-            )
+            raise serializers.ValidationError({
+                "error": {
+                    "message": "User not found."
+                }
+            })
+
+        if user.status_flag == 0:
+            raise serializers.ValidationError({
+                "error": {
+                    "message": "User is deactivated. Please contact administrator."
+                }
+            })
 
         data["user"] = user
+        if not data.get('email'):
+            data['email'] = user.email
+        if not data.get('fide_id'):
+            data['fide_id'] = user.fide_id
+            
         return data
 
     def save(self, **kwargs):

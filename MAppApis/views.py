@@ -127,9 +127,27 @@ class SendOTPAPIView(APIView):
         serializer = PlayerOTPSerializer(data=request.data)
         
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            email = serializer.validated_data.get('email')
             otp_type = serializer.validated_data['otp_type']
-            fide_id = serializer.validated_data['fide_id']
+            fide_id = serializer.validated_data.get('fide_id')
+
+            if otp_type == 'forgot_password':
+                if not email:
+                    return Response({
+                        "message": "User is not registered or Inactive.",
+                        "otp_type": otp_type
+                    }, status=status.HTTP_201_CREATED)
+                
+                # Verify the player exists and is active
+                try:
+                    player = Players.objects.get(email=email, status_flag=1)
+                    if not fide_id:
+                        fide_id = player.fide_id
+                except Players.DoesNotExist:
+                    return Response({
+                        "message": "User is not registered or Inactive.",
+                        "otp_type": otp_type
+                    }, status=status.HTTP_201_CREATED)
 
             # Generate OTP
             otp = GenerateOTP.generate_otp()
@@ -218,7 +236,6 @@ class SendOTPAPIView(APIView):
                 html_message=html_message,
                 fail_silently=False,
             )
-            # Update email log with success
             email_log.status = 'SENT'
             email_log.save()
             
@@ -226,7 +243,6 @@ class SendOTPAPIView(APIView):
             email_log.status = 'FAILED'
             email_log.error_message = str(e)
             email_log.save()
-            # Re-raise or handle as needed
             raise
     
 
@@ -578,6 +594,7 @@ class ChangePasswordAPIView(APIView):
     
 class ForgetPasswordAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
         validate_app_and_device_with_token(request)
             
@@ -585,14 +602,19 @@ class ForgetPasswordAPIView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             otp = serializer.validated_data['otp']
+            
+            # Verify OTP
             otp_valid, otp_message = verify_otp(email, otp, 'forgot_password')
             if not otp_valid:
                 return Response({
                     "error": "OTP verification failed",
                     "message": otp_message
                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Save the new password
             serializer.save()
             return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
