@@ -191,14 +191,23 @@
         <div class="form-group">
           <label for="announcement-audience">Announcement for</label>
           <select id="announcement-audience" name="audience" multiple="multiple" style="width:100%;">
-  <option value="all">Select All Players</option>
-  {% for player in players %}
-    <option value="{{ player.id }}" data-status="{{ player.status }}">
-      {{ player.name }}
-    </option>
-  {% endfor %}
-</select>
+            <option value="all">Select All Players</option>
+            {% for player in players %}
+              <option value="{{ player.id }}" data-status="{{ player.status }}">
+                {{ player.name }}
+              </option>
+            {% endfor %}
+          </select>
 
+        </div>
+        <div class="form-group">
+          <label>Announcement Status</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" class="status-checkbox" value="ALL_PLAYERS"> All Players</label>
+            <label><input type="checkbox" class="status-checkbox" value="ACTIVE"> Active</label>
+            <label><input type="checkbox" class="status-checkbox" value="KNOCKED_OUT"> Knocked Out</label>
+            <label><input type="checkbox" class="status-checkbox" value="DEPARTED"> Departed</label>
+          </div>
         </div>
 
         <div class="form-group">
@@ -206,14 +215,7 @@
           <textarea id="announcement-details" name="details" placeholder="e.g., Tournament details and updates" rows="5" required></textarea>
         </div>
         <!-- Player Status Checkboxes -->
-        <div class="form-group">
-          <label>Announcement Status</label>
-          <div class="checkbox-group">
-            <label><input type="checkbox" class="status-checkbox" value="ACTIVE"> Active</label>
-            <label><input type="checkbox" class="status-checkbox" value="KNOCKED_OUT"> Knocked Out</label>
-            <label><input type="checkbox" class="status-checkbox" value="DEPARTED"> Departed</label>
-          </div>
-        </div>
+        
         <div class="modal-footer">
           <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
           <button type="submit" class="btn btn--primary">Create Announcement</button>
@@ -240,29 +242,26 @@
   <script>
   $(document).ready(function() {
 
-    // Toggle recipients list
-    $(document).on('click', '.btn-toggle-recipients', function() {
-      const announcementId = $(this).data('announcement-id');
-      const recipientsDiv = $('#recipients-' + announcementId);
-      const isVisible = recipientsDiv.is(':visible');
+  // Toggle recipients list
+  $(document).on('click', '.btn-toggle-recipients', function() {
+    const announcementId = $(this).data('announcement-id');
+    const recipientsDiv = $('#recipients-' + announcementId);
+    const isVisible = recipientsDiv.is(':visible');
 
-      recipientsDiv.slideToggle();
-      $(this).text(isVisible ? 'Show List' : 'Hide List');
-    });
+    recipientsDiv.slideToggle();
+    $(this).text(isVisible ? 'Show List' : 'Hide List');
+  });
 
-    $(document).on("click", "[data-modal-open]", function() {
-        const modalId = $(this).data("modal-open");
-        $("#" + modalId).addClass("active");
-    });
+  $(document).on("click", "[data-modal-open]", function() {
+      const modalId = $(this).data("modal-open");
+      $("#" + modalId).addClass("active");
+  });
 
-    $(document).on("click", "[data-modal-close], .modal", function(e) {
-        if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
-            $(this).closest(".modal").removeClass("active");
-        }
-    });
-
-    // Initialize Select2
-    $(document).ready(function() {
+  $(document).on("click", "[data-modal-close], .modal", function(e) {
+      if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
+          $(this).closest(".modal").removeClass("active");
+      }
+  });
 
   // Initialize Select2
   $('#announcement-audience').select2({
@@ -271,7 +270,7 @@
     closeOnSelect: false
   });
 
-  // Handle Select All
+  // Handle Select All from dropdown option
   $('#announcement-audience').on('select2:select', function(e) {
     if(e.params.data.id === 'all') {
       // Select all players
@@ -288,8 +287,22 @@
     }
   });
 
-  // Player Status Checkboxes Logic
-  $('.status-checkbox').change(function() {
+  // All Players Checkbox functionality
+  $('.status-checkbox').first().change(function() {
+    const isChecked = $(this).is(':checked');
+    
+    if (isChecked) {
+      // Select all players
+      $('#announcement-audience option').prop('selected', true);
+    } else {
+      // Deselect all players
+      $('#announcement-audience option').prop('selected', false);
+    }
+    $('#announcement-audience').trigger('change');
+  });
+
+  // Player Status Checkboxes Logic for Active, Knocked Out, Departed
+  $('.status-checkbox').not(':first').change(function() {
     const status = $(this).val();
     const checked = $(this).is(':checked');
 
@@ -299,19 +312,45 @@
       }
     });
     $('#announcement-audience').trigger('change');
+    
+    // Update All Players checkbox state
+    updateAllPlayersCheckbox();
   });
-});
 
+  // Update All Players checkbox based on current selection
+  function updateAllPlayersCheckbox() {
+    const allOptions = $('#announcement-audience option[value!="all"]');
+    const selectedCount = allOptions.filter(':selected').length;
+    const totalCount = allOptions.length;
+    
+    const allPlayersCheckbox = $('.status-checkbox').first();
+    
+    if (selectedCount === totalCount) {
+      allPlayersCheckbox.prop('checked', true);
+      allPlayersCheckbox.prop('indeterminate', false);
+    } else if (selectedCount > 0) {
+      allPlayersCheckbox.prop('checked', false);
+      allPlayersCheckbox.prop('indeterminate', true);
+    } else {
+      allPlayersCheckbox.prop('checked', false);
+      allPlayersCheckbox.prop('indeterminate', false);
+    }
+  }
 
-    // Announcement Search
-    $('#announcement-search').on('input', function() {
-      const filter = $(this).val().toLowerCase();
-      $('.announcement-card').each(function() {
-        const title = $(this).find('h3').text().toLowerCase();
-        $(this).toggle(title.includes(filter));
-      });
+  // Update All Players checkbox when dropdown changes
+  $('#announcement-audience').on('change', function() {
+    updateAllPlayersCheckbox();
+  });
+
+  // Announcement Search
+  $('#announcement-search').on('input', function() {
+    const filter = $(this).val().toLowerCase();
+    $('.announcement-card').each(function() {
+      const title = $(this).find('h3').text().toLowerCase();
+      $(this).toggle(title.includes(filter));
     });
   });
+});
   </script>
 
 </body>

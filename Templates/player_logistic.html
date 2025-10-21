@@ -1,0 +1,424 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Logistics - FIDE World Cup 2025</title>
+  <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .status-active {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-departed {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status-knocked_out {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .btn-mark-status {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      background-color: #271f64;
+      color: white;
+    }
+    
+    .btn-mark-status:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .btn-mark-status:hover {
+      background-color: #0056b3;
+    }
+    
+    .transport-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    
+    .status-arrived {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-departure {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .already-marked {
+      color: #28a745;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    
+    /* Custom Popup Styles */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .popup-content {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 90%;
+      border: 3px solid #007bff;
+    }
+    
+    .popup-title {
+      margin-top: 0;
+      color: #333;
+      font-size: 18px;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    
+    .popup-message {
+      margin: 15px 0;
+      line-height: 1.5;
+      color: #555;
+    }
+    
+    .popup-warning {
+      color: #d9534f;
+      font-weight: bold;
+      background: #f8d7da;
+      padding: 8px;
+      border-radius: 4px;
+      border-left: 4px solid #d9534f;
+    }
+    
+    .popup-buttons {
+      text-align: right;
+      margin-top: 20px;
+    }
+    
+    .popup-btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .popup-btn-cancel {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .popup-btn-confirm {
+      background: #271f64;
+      color: white;
+    }
+    
+    .popup-btn-cancel:hover {
+      background: #545b62;
+    }
+    
+    .popup-btn-confirm:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    {% include 'sidebar.html' %}
+    <main class="main-content">
+      <div class="page-header">
+        <h1>Player</h1>
+      </div>
+
+      <div class="toolbar">
+        <div class="logistics-search">
+          <input type="text" id="searchInput" placeholder="Search Player Name" value="{{ search_query }}">
+          <button class="btn btn--primary" id="searchBtn">Search</button>
+        </div>
+      </div>
+
+      <div class="logistics-table-container">
+        <div class="logistics-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Player Name</th>
+                {% if show_arrival %}
+                  <th>Arrival Date</th>
+                  <th>Arrival Time</th>
+                  <th>Airport</th>
+                  <th>Flight No</th>
+                {% else %}
+                  <th>Departure Date</th>
+                  <th>Departure Time</th>
+                  <th>Airport</th>
+                  <th>Flight No</th>
+                {% endif %}
+                <th>Tournament Status</th>
+                <th>Transport Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for player in players %}
+              <tr>
+                <td>{{ player.name|default:"-" }}</td>
+                
+                {% if show_arrival %}
+                  <td>{{ player.arrival_flight_date|default:"-" }}</td>
+                  <td>{{ player.arrival_flight_time|default:"-" }}</td>
+                  <td>{{ player.arrival_airport|default:"-" }}</td>
+                  <td>{{ player.arrival_fight_no|default:"-" }}</td>
+                {% else %}
+                  <td>{{ player.departure_flight_date|default:"-" }}</td>
+                  <td>{{ player.departure_flight_time|default:"-" }}</td>
+                  <td>{{ player.departure_airport|default:"-" }}</td>
+                  <td>{{ player.departure_fight_no|default:"-" }}</td>
+                {% endif %}
+                
+                <td>
+                  <span class="status-badge status-{{ player.status|lower }}">
+                    {{ player.get_status_display }}
+                  </span>
+                </td>
+                
+                <td>
+                  {% if player.current_transport_status %}
+                  <span class="transport-status {% if player.current_transport_status == 'Arrived at Airport' %}status-arrived{% elif player.current_transport_status == 'Reached Airport for Departure' %}status-departure{% endif %}" 
+                        id="status-{{ player.id }}">
+                    {{ player.current_transport_status }}
+                  </span>
+                  {% endif %}
+                </td>
+                
+                <td>
+                  {% if not player.has_departure_status %}
+                  <button class="btn-mark-status" 
+                          data-player-id="{{ player.id }}" 
+                          data-player-name="{{ player.name }}">
+                    Mark as Reached Airport
+                  </button>
+                  {% else %}
+                  <span class="already-marked">✓ Already Marked</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center">
+                  No players found
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+          {% endif %}
+          
+          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
+      
+      searchBtn.addEventListener('click', function() {
+        const searchValue = searchInput.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchValue);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+      });
+      
+      // Allow Enter key to trigger search
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          searchBtn.click();
+        }
+      });
+
+      // Status marking functionality
+      document.querySelectorAll('.btn-mark-status').forEach(button => {
+        button.addEventListener('click', function() {
+          const playerId = this.dataset.playerId;
+          const playerName = this.dataset.playerName;
+          
+          // Create custom popup
+          const popupOverlay = document.createElement('div');
+          popupOverlay.className = 'popup-overlay';
+          
+          const popupContent = document.createElement('div');
+          popupContent.className = 'popup-content';
+          popupContent.innerHTML = `
+            <h3 class="popup-title">Confirm Status Change</h3>
+            <div class="popup-message">
+              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to: Reached Airport for Departure?. Once marked, this status cannot be changed!</p>
+            </div>
+            
+            <div class="popup-buttons">
+              <button class="popup-btn popup-btn-cancel" id="popupCancel">Cancel</button>
+              <button class="popup-btn popup-btn-confirm" id="popupConfirm">Confirm & Mark</button>
+            </div>
+          `;
+          
+          popupOverlay.appendChild(popupContent);
+          document.body.appendChild(popupOverlay);
+          
+          // Handle confirm
+          document.getElementById('popupConfirm').addEventListener('click', function() {
+            // Remove popup
+            document.body.removeChild(popupOverlay);
+            
+            // Show loading state
+            const originalText = button.textContent;
+            button.textContent = 'Marking...';
+            button.disabled = true;
+            button.style.backgroundColor = '#6c757d';
+            
+            // Make AJAX request
+            fetch(`/player-logistics/mark-status/${playerId}/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+              },
+              body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Show success message with custom alert
+                showCustomAlert(data.message, 'success');
+                // Reload page to reflect changes after 2 seconds
+                setTimeout(() => {
+                  window.location.reload();
+                }, 2000);
+              } else {
+                showCustomAlert(data.message, 'error');
+                // Reset button state
+                button.textContent = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '#007bff';
+              }
+            })
+            .catch(error => {
+              showCustomAlert('Error updating status: ' + error, 'error');
+              // Reset button state
+              button.textContent = originalText;
+              button.disabled = false;
+              button.style.backgroundColor = '#007bff';
+            });
+          });
+          
+          // Handle cancel
+          document.getElementById('popupCancel').addEventListener('click', function() {
+            document.body.removeChild(popupOverlay);
+          });
+          
+          // Close popup when clicking outside
+          popupOverlay.addEventListener('click', function(e) {
+            if (e.target === popupOverlay) {
+              document.body.removeChild(popupOverlay);
+            }
+          });
+        });
+      });
+    });
+
+    // Custom alert function
+    function showCustomAlert(message, type = 'info') {
+      const alertDiv = document.createElement('div');
+      const backgroundColor = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1';
+      const textColor = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460';
+      const borderColor = type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb';
+      
+      alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${backgroundColor};
+        color: ${textColor};
+        border: 1px solid ${borderColor};
+        border-radius: 5px;
+        z-index: 1000;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        max-width: 400px;
+      `;
+      
+      alertDiv.textContent = message;
+      document.body.appendChild(alertDiv);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        if (document.body.contains(alertDiv)) {
+          document.body.removeChild(alertDiv);
+        }
+      }, 5000);
+    }
+
+    // Utility function to get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>

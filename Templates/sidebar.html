@@ -7,57 +7,61 @@
     {% if request.session.roleid == 1 %}
       <!-- Admin sees all -->
       <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-        <span class="nav-icon">📊</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/House.png' %}"></span>
         <span>Dashboard</span>
       </a>
       <a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' %}active{% endif %}">
-        <span class="nav-icon">👥</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
         <span>Players</span>
       </a>
       <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
-        <span class="nav-icon">📋</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/Note.png' %}"></span>
         <span>Complaints</span>
       </a>
       <a href="{% url 'roaster_list' %}" class="nav-link {% if request.resolver_match.url_name == 'roaster_list' %}active{% endif %}">
-        <span class="nav-icon">🚗</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/Icon.png' %}"></span>
         <span>Logistics</span>
       </a>
       <a href="{% url 'announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'announcements' %}active{% endif %}">
-        <span class="nav-icon">📢</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/Megaphone.png' %}"></span>
         <span>Announcements</span>
       </a>
       <a href="{% url 'manage_users' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_users' %}active{% endif %}">
-        <span class="nav-icon">🛡️</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/shield.png' %}"></span>
         <span>Users</span>
       </a>
       <a href="{% url 'activity_log' %}" class="nav-link {% if request.resolver_match.url_name == 'activity_log' %}active{% endif %}">
-        <span class="nav-icon">🧑‍💻</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/user_activity.png' %}"></span>
         <span>Users Activity</span>
       </a>
       <a href="{% url 'enquiry_list' %}" class="nav-link {% if request.resolver_match.url_name == 'enquiry_list' %}active{% endif %}">
-          <span class="nav-icon">📩</span>
+          <span class="nav-icon"><img src="{% static 'assets/images/enquiry1.png' %}"></span>
           <span>Enquiry</span>
       </a>
     {% endif %}
 
-    {% if request.session.roleid == 2 or request.session.roleid == 3 %}
+    {% if request.session.roleid == 2 %}
       <!-- Department sees only Complaints -->
       <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
-        <span class="nav-icon">📋</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/Note.png' %}"></span>
         <span>Complaints</span>
       </a>
-      {% if request.session.department == 1 or request.session.department == 2 %}
-      <a href="{% url 'DeptPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptPlayers' %}active{% endif %}">
-        <span class="nav-icon">👥</span>
+      {% if request.session.department == 1 %}
+      <a href="{% url 'DeptAccFBPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptAccFBPlayers' %}active{% endif %}">
+        <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
         <span>Players</span>
       </a>
       {% endif %}
     {% endif %}
-    {% if request.session.roleid == 3 %}
+    {% if request.session.roleid == 2 and request.session.department == 2 %}
       <!-- Logistics sees only Roaster/Logistics -->
       <a href="{% url 'roaster_list' %}" class="nav-link {% if request.resolver_match.url_name == 'roaster_list' %}active{% endif %}">
-        <span class="nav-icon">🚗</span>
+        <span class="nav-icon"><img src="{% static 'assets/images/Icon.png' %}"></span>
         <span>Logistics</span>
+      </a>
+      <a href="{% url 'DeptLogPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptLogPlayers' %}active{% endif %}">
+        <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
+        <span>Players</span>
       </a>
     {% endif %}
   </nav>

@@ -173,7 +173,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Set session timeout to 30 minutes (optional)
-SESSION_COOKIE_AGE = 3600  # 1800 seconds = 30 minutes
+SESSION_COOKIE_AGE = 172800  # 1800 seconds = 30 minutes
 SESSION_SAVE_EVERY_REQUEST = True   # Refresh session on every request
 
 CACHES = {

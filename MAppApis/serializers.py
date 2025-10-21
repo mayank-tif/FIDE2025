@@ -368,39 +368,67 @@ class ContactFormSerializer(serializers.Serializer):
         return value.strip()
     
 
-class EnquiryCreateSerializer(serializers.Serializer):
-    player_id = serializers.IntegerField(required=True)
-    message = serializers.CharField(required=True)
-    
-    def validate_player_id(self, value):
-        try:
-            player = Players.objects.get(id=value, status_flag=1)
-        except Players.DoesNotExist:
-            raise serializers.ValidationError("Player not found or inactive")
-        return value
-    
-    def validate_message(self, value):
-        if len(value.strip()) < 10:
-            raise serializers.ValidationError("Message must be at least 10 characters long.")
-        return value.strip()
 
-class EnquiryListSerializer(serializers.ModelSerializer):
-    player_name = serializers.CharField(source='player.name', read_only=True)
-    player_fide_id = serializers.CharField(source='player.fide_id', read_only=True)
+class PlayerEnquiryResponseSerializer(serializers.ModelSerializer):
+    sender_type = serializers.SerializerMethodField()
+    sender_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PlayerEnquiryResponses
+        fields = ['id', 'enquiry', 'player', 'user', 'rnquiry_response', 'created_on', 'sender_type', 'sender_name']
+    
+    def get_sender_type(self, obj):
+        if obj.player:
+            return 'player'
+    
+    def get_sender_name(self, obj):
+        if obj.player:
+            return obj.player.name
+        return ''
+
+class EnquiryWithConversationsSerializer(serializers.ModelSerializer):
+    player_name = serializers.CharField(source='player.name')
+    conversations = serializers.SerializerMethodField()
+    last_reply_date = serializers.SerializerMethodField()
     
     class Meta:
         model = EnquiryDetails
-        fields = [
-            'id',
-            'player',
-            'player_name',
-            'player_fide_id',
-            'message',
-            'response',
-            'created_on',
-            'status_flag'
-        ]
+        fields = ['id', 'player', 'player_name', 'message', 'created_on', 'is_replied', 'conversations', 'last_reply_date']
+    
+    def get_conversations(self, obj):
+        responses = PlayerEnquiryResponses.objects.filter(
+            enquiry=obj, 
+            status_flag=1
+        ).order_by('created_on')
+        return PlayerEnquiryResponseSerializer(responses, many=True).data
+    
+    def get_last_reply_date(self, obj):
+        last_response = PlayerEnquiryResponses.objects.filter(
+            enquiry=obj, 
+            status_flag=1
+        ).order_by('-created_on').first()
+        return last_response.created_on if last_response else None
 
+class EnquiryReplySerializer(serializers.Serializer):
+    enquiry_id = serializers.IntegerField()
+    player_id = serializers.IntegerField()
+    message = serializers.CharField(max_length=2000)
+    
+    def validate(self, data):
+        enquiry_id = data.get('enquiry_id')
+        player_id = data.get('player_id')
+        
+        try:
+            enquiry = EnquiryDetails.objects.get(
+                id=enquiry_id, 
+                player_id=player_id, 
+                status_flag=1
+            )
+            data['enquiry'] = enquiry
+        except EnquiryDetails.DoesNotExist:
+            raise serializers.ValidationError("Enquiry not found or doesn't belong to this player")
+        
+        return data
 
 class RaiseComplaintSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)
@@ -483,3 +511,18 @@ class ComplaintListSerializer(serializers.ModelSerializer):
     def get_conversations(self, obj):
         conversations = obj.conversations.filter(status_flag=1).order_by('created_on')
         return ComplaintConversationSerializer(conversations, many=True).data
+    
+    
+
+class DepartureDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Players
+        fields = [
+            'id',
+            'name',
+            'fide_id',
+            'departure_flight_date',
+            'departure_flight_time', 
+            'departure_airport',
+            'departure_fight_no',
+        ]

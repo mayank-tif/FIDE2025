@@ -1,7 +1,7 @@
 import json
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import TemplateView, View
+from django.views.generic import TemplateView, View, ListView
 from .models import *
 from django.urls import reverse
 from django.core.paginator import Paginator
@@ -26,6 +26,7 @@ from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.core.files.base import ContentFile
 from FWC2025.env_details import *
+import xlsxwriter
 
 
 per_page = 50
@@ -104,6 +105,11 @@ class PlatformLogoutView(View):
         return redirect(reverse('login'))
     
     
+
+from django.core.paginator import Paginator
+from django.db.models import Prefetch
+from .models import Players, PlayerTransportationDetails
+
 class Dashboard(TemplateView):
     template_name = "dashboard.html"
 
@@ -121,11 +127,37 @@ class Dashboard(TemplateView):
             # Total announcements
             total_announcements = Announcements.objects.count()
 
+            players_list = Players.objects.filter(
+                status_flag=1
+            ).prefetch_related(
+                Prefetch(
+                    'playertransportationdetails_set',
+                    queryset=PlayerTransportationDetails.objects.filter(status_flag=1).order_by('-created_on'),
+                    to_attr='latest_transports'
+                )
+            ).select_related('countryid').order_by('-created_on')
+            
+            paginator = Paginator(players_list, per_page)
+            page_number = request.GET.get('page', 1)
+            players_page = paginator.get_page(page_number)
+
+            players_with_transport = []
+            for player in players_page:
+                latest_transport = player.latest_transports[0] if player.latest_transports else None
+                transportation_status = latest_transport.player_status_display if latest_transport else "Not Set"
+                
+                players_with_transport.append({
+                    'player': player,
+                    'transportation_status': transportation_status
+                })
+
             context = {
                 "total_players": total_players,
                 "active_players": active_players,
                 "pending_complaints": pending_complaints,
                 "total_announcements": total_announcements,
+                "players_with_transport": players_with_transport,  # Use the new list
+                "players_page": players_page,  # Keep pagination object
             }
 
             return render(request, self.template_name, context)
@@ -173,38 +205,36 @@ class PlayerView(View):
             return JsonResponse({"error": "Invalid action"}, status=400)
 
     def fetch_players(self, request):
-        """
-        Return paginated list of players in JSON.
-        """
+    
         page = int(request.POST.get("page", 1))
 
-        latest_transport = PlayerTransportationDetails.objects.filter(
-            playerId=OuterRef('pk'),
-            status_flag=1
-        ).order_by('-created_on')
-
-        players = Players.objects.filter(status_flag=1).annotate(
-            latest_status=Subquery(latest_transport.values('status')[:1]),
-            latest_travel_date=Subquery(latest_transport.values('travel_date')[:1])
+        players = Players.objects.filter(status_flag=1).prefetch_related(
+            Prefetch(
+                'playertransportationdetails_set',
+                queryset=PlayerTransportationDetails.objects.filter(status_flag=1).order_by('-created_on'),
+                to_attr='latest_transports'
+            )
         ).order_by("-id")
 
         paginator = Paginator(players, per_page)
         current_page = paginator.get_page(page)
 
-        player_data = [
-            {
+        player_data = []
+        for player in current_page:
+            latest_transport = player.latest_transports[0] if player.latest_transports else None
+            transportation_status = latest_transport.player_status_display if latest_transport else ""
+
+            player_data.append({
                 "id": player.id,
-                "image_url": player.image.url if player.image else "" ,
+                "image_url": player.image.url if player.image else "",
                 "name": f"{player.name}",
                 "age": getattr(player, "age", None),
                 "gender": getattr(player, "gender", None),
                 "country": player.countryid.country_name if player.countryid else "",
                 "email": player.email,
                 "status": player.get_status_display() if player.status else "",
-                "transportation_status": PlayerTransportationDetails.get_status_display_text(player.latest_status),
-            }
-            for player in current_page
-        ]
+                "transportation_status": transportation_status,
+            })
 
         pagination = {
             "current_page": current_page.number,
@@ -323,18 +353,43 @@ class PlayerProfile(View):
         TransportationTypes = TransportationType.objects.filter(status_flag=1).order_by("Name")
         player_documents = PlayerDocument.objects.filter(player=player, status_flag=1)
         
+        # Get all transportation details for this player with roaster info
         transportation_details = PlayerTransportationDetails.objects.filter(
             playerId=player, 
-        ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+            status_flag=1
+        ).select_related(
+            'roasterId', 
+            'transportationTypeId', 
+        ).order_by('-created_on')
+        
+        # Get the latest roaster assignment
+        latest_transport = transportation_details.first()
+        current_roaster = latest_transport.roasterId if latest_transport else None
+        
+        # Get all status updates for the current roaster
+        roaster_status_updates = []
+        if current_roaster:
+            roaster_status_updates = PlayerTransportationDetails.objects.filter(
+                roasterId=current_roaster,
+                playerId=player,
+                status_flag=1
+            ).order_by('-created_on')[:0]
+        
+        # Get current transport status for the dropdown
+        current_transport_status = latest_transport.entry_status if latest_transport else None
+        print("current_transport_status", current_transport_status)
         
         return render(request, self.template_name, {
             "player": player, 
             "countries": countries, 
             "TransportationTypes": TransportationTypes,
             "player_documents": player_documents,
-            "transportation_details": transportation_details
+            "transportation_details": transportation_details,
+            "current_roaster": current_roaster,
+            "roaster_status_updates": roaster_status_updates,
+            "current_transport_status": current_transport_status,
+            "transport_status_choices": PlayerTransportationDetails.ENTRY_STATUS_CHOICES,
         })
-    
     
 class UpdatePlayerProfile(View):
     def post(self, request):
@@ -372,7 +427,34 @@ class UpdatePlayerProfile(View):
         player.countryid_id = request.POST.get("country")
         player.details = request.POST.get("food_allergies", player.details)
         player.room_cleaning_preference = request.POST.get("room_cleaning_preference", player.room_cleaning_preference)
-        player.accompanying_persons = request.POST.get("accompanying_persons", player.accompanying_persons)  # NEW
+        player.accompanying_persons = request.POST.get("accompanying_persons", player.accompanying_persons)
+
+        # Handle transport status update
+        transport_status = request.POST.get("transport_status")
+        if transport_status and transport_status != "no_change":
+            # Get the latest transport entry for this player
+            latest_transport = PlayerTransportationDetails.objects.filter(
+                playerId=player,
+                status_flag=1
+            ).order_by('-created_on').first()
+            
+            if latest_transport:
+                # Create a new transport entry with updated status
+                new_transport = PlayerTransportationDetails.objects.create(
+                    playerId=player,
+                    roasterId=latest_transport.roasterId,
+                    transportationTypeId=latest_transport.transportationTypeId,
+                    pickup_location=latest_transport.pickup_location,
+                    drop_location=latest_transport.drop_location,
+                    pickup_location_custom=latest_transport.pickup_location_custom,
+                    drop_location_custom=latest_transport.drop_location_custom,
+                    details=latest_transport.details,
+                    remarks=f"Status updated from {latest_transport.entry_status} to {transport_status} via profile update",
+                    entry_status=transport_status,
+                    travel_date=latest_transport.travel_date,
+                    created_by=request.session.get("loginid"),
+                    status_flag=1
+                )
 
         # Handle profile picture upload
         if "profile_pic" in request.FILES: 
@@ -429,48 +511,119 @@ class DeletePlayerDocument(View):
         except PlayerDocument.DoesNotExist:
             return JsonResponse({"success": False, "error": "Document not found"})
     
-    
 class PlayerTransportView(View):
-    
-    def get(self, request, player_id, *args, **kwargs):
+    def get(self, request, player_id):
         try:
-            transports = PlayerTransportationDetails.objects.filter(
-                playerId_id=player_id, 
-            ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+            player = get_object_or_404(Players, id=player_id, status_flag=1)
             
-            data = []
-            for t in transports:
-                transport_data = {
-                    "id": t.id,
-                    "pickup_location": t.pickup_location or "Not specified",
-                    "drop_location": t.drop_location or "Not specified",
-                    "details": t.details or "No details provided",
-                    "transportation_type": t.transportationTypeId.id if t.transportationTypeId else None,
-                    "transportation_type_name": t.transportationTypeId.Name if t.transportationTypeId else "",
-                    "remarks": t.remarks or "No remarks",
-                    "status": t.status,
-                    "status_display": t.get_status_display(),
-                    "travel_date": t.travel_date.strftime("%b %d, %Y %I:%M %p") if t.travel_date else "",
-                    "created_on": t.created_on.strftime("%b %d, %Y %I:%M %p"),
-                }
+            transportation_details = PlayerTransportationDetails.objects.filter(
+                playerId=player
+            ).select_related('transportationTypeId', 'roasterId').order_by('-created_on')
+            
+            transport_data = []
+            for transport in transportation_details:
+                # Get username for Format B
+                username = "logistics team"
+                try:
+                    if transport.created_by:
+                        user = MstUserLogins.objects.get(id=transport.created_by)
+                        username = user.name
+                except MstUserLogins.DoesNotExist:
+                    pass
                 
-                # Add roaster details if available
-                if t.roasterId:
-                    transport_data.update({
-                        "vehicle_type": t.roasterId.vechicle_type,
-                        "vehicle_number": t.roasterId.vechicle_no,
-                        "driver_name": t.roasterId.driver_name,
-                        "seats": t.roasterId.number_of_seats,
-                        "roaster_id": t.roasterId.id,
-                    })
+                # Format the status text based on requirements
+                if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
+                    # Format A - Transport scheduled with vehicle and driver details
+                    
+                    # Get transport type - use roaster's vehicle_type first, then fallback to transportationTypeId
+                    if transport.roasterId and transport.roasterId.vechicle_type:
+                        transport_type = transport.roasterId.vechicle_type
+                    elif transport.transportationTypeId:
+                        transport_type = transport.transportationTypeId.Name
+                    else:
+                        transport_type = "vehicle"
+                    
+                    # Get vehicle number from roaster
+                    vehicle_no = transport.roasterId.vechicle_no if transport.roasterId else "N/A"
+                    
+                    # Get driver details from roaster
+                    driver_name = transport.roasterId.driver_name if transport.roasterId else "Not assigned"
+                    driver_phone = f"+{transport.roasterId.mobile_no}" if transport.roasterId and transport.roasterId.mobile_no else "Not available"
+                    
+                    # Handle pickup location (choice or custom)
+                    if transport.pickup_location:
+                        pickup = transport.get_pickup_location_display()
+                    elif transport.pickup_location_custom:
+                        pickup = transport.pickup_location_custom
+                    else:
+                        pickup = "pickup location"
+                    
+                    # Handle drop location (choice or custom)
+                    if transport.drop_location:
+                        dropoff = transport.get_drop_location_display()
+                    elif transport.drop_location_custom:
+                        dropoff = transport.drop_location_custom
+                    else:
+                        dropoff = "destination"
+                    
+                    if transport.travel_date:
+                        travel_datetime = transport.travel_date.strftime("%d %b %Y at %I:%M %p")
+                    else:
+                        travel_datetime = "scheduled time"
+                        
+                    # Format A: Transport scheduled with driver details
+                    status_text = f"Transport scheduled for {travel_datetime} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}<br>Driver: {driver_name} | Phone: {driver_phone}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+                    
+                else:
+                    # Format B - Status updates
+                    status_mapping = {
+                        PlayerTransportationDetails.ENTRY_STARTED: "Enroute to Hotel",
+                        PlayerTransportationDetails.ENTRY_ENDED: "Reached Hotel", 
+                        PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT: "Arrived at Airport",
+                        PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE: "Reached Airport for departure",
+                    }
+                    status_display = status_mapping.get(transport.entry_status, transport.get_entry_status_display())
+                    
+                    # Handle locations for status updates too
+                    if transport.pickup_location:
+                        pickup = transport.get_pickup_location_display()
+                    elif transport.pickup_location_custom:
+                        pickup = transport.pickup_location_custom
+                    else:
+                        pickup = "pickup location"
+                    
+                    if transport.drop_location:
+                        dropoff = transport.get_drop_location_display()
+                    elif transport.drop_location_custom:
+                        dropoff = transport.drop_location_custom
+                    else:
+                        dropoff = "destination"
+                    
+                    # Format B: Status marked by logistics team
+                    status_text = f"Your status was marked as {status_display} by {username}<br>Route: {pickup} to {dropoff}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
                 
-                data.append(transport_data)
-                
-            return JsonResponse(data, safe=False)
+                transport_data.append({
+                    'id': transport.id,
+                    'status': transport.entry_status,
+                    'status_display': status_text,
+                    'status_type': 'A' if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else 'B',
+                    'transportation_type_name': transport_type if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else (transport.transportationTypeId.Name if transport.transportationTypeId else "Transport"),
+                    'pickup_location': pickup,
+                    'drop_location': dropoff,
+                    'travel_date': transport.travel_date.strftime("%d %b %Y at %I:%M %p") if transport.travel_date else "",
+                    'details': transport.details or "",
+                    'remarks': transport.remarks or "",
+                    'created_on': transport.created_on.strftime("%d %b %Y at %I:%M %p"),
+                    'vehicle_type': transport_type if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
+                    'vehicle_number': vehicle_no if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
+                    'driver_name': driver_name if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
+                    'driver_phone': driver_phone if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
+                })
+            
+            return JsonResponse(transport_data, safe=False)
             
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-        
+            return JsonResponse({'error': str(e)}, status=400)
 
 
 class ComplaintListView(View):
@@ -482,10 +635,10 @@ class ComplaintListView(View):
         status_filter = request.GET.get("status", "")
         start_date = request.GET.get("start_date", "")
         end_date = request.GET.get("end_date", "")
+        export = request.GET.get("export", "")
 
         role_id = request.session.get("roleid")
         user_dept_id = request.session.get("department")
-        print("role_id", role_id, "user_dept_id", user_dept_id)
 
         log_user_activity(request, "View Complaints", "User viewed complaints list")
 
@@ -498,23 +651,18 @@ class ComplaintListView(View):
         ).order_by("-created_on")
 
         # Apply department filter based on role
-        if role_id == 2 and user_dept_id:
-            if user_dept_id in [1, 2]:
-                # Show both Accommodation and Food & Beverages department complaints
-                complaints_qs = complaints_qs.filter(department_id__in=[1, 2])
-                # Set selected_department to show both or keep current selection
+        if role_id == 2 and user_dept_id == 1:
+            if user_dept_id in [1]:
+                complaints_qs = complaints_qs.filter(department_id__in=[1])
                 if not selected_department:
-                    selected_department = "1,2"
+                    selected_department = "1"
             else:
-                # For other department users - see only their department's data
                 complaints_qs = complaints_qs.filter(department_id=user_dept_id)
                 selected_department = user_dept_id
-        elif role_id == 3:
-            # Logistics user – see only Transport department (id=3) complaints
-            complaints_qs = complaints_qs.filter(department_id=3)
-            selected_department = "3"
+        elif role_id == 2 and user_dept_id == 2:
+            complaints_qs = complaints_qs.filter(department_id=2)
+            selected_department = "2"
         elif role_id == 1:
-            # Admin can view all and optionally filter by dropdown
             if selected_department:
                 complaints_qs = complaints_qs.filter(department_id=selected_department)
 
@@ -528,20 +676,25 @@ class ComplaintListView(View):
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
                 complaints_qs = complaints_qs.filter(created_on__date__gte=start_date_obj)
             except ValueError:
-                pass  # Invalid date format, ignore the filter
+                pass
 
         if end_date:
             try:
                 end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
                 complaints_qs = complaints_qs.filter(created_on__date__lte=end_date_obj)
             except ValueError:
-                pass  # Invalid date format, ignore the filter
+                pass
 
         # Apply search filter
         if search_query:
             complaints_qs = complaints_qs.filter(
                 models.Q(player__name__icontains=search_query) |
-                models.Q(description__icontains=search_query) )
+                models.Q(description__icontains=search_query)
+            )
+
+        # Handle export functionality
+        if export and role_id == 1:
+            return self.export_complaints(complaints_qs)
 
         paginator = Paginator(complaints_qs, per_page)
         page_number = request.GET.get("page", 1)
@@ -562,25 +715,189 @@ class ComplaintListView(View):
             "status_choices": PlayerComplaint.STATUS_CHOICES,
         })
 
+    def export_complaints(self, complaints_qs):
+        """Export complaints to Excel with formatted output matching HTML display"""
+        try:
+            # Prepare data for export
+            export_data = []
+            for complaint in complaints_qs:
+                # Get all conversations formatted like in HTML
+                conversations_text = ""
+                if complaint.conversations.all():
+                    for convo in complaint.conversations.all():
+                        # Format exactly like in HTML template
+                        sender_name = ""
+                        if convo.sender_player:
+                            sender_name = convo.sender_player.name
+                        elif convo.sender_user:
+                            sender_name = convo.sender_user.name
+                        else:
+                            sender_name = "Unknown"
+
+                        conversation_date = convo.created_on.strftime("%b %d, %H:%M")
+                        conversations_text += f"{sender_name} ({conversation_date})\n{convo.message}\n\n"
+                else:
+                    conversations_text = "No conversations yet"
+
+                export_data.append({
+                    'complaint_id': f"C{complaint.id}",
+                    'player_name': complaint.player.name,
+                    'department': complaint.department.name if complaint.department else "N/A",
+                    'description': complaint.description,
+                    'status': complaint.get_status_display(),
+                    'created_date': complaint.created_on.strftime("%d %b %Y"),
+                    'created_time': complaint.created_on.strftime("%I:%M %p"),
+                    'conversations': conversations_text.strip(),
+                    'conversation_count': complaint.conversations.count(),
+                })
+
+            # Convert to DataFrame
+            df = pd.DataFrame(export_data)
+            
+            # Rename columns for Excel display to match HTML
+            if not df.empty:
+                df.rename(
+                    columns={
+                        'complaint_id': 'Complaint ID',
+                        'player_name': 'Player Name',
+                        'department': 'Department',
+                        'description': 'Description',
+                        'status': 'Status',
+                        'created_date': 'Created Date',
+                        'created_time': 'Created Time',
+                        'conversations': 'Conversations',
+                        'conversation_count': 'Total Conversations',
+                    },
+                    inplace=True
+                )
+
+            # Create Excel file in memory
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                # Write data starting from row 2 to leave space for title
+                df.to_excel(writer, sheet_name="Complaints Report", startrow=2, index=False)
+
+                workbook = writer.book
+                worksheet = writer.sheets["Complaints Report"]
+
+                # Add title
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 16,
+                    'align': 'center',
+                })
+
+                date_format = workbook.add_format({
+                    'bold': False,
+                    'font_size': 12,
+                    'align': 'center',
+                })
+
+                # Write title
+                worksheet.merge_range('A1:H1', 'COMPLAINTS REPORT', title_format)
+                worksheet.merge_range('A2:H2', f'Generated on: {datetime.now().strftime("%d %b %Y at %I:%M %p")}', date_format)
+
+                # Add header formatting
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#271f64',
+                    'font_color': 'white',
+                    'border': 1,
+                    'align': 'center',
+                })
+
+                # Apply header format
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(2, col_num, value, header_format)
+
+                # Add data formatting
+                data_format = workbook.add_format({
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'border': 1,
+                })
+
+                # Apply data format to all data cells
+                for row_num in range(3, len(df) + 3):
+                    for col_num in range(len(df.columns)):
+                        worksheet.write(row_num, col_num, df.iat[row_num-3, col_num], data_format)
+
+                
+
+                # Set column widths
+                column_widths = {
+                    'Complaint ID': 12,
+                    'Player Name': 20,
+                    'Department': 15,
+                    'Description': 40,
+                    'Status': 15,
+                    'Created Date': 12,
+                    'Created Time': 10,
+                    'Conversations': 50,  # Wider for conversation text
+                    'Total Conversations': 12,
+                }
+
+                # Apply column widths
+                for col_num, column_name in enumerate(df.columns):
+                    width = column_widths.get(column_name, 15)
+                    worksheet.set_column(col_num, col_num, width)
+
+                # Add autofilter
+                worksheet.autofilter(2, 0, len(df) + 2, len(df.columns) - 1)
+
+                # Freeze header row and title
+                worksheet.freeze_panes(3, 0)
+
+            # Prepare response
+            output.seek(0)
+            filename = f"Complaints_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+            response = HttpResponse(
+                output,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+            log_user_activity(self.request, "Export Complaints", "Complaints data exported to Excel")
+            return response
+
+        except Exception as e:
+            return HttpResponse(f"Error exporting data: {str(e)}", status=500)
 
 
 class ComplaintUpdateView(View):
-    """Handles AJAX updates — status change or adding remarks"""
+    """Handles AJAX updates — status change, department change or adding remarks"""
 
     def post(self, request, complaint_id):
         complaint = get_object_or_404(PlayerComplaint, id=complaint_id)
         new_status = request.POST.get("status")
+        new_department = request.POST.get("department")
         message = request.POST.get("message")
-        print("new_status", new_status, "message", message)
+        print("new_status", new_status, "new_department", new_department, "message", message)
 
         if new_status:
             complaint.status = new_status
             complaint.save()
-            log_user_activity(request, "Update Complaint Status", f"Complaint ID({complaint_id}) status updated to {new_status}")
+            log_user_activity(request, "Update Complaint Status", f"Complaint ID(#C{complaint_id}) status updated to {new_status}")
+        
+        if new_department:
+            try:
+                department = Department.objects.get(id=new_department)
+                complaint.department = department
+                complaint.save()
+                log_user_activity(request, "Update Complaint Department", f"Complaint ID(#C{complaint_id}) department updated to {department.name}")
+            except Department.DoesNotExist:
+                return JsonResponse({"success": False, "message": "Invalid department."})
+        
         if message:
             sender = MstUserLogins.objects.get(id=request.session.get("loginid"), status_flag=1)
             PlayerComplaintConversation.objects.create(complaint=complaint, sender_user=sender, message=message)
             log_user_activity(request, "Add Remark", f"Complaint ID({complaint_id}) remark added")
+            
+        complaint.updated_by = request.session.get("loginid")
+        complaint.updated_on = timezone.now()
+        complaint.save()
             
         return JsonResponse({"success": True, "message": "Complaint updated successfully."})
     
@@ -665,8 +982,9 @@ class ManageUsersView(View):
         phone = request.POST.get("phone")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirmPassword")
-        role_id = request.POST.get("role")
+        role_id = int(request.POST.get("role"))
         department_id = request.POST.get("department")
+        print("request.POST", request.POST)
         
         existing_user = MstUserLogins.objects.filter(
             Q(loginname__iexact=loginname) | Q(email__iexact=email)
@@ -684,10 +1002,12 @@ class ManageUsersView(View):
         
 
         # Fetch role and department objects
-        role = MstRole.objects.get(id=role_id)
-        department = None
+        department, new_role_id = None, None
         if department_id:
             department = Department.objects.get(id=department_id)
+            
+        role = MstRole.objects.get(id=role_id)  
+        print("role", role, "department", department, "new_role_id", new_role_id)
         
         enc_pswd = str_encrypt(str(password))
         pswd = enc_pswd
@@ -868,18 +1188,33 @@ class RoasterListView(View):
         if search_query:
             roasters = roasters.filter(
                 Q(driver_name__icontains=search_query) |
+                Q(vechicle_no__icontains=search_query) |
                 Q(playertransportationdetails__playerId__name__icontains=search_query)
             ).distinct()
 
-        # Prefetch related PlayerTransportationDetails
-        roasters = roasters.prefetch_related('playertransportationdetails_set')
-
-        # Prepare distinct players for each roaster in Python
         for r in roasters:
-            players = r.playertransportationdetails_set.all()
+            latest_transport = PlayerTransportationDetails.objects.filter(
+                roasterId=r,
+                status_flag=1
+            ).order_by('-created_on').first()
+            
+            if latest_transport:
+                r.current_entry_status = latest_transport.entry_status
+                r.pickup_location = latest_transport.pickup_location
+                r.drop_location = latest_transport.drop_location
+            else:
+                r.current_entry_status = "SCHEDULED"
+                r.pickup_location = None
+                r.drop_location = None
+
+            players_transports = PlayerTransportationDetails.objects.filter(
+                roasterId=r,
+                status_flag=1
+            ).select_related('playerId')
+            
             seen = set()
             distinct_players = []
-            for p in players:
+            for p in players_transports:
                 if p.playerId.id not in seen:
                     distinct_players.append(p)
                     seen.add(p.playerId.id)
@@ -907,7 +1242,7 @@ class RoasterAddView(View):
         return render(request, self.template_name, {
             'players': players,
             'transportation_types': transportation_types,
-            'status_choices': PlayerTransportationDetails.STATUS_CHOICES,
+            'location_choices': PlayerTransportationDetails.LOCATION_CHOICES,
             'current_page': current_page
         })
 
@@ -916,31 +1251,50 @@ class RoasterAddView(View):
         vehicle_number = request.POST.get('vehicleNumber')
         number_of_seats = request.POST.get('number_of_seats')
         driver_name = request.POST.get('driverName')
+        mobile_no = request.POST.get('mobile_no')
         transportation_type_id = request.POST.get('transportationTypeId')
-        status = request.POST.get('status')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
         travel_date_str = request.POST.get('travel_date')
         travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
+        pickup_location = request.POST.get('pickup_location')
+        drop_location = request.POST.get('drop_location')
+        pickup_location_custom = request.POST.get('pickup_location_custom', '').strip()
+        drop_location_custom = request.POST.get('drop_location_custom', '').strip()
 
+        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and drop_location == PlayerTransportationDetails.LOCATION_OTHER:
+            messages.error(request, "Cannot create transport from 'Other' to 'Other' location.")
+            return redirect(f"{reverse('add_roaster')}?page={current_page}")
+
+        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and not pickup_location_custom:
+            messages.error(request, "Please specify the pickup location for 'Other'.")
+            return redirect(f"{reverse('add_roaster')}?page={current_page}")
+
+        if drop_location == PlayerTransportationDetails.LOCATION_OTHER and not drop_location_custom:
+            messages.error(request, "Please specify the drop location for 'Other'.")
+            return redirect(f"{reverse('add_roaster')}?page={current_page}")
 
         roaster = Roaster.objects.create(
             vechicle_type=vehicle_type,
             vechicle_no=vehicle_number,
             number_of_seats=number_of_seats,
             driver_name=driver_name,
+            mobile_no=mobile_no,
             transportationTypeId_id=transportation_type_id,
             status_flag=1,
             created_by=request.session.get('user_id'),
         )
 
-        # Create player transport log entries
         for player_id in assigned_players:
             player = Players.objects.get(id=player_id)
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 roasterId=roaster,
-                status=status,
+                pickup_location=pickup_location, 
+                pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
+                drop_location=drop_location,   
+                drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,   
+                entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 travel_date=travel_date,
                 transportationTypeId_id=transportation_type_id,
                 created_by=request.session.get('user_id')
@@ -948,7 +1302,6 @@ class RoasterAddView(View):
 
         messages.success(request, "Roaster and player travel details added successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
-
     
 
 class RoasterEditView(View):
@@ -957,7 +1310,10 @@ class RoasterEditView(View):
     def get(self, request, roaster_id):
         roaster = get_object_or_404(Roaster, id=roaster_id)
         players = Players.objects.filter(status_flag=1).order_by("name")
-        assigned_player_ids = roaster.playertransportationdetails_set.values_list('playerId__id', flat=True)
+        current_transport = roaster.playertransportationdetails_set.filter(status_flag=1).first()
+        assigned_player_ids = list(roaster.playertransportationdetails_set.filter(
+            status_flag=1
+        ).values_list('playerId__id', flat=True))
         transportation_types = TransportationType.objects.filter(status_flag=1)
         current_page = request.GET.get('page', 1)
 
@@ -966,7 +1322,8 @@ class RoasterEditView(View):
             'players': players,
             'assigned_player_ids': assigned_player_ids,
             'transportation_types': transportation_types,
-            'status_choices': PlayerTransportationDetails.STATUS_CHOICES,
+            'location_choices': PlayerTransportationDetails.LOCATION_CHOICES,
+            'current_transport': current_transport,
             'current_page': current_page
         })
 
@@ -976,39 +1333,177 @@ class RoasterEditView(View):
         vehicle_number = request.POST.get('vehicleNumber')
         number_of_seats = request.POST.get('number_of_seats')
         driver_name = request.POST.get('driverName')
+        mobile_no = request.POST.get('mobile_no')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
         transportation_type_id = request.POST.get('transportationTypeId')
-        status = request.POST.get('status')
         travel_date_str = request.POST.get('travel_date')
         travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
+        pickup_location = request.POST.get('pickup_location')
+        drop_location = request.POST.get('drop_location')
+        pickup_location_custom = request.POST.get('pickup_location_custom', '').strip()
+        drop_location_custom = request.POST.get('drop_location_custom', '').strip()
 
+        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and drop_location == PlayerTransportationDetails.LOCATION_OTHER:
+            messages.error(request, "Cannot create transport from 'Other' to 'Other' location.")
+            return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
+
+        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and not pickup_location_custom:
+            messages.error(request, "Please specify the pickup location for 'Other'.")
+            return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
+
+        if drop_location == PlayerTransportationDetails.LOCATION_OTHER and not drop_location_custom:
+            messages.error(request, "Please specify the drop location for 'Other'.")
+            return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
+
+        # Update roaster with mobile number
         roaster.vechicle_type = vehicle_type
         roaster.vechicle_no = vehicle_number
         roaster.number_of_seats = number_of_seats
         roaster.driver_name = driver_name
+        roaster.mobile_no = mobile_no
         roaster.transportationTypeId_id = transportation_type_id
-        roaster.updated_by = request.session.get('user_id')
+        roaster.updated_by = request.session.get('loginid')
         roaster.updated_on = timezone.now()
         roaster.save()
 
-        # Append a new transport log for each selected player
-        for player_id in assigned_players:
+        # Player management logic
+        current_assigned_players = set(roaster.playertransportationdetails_set.filter(
+            status_flag=1
+        ).values_list('playerId__id', flat=True))
+        new_assigned_players = set(int(player_id) for player_id in assigned_players)
+
+        # Remove players
+        players_to_remove = current_assigned_players - new_assigned_players
+        if players_to_remove:
+            PlayerTransportationDetails.objects.filter(
+                roasterId=roaster,
+                playerId__id__in=players_to_remove,
+                status_flag=1
+            ).update(
+                status_flag=0,
+                updated_by=request.session.get('loginid'),
+                updated_on=timezone.now()
+            )
+
+        players_to_add = new_assigned_players - current_assigned_players
+        for player_id in players_to_add:
             player = Players.objects.get(id=player_id)
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 roasterId=roaster,
-                status=status,
+                pickup_location=pickup_location,
+                pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
+                drop_location=drop_location,
+                drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
+                entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 travel_date=travel_date,
                 transportationTypeId_id=transportation_type_id,
-                created_by=request.session.get('user_id')
+                created_by=request.session.get('loginid')
             )
 
-        messages.success(request, "Roaster updated successfully! Player travel logs recorded.")
+        PlayerTransportationDetails.objects.filter(
+            roasterId=roaster,
+            playerId__id__in=new_assigned_players,
+            status_flag=1
+        ).update(
+            pickup_location=pickup_location,
+            pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
+            drop_location=drop_location,
+            drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
+            travel_date=travel_date,
+            transportationTypeId_id=transportation_type_id,
+            updated_by=request.session.get('loginid'),
+            updated_on=timezone.now()
+        )
+
+        messages.success(request, "Roaster updated successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
     
     
+class StartTransportView(View):
+    def post(self, request, roaster_id):
+        try:
+            roaster = get_object_or_404(Roaster, id=roaster_id)
+            user_id = request.session.get('loginid')
+            
+            current_transports = PlayerTransportationDetails.objects.filter(
+                roasterId=roaster,
+                status_flag=1
+            )
+            
+            created_count = 0
+            for transport in current_transports:
+                PlayerTransportationDetails.objects.create(
+                    playerId=transport.playerId,
+                    roasterId=roaster,
+                    transportationTypeId=transport.transportationTypeId,
+                    pickup_location=transport.pickup_location,
+                    drop_location=transport.drop_location,
+                    pickup_location_custom=transport.pickup_location_custom,
+                    drop_location_custom=transport.drop_location_custom,
+                    details=transport.details,
+                    remarks=f"Transport started from {transport.get_pickup_location_display()} to {transport.get_drop_location_display()}",
+                    entry_status=PlayerTransportationDetails.ENTRY_STARTED,
+                    travel_date=timezone.now(), 
+                    created_by=user_id
+                )
+                created_count += 1
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Transport started for {created_count} players. New timeline entries created.',
+                'new_status': 'STARTED'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error starting transport: {str(e)}'
+            }, status=400)
 
+class EndTransportView(View):
+    def post(self, request, roaster_id):
+        try:
+            roaster = get_object_or_404(Roaster, id=roaster_id)
+            user_id = request.session.get('loginid')
+            
+            current_transports = PlayerTransportationDetails.objects.filter(
+                roasterId=roaster,
+                status_flag=1
+            )
+            
+            created_count = 0
+            for transport in current_transports:
+                PlayerTransportationDetails.objects.create(
+                    playerId=transport.playerId,
+                    roasterId=roaster,
+                    transportationTypeId=transport.transportationTypeId,
+                    pickup_location=transport.pickup_location,
+                    drop_location=transport.drop_location,
+                    pickup_location_custom=transport.pickup_location_custom,
+                    drop_location_custom=transport.drop_location_custom,
+                    details=transport.details,
+                    remarks=f"Transport ended from {transport.get_pickup_location_display()} to {transport.get_drop_location_display()}",
+                    entry_status=PlayerTransportationDetails.ENTRY_ENDED,
+                    travel_date=timezone.now(), 
+                    created_by=user_id
+                )
+                created_count += 1
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Transport ended for {created_count} players. New timeline entries created.',
+                'new_status': 'ENDED'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error ending transport: {str(e)}'
+            }, status=400)
+    
+   
 class EnquiryListView(View):
     template_name = "enquiry.html"
 
@@ -1016,17 +1511,27 @@ class EnquiryListView(View):
         search_query = request.GET.get('search', '')
         start_date = request.GET.get('start_date', '')
         end_date = request.GET.get('end_date', '')
+        status_filter = request.GET.get('status', '')
         page_number = request.GET.get('page', 1)
 
-        enquiries = EnquiryDetails.objects.filter(status_flag=1).select_related('player').order_by('-created_on')
+        enquiries = EnquiryDetails.objects.select_related('player')\
+                                         .prefetch_related('playerenquiryresponses_set__user')\
+                                         .order_by('-created_on')
 
         # Apply search filter
         if search_query:
             enquiries = enquiries.filter(
                 Q(player__name__icontains=search_query) |
                 Q(message__icontains=search_query) |
-                Q(response__icontains=search_query)
-            )
+                Q(playerenquiryresponses__rnquiry_response__icontains=search_query)
+            ).distinct()
+
+        # Apply status filter
+        if status_filter:
+            if status_filter == 'pending':
+                enquiries = enquiries.filter(is_replied=False)
+            elif status_filter == 'replied':
+                enquiries = enquiries.filter(is_replied=True)
 
         # Apply date range filter
         if start_date:
@@ -1052,28 +1557,47 @@ class EnquiryListView(View):
             'search_query': search_query,
             'start_date': start_date,
             'end_date': end_date,
+            'status_choices': [
+                ('', 'All'),
+                ('pending', 'Pending'),
+                ('replied', 'Replied')
+            ]
         }
         return render(request, self.template_name, context)
 
     def post(self, request):
+        enquiry_id = request.POST.get('enquiry_id')
+        response_text = request.POST.get('response')
+        user_id = request.session.get('loginid')
+
+        
         try:
-            data = json.loads(request.body)
-            enquiry_id = data.get('enquiry_id')
-            response_text = data.get('response')
-
-            if not enquiry_id or not response_text:
-                return JsonResponse({'success': False, 'error': 'Enquiry ID and response are required'})
-
-            enquiry = EnquiryDetails.objects.get(id=enquiry_id, status_flag=1)
-            enquiry.response = response_text
+            enquiry = EnquiryDetails.objects.get(id=enquiry_id)
+            user = MstUserLogins.objects.get(id=user_id)
+            
+            PlayerEnquiryResponses.objects.create(
+                enquiry=enquiry,
+                user=user,
+                rnquiry_response=response_text
+            )
+            enquiry.is_replied = True
             enquiry.save()
-
-            return JsonResponse({'success': True, 'message': 'Response saved successfully'})
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Response sent successfully!'
+            })
+            
         except EnquiryDetails.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Enquiry not found'})
+            return JsonResponse({
+                'success': False,
+                'error': 'Enquiry not found'
+            })
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
 
 
 class DeptPlayerView(View):
@@ -1103,8 +1627,14 @@ class DeptPlayerView(View):
         paginator = Paginator(players, per_page)
         current_page = paginator.page(page)
 
-        # Get countries for dropdown (if still needed)
+        # Get countries for dropdown
         countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
+        
+        # Hotel choices
+        HOTEL_CHOICES = [
+            ('Rio Resort', 'Rio Resort'),
+            ('Rio Boutique', 'Rio Boutique'),
+        ]
         
         context = {
             "players": current_page,
@@ -1113,9 +1643,33 @@ class DeptPlayerView(View):
             "search_query": search_query,
             "paginator": paginator,
             "page_obj": current_page,
+            "hotel_choices": HOTEL_CHOICES,
         }
         
         return render(request, self.template_name, context)
+
+    def post(self, request):
+        """
+        Handle hotel and room assignment
+        """
+        try:
+            player_id = request.POST.get('player_id')
+            hotel = request.POST.get('hotel')
+            room_no = request.POST.get('room_no')
+            
+            player = Players.objects.get(id=player_id, status_flag=1)
+            player.hotel = hotel
+            player.room_no = room_no
+            player.save()
+            
+            messages.success(request, f'Successfully assigned {hotel} - Room {room_no} to {player.name}')
+            
+        except Players.DoesNotExist:
+            messages.error(request, 'Player not found')
+        except Exception as e:
+            messages.error(request, f'Error assigning room: {str(e)}')
+        
+        return redirect('DeptAccFBPlayers')
     
         
         
@@ -1139,3 +1693,90 @@ class DeptPlayerProfile(View):
             "player_documents": player_documents,
             "transportation_details": transportation_details
         })
+        
+
+class PlayerLogisticsView(ListView):
+    model = Players
+    template_name = 'player_logistic.html'
+    context_object_name = 'players'
+    paginate_by = per_page
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(status_flag=1).order_by('name')
+        
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        current_date = timezone.now().date()
+        cutoff_date = timezone.datetime(2025, 11, 3).date()
+        show_arrival = current_date <= cutoff_date
+
+        for player in context['players']:
+            latest_transport = PlayerTransportationDetails.objects.filter(
+                playerId=player,
+                status_flag=1
+            ).order_by('-created_on').first()
+
+            if latest_transport:
+                print("player status", latest_transport.player_status_display)
+                player.current_transport_status = latest_transport.player_status_display
+                player.has_departure_status = (latest_transport.entry_status != 
+                                             PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT)
+            else:
+                player.current_transport_status = ""
+                player.has_departure_status = False
+
+        context.update({
+            'search_query': self.request.GET.get('search', ''),
+            'show_arrival': show_arrival,
+            'current_date': current_date,
+            'cutoff_date': cutoff_date,
+        })
+        log_user_activity(self.request, "View Player Logistic", "Viewed player logistic page")
+
+        return context
+        
+
+class MarkPlayerStatusView(View):
+    def post(self, request, player_id):
+        try:
+            data = json.loads(request.body)
+            player = get_object_or_404(Players, id=player_id)
+            user_id = request.session.get('loginid')
+            
+            current_date = timezone.now().date()
+            cutoff_date = timezone.datetime(2025, 11, 3).date()
+            
+            entry_status = PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE
+            status_display = "Reached Airport for Departure"
+            
+            # Create new transport entry with only status
+            PlayerTransportationDetails.objects.create(
+                playerId=player,
+                entry_status=entry_status,
+                travel_date=timezone.now(),
+                details=f"Player marked as {status_display}",
+                remarks=f"Status changed to {status_display} by user {user_id}",
+                created_by=user_id
+            )
+            
+            log_user_activity(request, "Mark Player Status", f"Player ID({player_id}) - {player.name} marked as {status_display}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'{player.name} marked as {status_display} successfully.',
+                'new_status': status_display
+            })
+            
+        except Exception as e:
+            print("Error updating status:", e)
+            return JsonResponse({
+                'success': False,
+                'message': f'Error updating status: {str(e)}'
+            }, status=400)

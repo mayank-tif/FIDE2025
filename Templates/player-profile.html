@@ -194,22 +194,28 @@
         white-space: nowrap;
     }
 
-    .badge--completed {
+    .badge--info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .badge--success {
         background: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
     }
 
-    .badge--in-progress {
+    .badge--warning {
         background: #fff3cd;
         color: #856404;
         border: 1px solid #ffeaa7;
     }
 
-    .badge--pending {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
+    .badge--primary {
+        background: #cce7ff;
+        color: #004085;
+        border: 1px solid #b3d7ff;
     }
 
     .no-data {
@@ -251,6 +257,17 @@
     .profile-title {
         flex: 1;
         margin: 0;
+    }
+
+    .transport-status-text {
+        font-size: 14px;
+        line-height: 1.4;
+        margin-bottom: 5px;
+    }
+
+    .transport-updated {
+        font-size: 12px;
+        color: #6c757d;
     }
 
     /* Responsive */
@@ -376,6 +393,22 @@
                   <textarea id="profile-food-allergies" name="food_allergies" rows="3" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'." required>{{ player.details|default:'' }}</textarea>
                 </div>
               </div>
+              <!-- Transport Status Field -->
+<div class="form-row">
+    <div class="form-group">
+        <label for="profile-transport-status">Transport Status</label>
+        <select id="profile-transport-status" name="transport_status">
+            <option value="no_change">No Change</option>
+            {% for status_value, status_label in transport_status_choices %}
+                <option value="{{ status_value }}" 
+                    {% if current_transport_status == status_value %}selected{% endif %}>
+                    {{ status_label }}
+                </option>
+            {% endfor %}
+        </select>
+        <small>Changing this will create a new transport entry</small>
+    </div>
+</div>
 
               <div class="form-row">
                 <div class="form-group">
@@ -445,20 +478,6 @@
             </ul>
           </div>
         </div>
-
-        <template id="tpl-transport-item">
-          <li class="item-entry" data-pickup="" data-dropoff="" data-type="" data-details="" data-remarks="" data-status="">
-            <div class="item-line">
-              <div>
-                <strong></strong> <span class="details"></span> | From: <span class="route"></span> | <span class="datetime"></span>
-              </div>
-              <span class="badge badge--completed">Completed</span>
-            </div>
-            <div class="item-actions">
-              {% comment %} <button class="btn btn--small btn--edit" data-action="edit-transport">Edit</button> {% endcomment %}
-            </div>
-          </li>
-        </template>
       </div>
     </main>
   </div>
@@ -662,6 +681,7 @@
         formData.append("food_allergies", profileForm.food_allergies.value);
         formData.append("room_cleaning_preference", profileForm.room_cleaning_preference.value);
         formData.append("accompanying_persons", profileForm.accompanying_persons.value);
+        formData.append("transport_status", profileForm.transport_status.value);
 
         if (uploadInput.files.length > 0) {
           formData.append("profile_pic", uploadInput.files[0]);
@@ -714,16 +734,6 @@
     const csrfToken = "{{ csrf_token }}";
     const playerId = "{{ player.id }}";
 
-    const statusBadgeMap = {
-        'ARRIVED_AIRPORT': 'badge--info',
-        'ENTROUTE_HOTEL': 'badge--warning', 
-        'REACHED_HOTEL': 'badge--success',
-        'IN_TRANSIT': 'badge--warning',
-        'REACHED_DESTINATION': 'badge--success',
-        'DEPARTED_AIRPORT': 'badge--info',
-        'REACHED_AIRPORT_DEPARTURE': 'badge--info'
-    };
-
     // Load transportation data when transportation tab is clicked
     document.querySelector('[data-tab="transportation"]').addEventListener('click', function() {
         loadTransportData();
@@ -748,37 +758,22 @@
             data.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'item-entry';
-                const badgeClass = statusBadgeMap[item.status] || 'badge--primary';
+                
+                // Determine badge class based on status type
+                const badgeClass = item.status_type === 'A' ? 'badge--info' : 'badge--success';
+                const badgeText = item.status_type === 'A' ? 'Scheduled' : 'Status Update';
                 
                 li.innerHTML = `
                     <div class="item-line">
-                        <div>
-                            <strong>${item.transportation_type_name}</strong> |
-                            {% comment %} From: <span class="route">${item.pickup_location} → ${item.drop_location}</span> |  {% endcomment %}
-                            <span class="datetime">${item.travel_date}</span>
+                        <div style="flex: 1;">
+                            <div class="transport-status-text">
+                                ${item.status_display}
+                            </div>
+                            <div class="transport-updated">
+                                Updated at: ${item.created_on}
+                            </div>
                         </div>
-                        <span class="badge ${badgeClass}">${item.status_display}</span>
-                    </div>
-                    <div class="transport-details" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        ${item.vehicle_type ? `
-                        <div style="display: flex; gap: 15px; font-size: 13px;">
-                            <span><strong>Vehicle:</strong> ${item.vehicle_type} - ${item.vehicle_number}</span>
-                            <span><strong>Driver:</strong> ${item.driver_name}</span>
-                        </div>
-                        ` : ''}
-                        ${item.details && item.details !== 'No details provided' ? `
-                        <div style="margin-bottom: 8px; font-size: 13px;">
-                            <strong>Details:</strong> ${item.details}
-                        </div>
-                        ` : ''}
-                        ${item.remarks && item.remarks !== 'No remarks' ? `
-                        <div style="margin-top: 5px; font-size: 13px;">
-                            <strong>Remarks:</strong> ${item.remarks}
-                        </div>
-                        ` : ''}
-                        <div style="margin-top: 5px; font-size: 12px; color: #6c757d;">
-                            Assigned on: ${item.created_on}
-                        </div>
+                        <span class="badge ${badgeClass}">${badgeText}</span>
                     </div>
                 `;
                 

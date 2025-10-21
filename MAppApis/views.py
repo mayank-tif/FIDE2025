@@ -774,60 +774,153 @@ class ContactFormView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
-class EnquiryFormView(APIView):
+# views.py
+class EnquiryCreateOrReplyAPI(APIView):
     """
-    POST API to submit a new enquiry
+    POST API to handle both:
+    1. Creating new enquiry (when no enquiry_id provided)
+    2. Replying to existing enquiry (when enquiry_id provided)
     """
     
     def post(self, request):
         validate_email_and_device_with_token(request)
-        serializer = EnquiryCreateSerializer(data=request.data)
         
-        if not serializer.is_valid():
+        enquiry_id = request.data.get('enquiry_id')
+        player_id = request.data.get('player_id')
+        message = request.data.get('message')
+        
+        if not all([player_id, message]):
             return Response({
                 "success": False,
-                "error": "Validation failed",
-                "details": serializer.errors
+                "error": "Missing required fields",
+                "message": "player_id and message are required"
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            player_id = serializer.validated_data['player_id']
-            message = serializer.validated_data['message']
-            
-            # Get player instance
             player = Players.objects.get(id=player_id, status_flag=1)
             
-            # Create new enquiry
-            enquiry = EnquiryDetails.objects.create(
-                player=player,
-                message=message,
-                response="",  # Empty response initially
+            if enquiry_id:
+                return self._handle_enquiry_reply(enquiry_id, player, message)
+            else:
+                return self._handle_new_enquiry(player, message)
+                
+        except Players.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": "Player not found",
+                "message": "The specified player does not exist or is inactive"
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            return Response({
+                "success": False,
+                "error": "Operation failed",
+                "message": "An error occurred. Please try again."
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _handle_new_enquiry(self, player, message):
+        """Handle creation of new enquiry"""
+        # Create new enquiry
+        enquiry = EnquiryDetails.objects.create(
+            player=player,
+            message=message,
+            is_replied=False,  # Initially not replied
+            status_flag=1
+        )
+        
+        # Send email notification (reuse your existing email logic)
+        self._send_enquiry_email(player, message, enquiry.id)
+        
+        response_data = {
+            "success": True,
+            "message": "Your enquiry has been submitted successfully. We will respond soon.",
+            "enquiry_id": enquiry.id,
+            "type": "new_enquiry",
+            "submitted_data": {
+                "player_id": player.id,
+                "player_name": player.name,
+                "message_preview": message[:100] + "..." if len(message) > 100 else message
+            },
+            "timestamp": enquiry.created_on.isoformat()
+        }
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
+    
+    def _handle_enquiry_reply(self, enquiry_id, player, message):
+        """Handle reply to existing enquiry"""
+        try:
+            # Validate enquiry exists and belongs to player
+            enquiry = EnquiryDetails.objects.get(
+                id=enquiry_id, 
+                player=player, 
                 status_flag=1
             )
             
-            html_message = render_to_string(
-               'enquiry_email.html',
-               {
-                    'player_name': player.name,
-                    'player_fide_id': player.fide_id or 'Not provided',
-                    'player_email': player.email,
-                    'message': message,
-                    'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
-               }
+            # Create response entry
+            response = PlayerEnquiryResponses.objects.create(
+                enquiry=enquiry,
+                player=player,
+                rnquiry_response=message,
+                status_flag=1
             )
             
-            subject = f"Player Enquiry from {player.name}"
+            # Update enquiry status
+            enquiry.is_replied = False  # Mark as pending admin response
+            enquiry.save()
             
-            # Create email log entry
-            email_log = EmailLog.objects.create(
-                email_type='ENQUIRY',
-                subject=subject,
-                recipient_email=CHESS_FWC_2025_EMAIL,
-                status='PENDING',
-                html_content=html_message,
-                text_content="", 
-            )
+            # Send email notification for the reply
+            self._send_enquiry_email(player, message, enquiry.id)
+            
+            response_data = {
+                "success": True,
+                "message": "Your reply has been submitted successfully.",
+                "enquiry_id": enquiry.id,
+                "response_id": response.id,
+                "type": "reply",
+                "submitted_data": {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "message_preview": message[:100] + "..." if len(message) > 100 else message
+                },
+                "timestamp": response.created_on.isoformat()
+            }
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except EnquiryDetails.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": "Enquiry not found",
+                "message": "The specified enquiry does not exist or doesn't belong to you"
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def _send_enquiry_email(self, player, message, enquiry_id):
+        """Send email for new enquiry (reuse your existing logic)"""
+        html_message = render_to_string(
+           'enquiry_email.html',
+           {
+                'player_name': player.name,
+                'player_fide_id': player.fide_id or 'Not provided',
+                'player_email': player.email,
+                'message': message,
+                'enquiry_id': enquiry_id,
+                'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
+           }
+        )
+        
+        subject = f"New Player Enquiry from {player.name} (ID: {enquiry_id})"
+        
+        # Create email log entry
+        email_log = EmailLog.objects.create(
+            email_type='ENQUIRY',
+            subject=subject,
+            recipient_email=CHESS_FWC_2025_EMAIL,
+            status='PENDING',
+            html_content=html_message,
+            text_content="", 
+        )
 
+        try:
             send_mail(
                 subject=subject,
                 message="",
@@ -836,48 +929,22 @@ class EnquiryFormView(APIView):
                 html_message=html_message,
                 fail_silently=False,
             )
-            # Update email log with success
             email_log.status = 'SENT'
             email_log.save()
-            
-            response_data = {
-                "success": True,
-                "message": "Your enquiry has been submitted successfully. We will respond soon.",
-                "enquiry_id": enquiry.id,
-                "submitted_data": {
-                    "player_id": player_id,
-                    "player_name": player.name,
-                    "message_preview": message[:100] + "..." if len(message) > 100 else message
-                },
-                "timestamp": enquiry.created_on.isoformat()
-            }
-            
-            return Response(response_data, status=status.HTTP_201_CREATED)
-            
-        except Players.DoesNotExist:
-            return Response({
-                "success": False,
-                "error": "Player not found",
-                "message": "The specified player does not exist or is inactive"
-            }, status=status.HTTP_404_NOT_FOUND)
-            
         except Exception as e:
-            return Response({
-                "success": False,
-                "error": "Enquiry submission failed",
-                "message": "An error occurred while submitting your enquiry. Please try again."
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            
-            
-class PlayerEnquiriesListView(APIView):
+            email_log.status = 'FAILED'
+            email_log.save()
+
+class PlayerEnquiriesWithConversationsAPI(APIView):
     """
-    POST API to get all enquiries of a specific player
+    POST API to get enquiries with conversations and filter by status
     """
     
     def post(self, request):
         validate_email_and_device_with_token(request)
+        
         player_id = request.data.get('player_id')
+        filter_type = request.data.get('filter', 'all')
         
         if not player_id:
             return Response({
@@ -888,29 +955,33 @@ class PlayerEnquiriesListView(APIView):
         
         try:
             # Validate player exists
-            player = get_object_or_404(Players, id=player_id, status_flag=1)
+            player = Players.objects.get(id=player_id, status_flag=1)
             
-            # Get all enquiries for this player
+            # Base queryset
             enquiries = EnquiryDetails.objects.filter(
                 player=player,
                 status_flag=1
-            ).select_related('player').order_by('-created_on')
+            ).select_related('player').prefetch_related('playerenquiryresponses_set')
             
-            # Serialize data
-            serializer = EnquiryListSerializer(enquiries, many=True)
+            # Apply filters
+            if filter_type == 'pending':
+                enquiries = enquiries.filter(is_replied=False)
+            elif filter_type == 'replied':
+                enquiries = enquiries.filter(is_replied=True)
+            
+            # Order by latest activity (last reply or enquiry creation)
+            enquiries = enquiries.order_by('-created_on')
+            
+            # Serialize data with conversations
+            serializer = EnquiryWithConversationsSerializer(enquiries, many=True)
             
             # Calculate statistics
-            total_enquiries = enquiries.count()
-            responded_enquiries = enquiries.exclude(response="").count()
-            pending_enquiries = total_enquiries - responded_enquiries
+            total_enquiries = EnquiryDetails.objects.filter(player=player, status_flag=1).count()
+            replied_enquiries = EnquiryDetails.objects.filter(player=player, status_flag=1, is_replied=True).count()
+            pending_enquiries = total_enquiries - replied_enquiries
             
             response_data = {
                 "success": True,
-                "enquiries_summary": {
-                    "total_enquiries": total_enquiries,
-                    "responded_enquiries": responded_enquiries,
-                    "pending_enquiries": pending_enquiries
-                },
                 "enquiries": serializer.data
             }
             
@@ -1283,6 +1354,8 @@ class DepartureDetailsAPIView(APIView):
                 player.departure_flight_time = departure_data['departure_flight_time']
             if 'departure_airport' in departure_data:
                 player.departure_airport = departure_data['departure_airport']
+            if 'departure_fight_no' in departure_data:
+                player.departure_fight_no = departure_data['departure_fight_no']
             
             player.updated_on = timezone.now()
             player.save()
@@ -1346,3 +1419,46 @@ def get_departments(request):
             {"error": str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
+        
+
+class DepartureDetailsAPI(APIView):
+    """
+    API to return departure details for a specific player
+    """
+    
+    def post(self, request):
+        try:
+            validate_email_and_device_with_token(request)
+            player_id = request.data.get('player_id')
+            
+            if not player_id:
+                return Response({
+                    "success": False,
+                    "error": "Player ID is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get specific player
+            player = Players.objects.filter(
+                id=player_id,
+                status_flag=1
+            ).first()
+            
+            if not player:
+                return Response({
+                    "success": False,
+                    "error": "Player not found"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = DepartureDetailsSerializer(player)
+            
+            return Response({
+                "success": True,
+                "departure_details": serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": "Failed to fetch departure details",
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

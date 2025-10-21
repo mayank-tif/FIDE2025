@@ -7,331 +7,52 @@
   <title>Manage Complaints - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
   <style>
-    /* Compact Filter Styles */
-    .compact-filters {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-      align-items: center;
-      padding: 10px;
-      background: #f8f9fa;
-      border-radius: 6px;
-    }
-    
-    .filter-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 13px;
-    }
-    
-    .filter-label {
-      font-weight: 600;
-      color: #495057;
-      white-space: nowrap;
-    }
-    
-    .filter-select, .filter-input {
-      padding: 6px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 13px;
-      min-width: 120px;
-      height: 32px;
-    }
-    
-    .date-input-group {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-    }
-    
-    .compact-btn {
-      background: #271f64;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      height: 32px;
-    }
-    
-    .search-box {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin-left: auto;
-    }
-    
-    .search-input {
-      padding: 6px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 13px;
-      width: 200px;
-      height: 32px;
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
     }
 
-    /* Ultra Compact Complaint Cards */
-    .compact-complaints-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .btn--secondary {
+        background: #271f64;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background-color 0.2s;
     }
-    
-    .compact-complaint-card {
-      background: white;
-      border: 1px solid #e9ecef;
-      border-radius: 6px;
-      transition: all 0.2s ease;
+
+    .btn--secondary:hover {
+        background: #545b62;
     }
-    
-    .compact-complaint-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      cursor: pointer;
-      flex-wrap: wrap;
+
+    .btn--secondary:disabled {
+        background: #a0a0a0;
+        cursor: not-allowed;
     }
-    
-    .compact-complaint-header:hover {
-      background: #f8f9fa;
+
+    .send-btn:disabled {
+        background: #a0a0a0;
+        cursor: not-allowed;
     }
-    
-    .complaint-id {
-      font-weight: bold;
-      color: #271f64;
-      font-size: 14px;
-      min-width: 60px;
+
+    .loader {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 5px;
     }
-    
-    .player-name {
-      font-weight: 600;
-      color: #495057;
-      font-size: 14px;
-      min-width: 120px;
-    }
-    
-    .complaint-preview {
-      flex: 1;
-      color: #6c757d;
-      font-size: 13px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 200px;
-    }
-    
-    .complaint-meta {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      font-size: 12px;
-      color: #6c757d;
-      min-width: 200px;
-    }
-    
-    .status-badge {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      min-width: 80px;
-      text-align: center;
-    }
-    
-    .status-open { background: #d4edda; color: #155724; }
-    .status-in-progress { background: #fff3cd; color: #856404; }
-    .status-resolved { background: #d1ecf1; color: #0c5460; }
-    .status-closed { background: #e2e3e5; color: #383d41; }
-    
-    .expand-icon {
-      font-size: 12px;
-      color: #6c757d;
-      transition: transform 0.2s ease;
-    }
-    
-    .expanded .expand-icon {
-      transform: rotate(180deg);
-    }
-    
-    /* Compact Expanded Content */
-    .compact-complaint-body {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      border-top: 1px solid #e9ecef;
-    }
-    
-    .compact-complaint-body.expanded {
-      max-height: 400px;
-      padding: 15px;
-    }
-    
-    .compact-description {
-      margin-bottom: 15px;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      font-size: 13px;
-      line-height: 1.4;
-    }
-    
-    .compact-conversations {
-      margin: 15px 0;
-    }
-    
-    .conversations-toggle {
-      background: none;
-      border: none;
-      color: #271f64;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 0;
-    }
-    
-    .compact-conversations-list {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.2s ease;
-      font-size: 12px;
-    }
-    
-    .compact-conversations-list.expanded {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    
-    .compact-remark {
-      margin: 8px 0;
-      padding: 8px;
-      background: white;
-      border-left: 3px solid #271f64;
-      border-radius: 3px;
-    }
-    
-    .compact-remark strong {
-      color: #495057;
-      font-size: 11px;
-    }
-    
-    .compact-remark p {
-      margin: 4px 0 0 0;
-      color: #495057;
-      line-height: 1.3;
-    }
-    
-    .compact-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid #e9ecef;
-    }
-    
-    .status-select {
-      padding: 4px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 12px;
-      min-width: 120px;
-      height: 28px;
-    }
-    
-    .compact-remarks-input {
-      flex: 1;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 12px;
-      resize: vertical;
-    }
-    
-    .send-btn {
-      background: #271f64;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      height: 28px;
-      white-space: nowrap;
-    }
-    
-    /* Compact Pagination */
-    .compact-pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      margin-top: 15px;
-      font-size: 13px;
-    }
-    
-    .compact-pagination a {
-      padding: 4px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      text-decoration: none;
-      color: #271f64;
-      font-size: 12px;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .compact-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-      }
-      
-      .filter-item {
-        width: 100%;
-        justify-content: space-between;
-      }
-      
-      .filter-select, .filter-input {
-        min-width: 150px;
-      }
-      
-      .search-box {
-        margin-left: 0;
-        width: 100%;
-      }
-      
-      .search-input {
-        width: 100%;
-      }
-      
-      .compact-complaint-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      
-      .complaint-meta {
-        width: 100%;
-        justify-content: space-between;
-      }
-      
-      .compact-actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .status-select {
-        width: 100%;
-      }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -341,6 +62,13 @@
     <main class="main-content">
       <div class="page-header">
         <h1>Manage Complaints</h1>
+        {% if role_id == 1 %}
+        <div class="header-actions">
+          <button class="btn btn--secondary" id="export-btn">
+            📊 Export to Excel
+          </button>
+        </div>
+        {% endif %}
       </div>
       
       <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
@@ -441,13 +169,25 @@
             </div>
             
             <div class="compact-actions">
+              <!-- Status dropdown - only show IN_PROGRESS and RESOLVED for replies -->
               <select class="status-select" data-complaint-id="{{ c.id }}">
-                {% for value, label in c.STATUS_CHOICES %}
-                  <option value="{{ value }}" {% if c.status == value %}selected{% endif %}>{{ label }}</option>
+                <option value="IN_PROGRESS" {% if c.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                <option value="RESOLVED" {% if c.status == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+              </select>
+
+              {% if role_id == 1 %} 
+              <select class="department-select" data-complaint-id="{{ c.id }}">
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                  <option value="{{ dept.id }}" {% if c.department.id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
                 {% endfor %}
               </select>
+              {% endif %}
+
               <textarea class="compact-remarks-input" placeholder="Add remark..." data-complaint-id="{{ c.id }}"></textarea>
-              <button class="send-btn" data-action="send-remark" data-complaint-id="{{ c.id }}">Send</button>
+              <button class="send-btn" data-action="send-remark" data-complaint-id="{{ c.id }}">
+                Send Reply
+              </button>
             </div>
           </div>
         </div>
@@ -478,6 +218,45 @@
   <script src="{% static 'assets/js/app.js' %}"></script>
   <script>
   document.addEventListener("DOMContentLoaded", () => {
+    // Export functionality
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        // Show loading state
+        exportBtn.innerHTML = '⏳ Exporting...';
+        exportBtn.disabled = true;
+
+        // Build export URL with current filters
+        const params = new URLSearchParams();
+        
+        const searchQuery = document.getElementById('complaint-search').value.trim();
+        if (searchQuery) params.append('q', searchQuery);
+        
+        const department = document.getElementById('department')?.value;
+        if (department) params.append('department', department);
+        
+        const status = document.getElementById('status-filter').value;
+        if (status) params.append('status', status);
+        
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        // Add export parameter
+        params.append('export', 'true');
+        
+        // Trigger download
+        window.location.href = `?${params.toString()}`;
+        
+        // Reset button after a delay
+        setTimeout(() => {
+          exportBtn.innerHTML = '📊 Export to Excel';
+          exportBtn.disabled = false;
+        }, 3000);
+      });
+    }
+
     // Expand/Collapse complaint cards
     document.querySelectorAll('.compact-complaint-header').forEach(header => {
       header.addEventListener('click', (e) => {
@@ -545,21 +324,37 @@
     if (departmentFilter) departmentFilter.addEventListener('change', applyFilters);
     if (statusFilter) statusFilter.addEventListener('change', applyFilters);
 
-    // Send remark functionality
+    // Send remark functionality with loader and disabled state
     document.querySelectorAll("[data-action='send-remark']").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.complaintId;
+      btn.addEventListener("click", function() {
+        const id = this.dataset.complaintId;
         const textarea = document.querySelector(`.compact-remarks-input[data-complaint-id='${id}']`);
         const message = textarea.value.trim();
         const statusSelect = document.querySelector(`.status-select[data-complaint-id='${id}']`);
         const status = statusSelect ? statusSelect.value : "";
-        
-        if (!message && !status) return showMessage("Please enter a remark or select a status.");
 
+        // Get department value if available
+        const departmentSelect = document.querySelector(`.department-select[data-complaint-id='${id}']`);
+        const department = departmentSelect ? departmentSelect.value : "";
+
+        if (!message && !status && !department) {
+          showMessage("Please enter a remark, select a status, or change department.");
+          return;
+        }
+
+        // Disable button and show loader
+        this.disabled = true;
+        this.innerHTML = '<span class="loader"></span> Sending...';
+
+        const formData = new URLSearchParams();
+        if (status) formData.append('status', status);
+        if (department) formData.append('department', department);
+        if (message) formData.append('message', message);
+      
         fetch(`/complaints/${id}/update/`, {
           method: "POST",
           headers: { "X-CSRFToken": "{{ csrf_token }}" },
-          body: new URLSearchParams({ status, message })
+          body: formData
         })
         .then(res => res.json())
         .then(data => {
@@ -567,8 +362,18 @@
             showMessage(data.message, "success");
             setTimeout(() => window.location.reload(), 1500);
           } else {
-            showMessage("Something went wrong!", "error");
+            showMessage(data.message || "Something went wrong!", "error");
+            // Re-enable button on error
+            this.disabled = false;
+            this.innerHTML = 'Send Reply';
           }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showMessage("Network error occurred!", "error");
+          // Re-enable button on error
+          this.disabled = false;
+          this.innerHTML = 'Send Reply';
         });
       });
     });

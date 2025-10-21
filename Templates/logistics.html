@@ -6,6 +6,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Logistics - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .status-scheduled {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-started {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    .status-ended {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    
+    .btn-status {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .btn-start {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .btn-end {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .btn-status:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .btn-edit {
+      background-color: #007bff;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -20,7 +86,7 @@
 
       <div class="toolbar">
         <div class="logistics-search">
-          <input type="text" id="searchInput" placeholder="Search Driver or Player" value="{{ search_query }}">
+          <input type="text" id="searchInput" placeholder="Search by Player, Vehicle or Driver" value="{{ search_query }}">
           <button class="btn btn--primary" id="searchBtn">Search</button>
         </div>
         <button class="btn--add-roaster" id="addRoasterBtn">
@@ -38,6 +104,9 @@
                 <th>Vehicle Number</th>
                 <th>Driver</th>
                 <th>Seats</th>
+                <th>Pickup</th>
+                <th>Drop</th>
+                <th>Status</th>
                 <th>Assigned Players</th>
                 <th>Action</th>
               </tr>
@@ -50,8 +119,32 @@
                 <td>{{ r.driver_name }}</td>
                 <td>{{ r.number_of_seats }}</td>
                 <td>
+                  {% if r.pickup_location %}
+                    {{ r.get_pickup_location_display }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r.drop_location %}
+                    {{ r.get_drop_location_display }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r.current_entry_status == "SCHEDULED" %}
+                    <span class="status-badge status-scheduled">Scheduled</span>
+                  {% elif r.current_entry_status == "STARTED" %}
+                    <span class="status-badge status-started">Started</span>
+                  {% elif r.current_entry_status == "ENDED" %}
+                    <span class="status-badge status-ended">Ended</span>
+                  {% else %}
+                    <span class="status-badge status-scheduled">Scheduled</span>
+                  {% endif %}
+                </td>
+                <td>
                   {% with players_list=r.distinct_players %}
-                    {% comment %} Show player names {% endcomment %}
                     {% if players_list|length <= 3 %}
                       {% for p in players_list %}
                         {{ p.playerId.name }}{% if not forloop.last %}, {% endif %}
@@ -65,17 +158,26 @@
                       </span>
                     {% endif %}
                     
-                    {% comment %} Show player count / total seats {% endcomment %}
                     <div style="font-size: 12px; color: #6c757d;">
                       ({{ players_list|length }} / {{ r.number_of_seats }} seats)
                     </div>
                   {% endwith %}
                 </td>
-
-
-
                 <td>
-                  <button class="edit-roaster-btn btn-icon" data-roaster-id="{{ r.id }}">✏️</button>
+                  <div class="action-buttons">
+                    <!-- Status buttons -->
+                    {% if r.current_entry_status == "SCHEDULED" %}
+                      <button class="btn-status btn-start" data-roaster-id="{{ r.id }}" data-action="start">Start</button>
+                    {% elif r.current_entry_status == "STARTED" %}
+                      <button class="btn-status btn-end" data-roaster-id="{{ r.id }}" data-action="end">End</button>
+                    {% else %}
+                      <button class="btn--add-roaster" disabled>Completed</button>
+                    {% endif %}
+                    <!-- Edit button - only show when scheduled -->
+                    {% if r.current_entry_status == "SCHEDULED" %}
+                      <a href="{% url 'edit_roaster' r.id %}?page={{ page_obj.number }}" style="text-decoration: none;" >✏️</a>
+                    {% endif %}                
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -85,110 +187,173 @@
 
         <div class="pagination" id="paginationContainer">
           {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
           {% endif %}
           <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
           {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
           {% endif %}
         </div>
       </div>
     </main>
   </div>
+
   <!-- Player List Modal -->
-<div id="playersModal" class="players-modal">
-  <div class="players-modal-content">
-    <span class="players-modal-close">&times;</span>
-    <h3>Assigned Players</h3>
-    <div id="playersList" class="players-list">
-      <!-- Player names will be dynamically inserted here -->
+  <div id="playersModal" class="players-modal">
+    <div class="players-modal-content">
+      <span class="players-modal-close">&times;</span>
+      <h3>Assigned Players</h3>
+      <div id="playersList" class="players-list">
+        <!-- Player names will be dynamically inserted here -->
+      </div>
     </div>
   </div>
-</div>
 
   <script src="{% static 'assets/js/app.js' %}"></script>
   <script>
-    $(document).ready(function() {
+    // Status update functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      // Status button click handlers
+      document.querySelectorAll('.btn-status').forEach(button => {
+        button.addEventListener('click', function() {
+          const roasterId = this.dataset.roasterId;
+          const action = this.dataset.action;
+          const newStatus = action === 'start' ? 'STARTED' : 'ENDED';
+          
+          // Show loading state
+          const originalText = this.textContent;
+          this.textContent = 'Updating...';
+          this.disabled = true;
+          
+          // Make AJAX request
+          fetch(`/logistics/roasters/${action}/${roasterId}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              entry_status: newStatus
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showMessage(data.message, 'success');
+              // Reload page to reflect changes
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              showMessage(data.message, 'error');
+              // Reset button state
+              this.textContent = originalText;
+              this.disabled = false;
+            }
+          })
+          .catch(error => {
+            showMessage('Error updating status: ' + error, 'error');
+            // Reset button state
+            this.textContent = originalText;
+            this.disabled = false;
+          });
+        });
+      });
+      
+      // Player modal functionality
       const playersModal = document.getElementById('playersModal');
       const playersListContainer = document.getElementById('playersList');
       const closeBtn = document.querySelector('.players-modal-close');
 
-      // Open modal on clicking "+X more"
       document.querySelectorAll('.more-players').forEach(el => {
         el.addEventListener('click', () => {
           const names = el.dataset.players.split(',');
-          playersListContainer.innerHTML = ''; // clear previous content
-        
+          playersListContainer.innerHTML = '';
+          
           names.forEach(name => {
             const div = document.createElement('div');
             div.textContent = name;
             playersListContainer.appendChild(div);
           });
-        
+          
           playersModal.style.display = 'block';
         });
       });
 
-      // Close modal
       closeBtn.addEventListener('click', () => {
         playersModal.style.display = 'none';
       });
 
-      // Close modal on clicking outside the content
       window.addEventListener('click', (event) => {
         if(event.target == playersModal) {
           playersModal.style.display = 'none';
         }
       });
     });
-  </script>
 
-  <script>
+    // Search functionality
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const addBtn = document.getElementById('addRoasterBtn');
-    const editButtons = document.querySelectorAll('.edit-roaster-btn');
       
-    // Preserve current page
     const currentPage = new URLSearchParams(window.location.search).get('page') || 1;
       
-    // Search
     searchBtn.addEventListener('click', () => {
-        const searchValue = searchInput.value;
-        const url = new URL(window.location.href);
-        url.searchParams.set('search', searchValue);
-        url.searchParams.set('page', 1);  // go to first page for new search
-        window.location.href = url.toString();
+      const searchValue = searchInput.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set('search', searchValue);
+      url.searchParams.set('page', 1);
+      window.location.href = url.toString();
     });
 
-    // Add Roaster - pass current page
+    // Add Enter key support for search
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        searchBtn.click();
+      }
+    });
+
     addBtn.addEventListener('click', () => {
-        const url = new URL("{% url 'add_roaster' %}", window.location.origin);
-        url.searchParams.set('page', currentPage);
-        window.location.href = url.toString();
+      const url = new URL("{% url 'add_roaster' %}", window.location.origin);
+      url.searchParams.set('page', currentPage);
+      window.location.href = url.toString();
     });
 
-    // Edit Roaster - pass current page
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const roasterId = btn.dataset.roasterId;
-            const baseUrl = "{% url 'edit_roaster' 0 %}".replace('0/', ''); // base without ID
-            const url = new URL(baseUrl + roasterId + '/', window.location.origin); // append ID dynamically
-            url.searchParams.set('page', currentPage);
-            window.location.href = url.toString();
-        });
-    });
-  </script>
-  <script>
-  // Show Django messages in side popup
-  document.addEventListener("DOMContentLoaded", () => {
+    // Utility function to get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    // Message display function
+    function showMessage(message, type) {
+      const messageContainer = document.getElementById('message-container');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      messageDiv.textContent = message;
+      messageContainer.appendChild(messageDiv);
+      
+      setTimeout(() => {
+        messageDiv.remove();
+      }, 5000);
+    }
+
+    // Show Django messages
     {% if messages %}
       {% for message in messages %}
         showMessage("{{ message|escapejs }}", "{{ message.tags }}");
       {% endfor %}
     {% endif %}
-  });
-</script>
-
+  </script>
 </body>
 </html>

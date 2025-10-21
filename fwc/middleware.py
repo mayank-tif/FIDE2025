@@ -113,29 +113,35 @@ class RoleBasedAccessMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # Allowed URLs for Role ID 2
-        self.allowed_urls_role_2 = {
+        self.allowed_urls_role_2_dep_1 = {
             'complaint_list', 
             'complaint_update',
+            'DeptAccFBPlayers',
+            'DeptPlayerProfile',
             'login',
             'logout',
         }
         
-        self.allowed_urls_role_2_dept_1_or_2 = {
-            'DeptPlayers',
-            'DeptPlayerProfile',
-            'complaint_list', 
-            'complaint_update',
-            'login',
-            'logout',
-        }
+        # self.allowed_urls_role_2_dept_1_or_2 = {
+        #     'DeptAccFBPlayers',
+        #     'DeptPlayerProfile',
+        #     'complaint_list', 
+        #     'complaint_update',
+        #     'login',
+        #     'logout',
+        # }
         
         # Allowed URLs for Role ID 3
-        self.allowed_urls_role_3 = {
+        self.allowed_urls_role_2_dept_2 = {
             'roaster_list',
             'add_roaster',
             'edit_roaster',
             'complaint_list', 
             'complaint_update',
+            'DeptLogPlayers',
+            'mark_player_status',
+            'start_transport',
+            'end_transport',
             'login',
             'logout',
         }
@@ -150,16 +156,19 @@ class RoleBasedAccessMiddleware:
             current_url_name = resolver_match.url_name  
             print("Current URL name:", current_url_name, role_id, dept_id)
 
-            if role_id == 2:
-                if dept_id in [1, 2]:
-                    allowed_urls = self.allowed_urls_role_2_dept_1_or_2
-                else:
-                    allowed_urls = self.allowed_urls_role_2
+            # if role_id == 2:
+            #     if dept_id in [1, 2]:
+            #         allowed_urls = self.allowed_urls_role_2_dept_1_or_2
+            #     else:
+            #         allowed_urls = self.allowed_urls_role_2
 
-                if current_url_name and current_url_name not in allowed_urls:
-                    return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
+            #     if current_url_name and current_url_name not in allowed_urls:
+            #         return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
+                
+            if role_id == 2 and dept_id == 1 and current_url_name and current_url_name not in self.allowed_urls_role_2_dep_1:
+                return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
             
-            if role_id == 3 and current_url_name and current_url_name not in self.allowed_urls_role_3:
+            if role_id == 2 and dept_id == 2 and current_url_name and current_url_name not in self.allowed_urls_role_2_dept_2:
                 return HttpResponseRedirect(reverse('login') + '?msg=Unauthorized')
 
         return self.get_response(request)

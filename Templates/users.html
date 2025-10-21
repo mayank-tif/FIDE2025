@@ -6,6 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Users - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
+  <style>
+    #users-table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px; /* Adjust as needed */
+    }
+</style>
 </head>
 <body>
 <div class="app-shell">
@@ -27,6 +35,7 @@
         <thead>
           <tr>
             <th>Users</th>
+            <th>User Name</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Department</th>
@@ -38,6 +47,7 @@
           {% for user in page_obj %}
           <tr data-id="{{ user.id }}">
             <td>{{ user.name }}</td>
+            <td>{{ user.loginname }}</td>
             <td>{{ user.email }}</td>
             <td>{{ user.mobilenumber }}</td>
             <td>{{ user.department.name }}</td>

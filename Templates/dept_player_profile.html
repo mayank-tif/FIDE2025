@@ -397,7 +397,7 @@
           
           // Get stored URL with search and pagination
           const storedUrl = sessionStorage.getItem('playersListUrl');
-          let backUrl = "{% url 'DeptPlayers' %}";
+          let backUrl = "{% url 'DeptAccFBPlayers' %}";
           
           if (storedUrl) {
             backUrl += storedUrl;

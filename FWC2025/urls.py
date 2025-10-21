@@ -46,8 +46,12 @@ urlpatterns = [
     path('delete-player-document/', DeletePlayerDocument.as_view(), name='delete_player_document'),
     path('enquiries/', EnquiryListView.as_view(), name='enquiry_list'),
     path('mapi/', include('MAppApis.urls', namespace='MAppApis')),
-    path('dept/players/', DeptPlayerView.as_view(), name='DeptPlayers'),
+    path('dept/players/', DeptPlayerView.as_view(), name='DeptAccFBPlayers'),
     path('dept/player/<int:player_id>/', DeptPlayerProfile.as_view(), name='DeptPlayerProfile'),
+    path('dept/log/players/', PlayerLogisticsView.as_view(), name='DeptLogPlayers'),
+    path('logistics/roasters/start/<int:roaster_id>/', StartTransportView.as_view(), name='start_transport'),
+    path('logistics/roasters/end/<int:roaster_id>/', EndTransportView.as_view(), name='end_transport'),
+    path('player-logistics/mark-status/<int:player_id>/', MarkPlayerStatusView.as_view(), name='mark_player_status'),
 ]
 
 if settings.DEBUG:

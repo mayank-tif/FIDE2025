@@ -8,242 +8,75 @@
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
   <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
   <style>
-    /* Avatar Styles */
-    .avatar-wrapper {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e9ecef;
-      font-weight: bold;
-      font-size: 14px;
-      color: #495057;
-    }
+    /* ... (keep all existing styles) ... */
     
-    .player-avatar {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    /* Badge Styles */
-    .badge {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
-    
-    .badge--active {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .badge--departed {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .badge--knocked {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-    }
-    
-    .badge--morning {
-      background: #e7f3ff;
-      color: #0066cc;
-      border: 1px solid #b3d9ff;
-    }
-    
-    .badge--afternoon {
-      background: #fff0e6;
-      color: #cc6600;
-      border: 1px solid #ffd9b3;
-    }
-    
-    .badge--evening {
-      background: #f0e6ff;
-      color: #6600cc;
-      border: 1px solid #d9b3ff;
-    }
-    
-    .badge--hotel {
-      background: #e6ffe6;
-      color: #006600;
-      border: 1px solid #b3ffb3;
-    }
-    
-    /* Button Styles */
-    .btn-icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-      text-decoration: none;
-      display: inline-block;
-    }
-    
-    .btn-icon:hover {
-      background: #f8f9fa;
-    }
-    
-    /* Message Styles */
-    .message {
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-    
-    .message.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .message.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .message.warning {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-    }
-    
-    .message.info {
-      background: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
-    }
-    
-    /* Expandable Content Styles */
-    .expandable-content {
-      position: relative;
-      cursor: pointer;
-    }
-    
-    .truncated-text {
-      max-width: 150px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 12px;
-      color: #6c757d;
-      padding: 4px 8px;
-      border-radius: 4px;
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      transition: all 0.3s ease;
-    }
-    
-    .truncated-text:hover {
-      background: #e9ecef;
-    }
-    
-    .truncated-text.expanded {
-      white-space: normal;
-      max-width: none;
-      background: #fff3cd;
-      border-color: #ffeaa7;
-    }
-    
-    .expand-indicator {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 10px;
-      color: #6c757d;
-    }
-    
-    .full-content {
+    /* Hotel & Room Assignment Modal Styles */
+    .assignment-modal {
       display: none;
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       background: white;
-      padding: 20px;
+      padding: 25px;
       border-radius: 8px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      z-index: 1000;
-      max-width: 90vw;
-      max-height: 80vh;
-      overflow-y: auto;
+      z-index: 1001;
+      width: 90%;
+      max-width: 400px;
       border: 2px solid #5a8372;
     }
     
-    .full-content h4 {
+    .assignment-modal h3 {
       margin-top: 0;
       color: #495057;
       border-bottom: 2px solid #5a8372;
-      padding-bottom: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
     }
     
-    .full-content .content {
-      margin: 15px 0;
-      line-height: 1.5;
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
       color: #495057;
     }
     
-    .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      color: #6c757d;
-    }
-    
-    .close-btn:hover {
-      color: #495057;
-    }
-    
-    .overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
+    .form-group select,
+    .form-group input {
       width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 999;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
     }
     
-    /* Responsive table styles */
-    @media (max-width: 768px) {
-      .logistics-table-wrapper {
-        overflow-x: auto;
-      }
-      
-      table {
-        min-width: 800px;
-      }
-      
-      .truncated-text {
-        max-width: 120px;
-      }
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
     }
     
-    @media (max-width: 480px) {
-      .truncated-text {
-        max-width: 100px;
-      }
+    .current-assignment {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 5px;
+      font-style: italic;
+    }
+    
+    .assignment-badge {
+      display: inline-block;
+      background: #e7f3ff;
+      color: #0066cc;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -261,7 +94,7 @@
 
       <div class="toolbar">
         <div class="logistics-search">
-          <form method="GET" action="{% url 'DeptPlayers' %}" class="search-form" style="display: flex; gap: 8px; align-items: center;">
+          <form method="GET" action="{% url 'DeptAccFBPlayers' %}" class="search-form" style="display: flex; gap: 8px; align-items: center;">
             <input type="text" 
                    name="q" 
                    value="{{ search_query }}" 
@@ -280,6 +113,7 @@
                 <th>S.No.</th>
                 <th>Photo</th>
                 <th>Player Name</th>
+                <th>Hotel & Room</th>
                 <th>Room Cleaning</th>
                 <th>Accompanying Persons</th>
                 <th>Food Allergies</th>
@@ -304,6 +138,17 @@
                   {% endif %}
                 </td>
                 <td>{{ player.name|default:"" }}</td>
+                
+                <!-- Hotel & Room Assignment -->
+                <td>
+                  {% if player.hotel and player.room_no %}
+                    <div class="assignment-badge">
+                      {{ player.hotel }} - Room {{ player.room_no }}
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;">Not assigned</span>
+                  {% endif %}
+                </td>
                 
                 <!-- Room Cleaning Preference -->
                 <td>
@@ -365,11 +210,17 @@
                      class="btn-icon profile-view-btn" 
                      title="View Profile"
                      data-player-id="{{ player.id }}">👁️</a>
+                  <button class="btn-icon assign-room-btn" 
+                          title="Assign Hotel & Room"
+                          data-player-id="{{ player.id }}"
+                          data-player-name="{{ player.name }}"
+                          data-current-hotel="{{ player.hotel|default:'' }}"
+                          data-current-room="{{ player.room_no|default:'' }}">🏨</button>
                 </td>
               </tr>
               {% empty %}
               <tr>
-                <td colspan="9" style="text-align: center; padding: 20px;">
+                <td colspan="10" style="text-align: center; padding: 20px;">
                   No players found
                 </td>
               </tr>
@@ -396,6 +247,39 @@
     </main>
   </div>
 
+  <!-- Hotel & Room Assignment Modal -->
+  <div class="assignment-modal" id="assignmentModal">
+    <h3>Assign Hotel & Room</h3>
+    <form id="assignmentForm" method="POST" action="{% url 'DeptAccFBPlayers' %}">
+      {% csrf_token %}
+      <input type="hidden" id="playerId" name="player_id">
+      
+      <div class="form-group">
+        <label for="hotelSelect">Hotel:</label>
+        <select id="hotelSelect" name="hotel" required>
+          <option value="">Select Hotel</option>
+          {% for value, label in hotel_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="roomNo">Room Number:</label>
+        <input type="text" id="roomNo" name="room_no" placeholder="Enter room number" required>
+      </div>
+      
+      <div class="current-assignment" id="currentAssignment">
+        <!-- Current assignment will be shown here -->
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn btn--secondary" id="cancelAssignment">Cancel</button>
+        <button type="submit" class="btn btn--primary">Assign</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Full Content Modal -->
   <div class="overlay" id="contentOverlay"></div>
   <div class="full-content" id="fullContent">
@@ -403,6 +287,7 @@
     <h4 id="contentTitle"></h4>
     <div class="content" id="contentBody"></div>
   </div>
+  <script src="{% static 'assets/js/app.js' %}"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -416,7 +301,61 @@
         });
       });
       
-      // Expandable content functionality
+      // Hotel & Room Assignment functionality
+      const assignmentModal = document.getElementById('assignmentModal');
+      const assignmentForm = document.getElementById('assignmentForm');
+      const cancelAssignmentBtn = document.getElementById('cancelAssignment');
+      const assignRoomButtons = document.querySelectorAll('.assign-room-btn');
+      const playerIdInput = document.getElementById('playerId');
+      const hotelSelect = document.getElementById('hotelSelect');
+      const roomNoInput = document.getElementById('roomNo');
+      const currentAssignmentDiv = document.getElementById('currentAssignment');
+      
+      assignRoomButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const playerId = this.getAttribute('data-player-id');
+          const playerName = this.getAttribute('data-player-name');
+          const currentHotel = this.getAttribute('data-current-hotel');
+          const currentRoom = this.getAttribute('data-current-room');
+          
+          // Set form values
+          playerIdInput.value = playerId;
+          hotelSelect.value = currentHotel;
+          roomNoInput.value = currentRoom;
+          
+          // Update modal title and current assignment
+          assignmentModal.querySelector('h3').textContent = `Assign Hotel & Room - ${playerName}`;
+          
+          if (currentHotel && currentRoom) {
+            currentAssignmentDiv.textContent = `Current: ${currentHotel} - Room ${currentRoom}`;
+            currentAssignmentDiv.style.display = 'block';
+          } else {
+            currentAssignmentDiv.style.display = 'none';
+          }
+          
+          // Show modal
+          document.getElementById('contentOverlay').style.display = 'block';
+          assignmentModal.style.display = 'block';
+        });
+      });
+      
+      // Close assignment modal
+      function closeAssignmentModal() {
+        document.getElementById('contentOverlay').style.display = 'none';
+        assignmentModal.style.display = 'none';
+        assignmentForm.reset();
+        currentAssignmentDiv.style.display = 'none';
+      }
+      
+      cancelAssignmentBtn.addEventListener('click', closeAssignmentModal);
+      
+      // Close modal when clicking overlay
+      document.getElementById('contentOverlay').addEventListener('click', function() {
+        closeAssignmentModal();
+        closeModal(); // Also close content modal if open
+      });
+      
+      // Expandable content functionality (keep existing)
       const expandableContents = document.querySelectorAll('.expandable-content');
       const overlay = document.getElementById('contentOverlay');
       const fullContent = document.getElementById('fullContent');
@@ -452,12 +391,12 @@
       }
       
       closeBtn.addEventListener('click', closeModal);
-      overlay.addEventListener('click', closeModal);
       
       // Close modal with Escape key
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
           closeModal();
+          closeAssignmentModal();
         }
       });
       
@@ -475,28 +414,6 @@
       {% endif %}
     });
 
-    // Message display function
-    function showMessage(message, type) {
-      const messageContainer = document.getElementById('message-container');
-      const messageDiv = document.createElement('div');
-      
-      let messageClass = 'message';
-      if (type === 'success') messageClass += ' success';
-      else if (type === 'error') messageClass += ' error';
-      else if (type === 'warning') messageClass += ' warning';
-      else if (type === 'info') messageClass += ' info';
-      else messageClass += ' info';
-      
-      messageDiv.className = messageClass;
-      messageDiv.textContent = message;
-      messageContainer.appendChild(messageDiv);
-      
-      setTimeout(() => {
-        if (messageDiv.parentNode) {
-          messageDiv.parentNode.removeChild(messageDiv);
-        }
-      }, 5000);
-    }
   </script>
 </body>
 </html>

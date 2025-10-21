@@ -154,6 +154,14 @@ class Players(models.Model):
         (ROOM_CLEANING_AT_HOTEL, "At Hotel"),
     ]
     
+    TRANSPORT_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
+    TRANSPORT_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
+    
+    TRANSPORT_STATUS_CHOICES = [
+        (TRANSPORT_ARRIVED_AIRPORT, "Arrived at Airport"),
+        (TRANSPORT_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
+    ]
+    
     id = models.AutoField(primary_key=True)
     image = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     documents = models.FileField(upload_to='player_documents/', null=True, blank=True)
@@ -186,9 +194,14 @@ class Players(models.Model):
     departure_flight_date = models.DateField(null=True)
     departure_flight_time = models.TimeField(null=True)
     departure_airport = models.CharField(max_length=300, null=True)
+    departure_fight_no = models.CharField(max_length=300, null=True)
     arrival_airport = models.CharField(max_length=300, null=True)
+    arrival_fight_no = models.CharField(max_length=300, null=True)
     arrival_flight_date = models.DateField(null=True)
     arrival_flight_time = models.TimeField(null=True)
+    transport_status = models.CharField(max_length=50, choices=TRANSPORT_STATUS_CHOICES, null=True, blank=True)
+    hotel = models.CharField(max_length=300, null=True)
+    room_no = models.CharField(max_length=40, null=True)
 
     def __str__(self):
         return self.loginname
@@ -236,6 +249,7 @@ class Roaster(models.Model):
     vechicle_type = models.TextField(null=False)
     number_of_seats = models.IntegerField(null=False)
     driver_name = models.CharField(max_length=100, null=False)
+    mobile_no = models.BigIntegerField(null=True)
     transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
     status_flag = models.IntegerField(default=1)
     created_by = models.IntegerField(null=True)
@@ -252,33 +266,43 @@ class Roaster(models.Model):
         
         
 class PlayerTransportationDetails(models.Model):
-    STATUS_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
-    STATUS_ENTROUTE_HOTEL = "ENTROUTE_HOTEL"
-    STATUS_REACHED_HOTEL = "REACHED_HOTEL"
-    STATUS_IN_TRANSIT = "IN_TRANSIT"
-    STATUS_REACHED_DESTINATION = "REACHED_DESTINATION"
-    STATUS_DEPARTED_AIRPORT = "DEPARTED_AIRPORT"
-    STATUS_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
-
-    STATUS_CHOICES = [
-        (STATUS_ARRIVED_AIRPORT, "Arrived at Airport"),
-        (STATUS_ENTROUTE_HOTEL, "Entroute to Hotel"),
-        (STATUS_REACHED_HOTEL, "Reached Hotel"),
-        (STATUS_IN_TRANSIT, "In Transit"),
-        (STATUS_REACHED_DESTINATION, "Reached Destination"),
-        (STATUS_DEPARTED_AIRPORT, "Departed for Airport"),
-        (STATUS_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
+    ENTRY_SCHEDULED = "SCHEDULED"
+    ENTRY_STARTED = "STARTED" 
+    ENTRY_ENDED = "ENDED"
+    ENTRY_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
+    ENTRY_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
+    
+    ENTRY_STATUS_CHOICES = [
+        (ENTRY_SCHEDULED, "Scheduled"),
+        (ENTRY_STARTED, "Started"),
+        (ENTRY_ENDED, "Ended"),
+        (ENTRY_ARRIVED_AIRPORT, "Arrived at Airport"),
+        (ENTRY_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
+    ]
+    
+    LOCATION_AIRPORT_MOPA = "AIRPORT_MOPA"
+    LOCATION_AIRPORT_DABOLIM = "AIRPORT_DABOLIM" 
+    LOCATION_HOTEL = "HOTEL"
+    LOCATION_OTHER = "OTHER"
+    
+    LOCATION_CHOICES = [
+        (LOCATION_AIRPORT_MOPA, "Airport MOPA"),
+        (LOCATION_AIRPORT_DABOLIM, "Airport Dabolim"),
+        (LOCATION_HOTEL, "Hotel"),
+        (LOCATION_OTHER, "Other"),
     ]
     
     id = models.AutoField(primary_key=True)
     playerId = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     roasterId = models.ForeignKey(Roaster, on_delete=models.DO_NOTHING, db_column='roasterId', null=True, blank=True)
     transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId', null=True)
-    pickup_location = models.CharField(max_length=500, null=True)
-    drop_location = models.CharField(max_length=500, null=True)
+    pickup_location = models.CharField(max_length=100, choices=LOCATION_CHOICES, null=True)
+    drop_location = models.CharField(max_length=200, choices=LOCATION_CHOICES, null=True) 
+    pickup_location_custom = models.CharField(max_length=500, null=True, blank=True)
+    drop_location_custom = models.CharField(max_length=500, null=True, blank=True)
     details = models.CharField(max_length=500, null=True)
     remarks = models.CharField(max_length=500, null=True)
-    status = models.CharField(max_length=200, choices=STATUS_CHOICES, default=STATUS_IN_TRANSIT, null=True, blank=True)
+    entry_status = models.CharField(max_length=100, choices=ENTRY_STATUS_CHOICES, default=ENTRY_SCHEDULED)
     travel_date = models.DateTimeField(null=True)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
@@ -287,20 +311,74 @@ class PlayerTransportationDetails(models.Model):
     status_flag = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"{self.playerId.name} - {self.pickup_location} to {self.drop_location}"
+        return f"{self.playerId.name} - {self.get_pickup_location_display()} to {self.get_drop_location_display()}"
+
+    @property
+    def player_status_display(self):
+        """
+        Dynamic property that returns the display text for player status
+        """
         
-    @classmethod
-    def get_status_display_text(cls, status_value):
-        """Get display text for a status value without creating object"""
-        if not status_value:
-            return "No Status"
-        for value, display in cls.STATUS_CHOICES:
-            if value == status_value:
-                return display
-        return status_value
+        if self.entry_status == self.ENTRY_ARRIVED_AIRPORT:
+            return "Arrived at Airport"
+        elif self.entry_status == self.ENTRY_REACHED_AIRPORT_DEPARTURE:
+            return "Reached Airport for Departure"
+        elif self.entry_status == self.ENTRY_SCHEDULED:
+            return "Scheduled" 
+            
+        try:
+            print("entry_status", self.entry_status, "pickup_location", self.pickup_location, "drop_location", self.drop_location)
+            mapping = TransportStatusMapping.objects.get(
+                pickup_location=self.pickup_location,
+                drop_location=self.drop_location,
+                status_type=self.entry_status, 
+                status_flag=1
+            )
+            print("mapping", mapping.player_status)
+            return mapping.player_status
+            
+        except TransportStatusMapping.DoesNotExist:
+            if self.entry_status == self.ENTRY_STARTED:
+                return "In Transit"
+            elif self.entry_status == self.ENTRY_ENDED:
+                return "Reached Destination"
+            return ""
+
+    class Meta:
+        db_table = 'PlayerTransportationDetails'
+
+
+class TransportStatusMapping(models.Model):
+    STATUS_TYPE_SCHEDULED = "SCHEDULED"
+    STATUS_TYPE_STARTED = "STARTED"
+    STATUS_TYPE_ENDED = "ENDED"
+    STATUS_ARRIVED_AIRPORT = "ARRIVED_AIRPORT"
+    STATUS_REACHED_AIRPORT_DEPARTURE = "REACHED_AIRPORT_DEPARTURE"
+    
+    STATUS_TYPE_CHOICES = [
+        (STATUS_TYPE_SCHEDULED, "Scheduled"),
+        (STATUS_TYPE_STARTED, "Started"),
+        (STATUS_TYPE_ENDED, "Ended"),
+        (STATUS_ARRIVED_AIRPORT, "Arrived at Airport"),
+        (STATUS_REACHED_AIRPORT_DEPARTURE, "Reached Airport for Departure"),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    pickup_location = models.CharField(max_length=80, choices=PlayerTransportationDetails.LOCATION_CHOICES)
+    drop_location = models.CharField(max_length=80, choices=PlayerTransportationDetails.LOCATION_CHOICES)
+    status_type = models.CharField(max_length=80, choices=STATUS_TYPE_CHOICES)
+    player_status = models.CharField(max_length=80) 
+    status_flag = models.IntegerField(default=1)
+    created_by = models.IntegerField(null=True)
+    created_on = models.DateTimeField(default=timezone.now)
+    updated_on = models.DateTimeField(null=True)
+    updated_by = models.IntegerField(null=True)
+    
+    def __str__(self):
+        return f"{self.get_pickup_location_display()} → {self.get_drop_location_display()} - {self.get_status_type_display()}: {self.player_status}"  # FIXED: use player_status directly
     
     class Meta:
-        db_table = 'PlayerTransportationDetails' 
+        db_table = 'TransportStatusMapping'
         
 
 class PlayerComplaint(models.Model):
@@ -488,13 +566,26 @@ class EnquiryDetails(models.Model):
     id = models.AutoField(primary_key=True)
     player= models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId')
     message = models.TextField()
-    response = models.TextField(null=True, blank=True)
     created_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
+    is_replied = models.BooleanField(default=False)
     
     class Meta:
         db_table = 'EnquiryDetails'
-
+        
+        
+class PlayerEnquiryResponses(models.Model):
+    id = models.AutoField(primary_key=True)
+    enquiry = models.ForeignKey(EnquiryDetails, on_delete=models.DO_NOTHING, db_column='enquiryId')
+    player = models.ForeignKey(Players, on_delete=models.DO_NOTHING, db_column='playerId', null=True, blank=True)
+    user = models.ForeignKey(MstUserLogins, on_delete=models.DO_NOTHING, db_column='userId', null=True, blank=True)
+    rnquiry_response = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now)
+    status_flag = models.IntegerField(default=1)
+    
+    class Meta: 
+        db_table = 'PlayerEnquiryResponses'
+        
 
 class EmailLog(models.Model):
     

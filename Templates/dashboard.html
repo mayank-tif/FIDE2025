@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
-
 </head>
 <body>
   <div class="app-shell">
@@ -15,6 +14,8 @@
       <div class="page-header">
         <h1>Dashboard</h1>
       </div>
+      
+      <!-- Statistics Cards -->
       <div class="dashboard-grid">
         <div class="stat-card">
           <div class="stat-icon">👥</div>
@@ -45,11 +46,248 @@
           </div>
         </div>
       </div>
+
+      <!-- Players Table Section -->
+      <div class="table-section">
+        <div class="section-header">
+          <h2>Recent Players</h2>
+          <div class="search-box">
+            <input type="text" id="player-search" placeholder="Search players...">
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table id="players-table" class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Player Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Transport Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in players_with_transport %}
+              {% with player=item.player %}
+              <tr data-player-id="{{ player.id }}">
+                <td class="player-name">
+                  {% if player.image %}
+                    <img src="{{ player.image.url }}" alt="{{ player.name }}" class="player-avatar">
+                  {% else %}
+                    <div class="avatar-initials">{{ player.name|slice:":2"|upper }}</div>
+                  {% endif %}
+                  {{ player.name }}
+                </td>
+                <td class="player-email">{{ player.email }}</td>
+                <td class="player-status">
+                  <span class="badge badge--{{ player.status|lower }}">
+                    {{ player.get_status_display }}
+                  </span>
+                </td>
+                <td class="transport-status">
+                  {% if item.transportation_status and item.transportation_status != "Not Set" %}
+                    <span class="badge badge--info">
+                      {{ item.transportation_status }}
+                    </span>
+                  {% else %}
+                    <span class="badge badge--secondary">Not Set</span>
+                  {% endif %}
+                </td>
+                <td class="actions">
+                  <button class="btn-icon view-player" data-player-id="{{ player.id }}" title="View Details">👁️</button>
+                </td>
+              </tr>
+              {% endwith %}
+              {% empty %}
+              <tr>
+                <td colspan="5" class="no-data">No players found</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if players_page.has_other_pages %}
+        <div class="pagination">
+          {% if players_page.has_previous %}
+            <a href="?page={{ players_page.previous_page_number }}" class="page-link">‹ Previous</a>
+          {% else %}
+            <span class="page-link disabled">‹ Previous</span>
+          {% endif %}
+          
+          {% for num in players_page.paginator.page_range %}
+            {% if players_page.number == num %}
+              <span class="page-link active">{{ num }}</span>
+            {% else %}
+              <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          
+          {% if players_page.has_next %}
+            <a href="?page={{ players_page.next_page_number }}" class="page-link">Next ›</a>
+          {% else %}
+            <span class="page-link disabled">Next ›</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      
+      </div>
     </main>
   </div>
-  {% comment %} <script type="module" src="{% static 'assets/js/app.js' %}"></script> {% endcomment %}
-  <script>
 
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Search functionality
+      $('#player-search').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('#players-table tbody tr').each(function() {
+          const playerName = $(this).find('.player-name').text().toLowerCase();
+          const playerEmail = $(this).find('.player-email').text().toLowerCase();
+          const isVisible = playerName.includes(searchTerm) || playerEmail.includes(searchTerm);
+          $(this).toggle(isVisible);
+        });
+      });
+
+      // View player details
+      $('.view-player').on('click', function() {
+        const playerId = $(this).data('player-id');
+        window.location.href = `/player/${playerId}/`;
+      });
+    });
   </script>
+
+  <style>
+    /* Your existing CSS styles remain the same */
+    .table-section {
+      margin-top: 2rem;
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .section-header h2 {
+      margin: 0;
+      color: #271f64;
+    }
+    .dashboard-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .dashboard-table th {
+      background: #f8f9fa;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #271f64;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .dashboard-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .player-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .player-avatar, .avatar-initials {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .avatar-initials {
+      background: #271f64;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge--active { background: #28a745; color: white; }
+    .badge--departed { background: #6c757d; color: white; }
+    .badge--knocked_out { background: #dc3545; color: white; }
+    .badge--info { background: #17a2b8; color: white; }
+    .badge--secondary { background: #6c757d; color: white; }
+    .no-data {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+      padding: 2rem;
+    }
+    
+    /* Pagination Styles */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+    .page-link {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #271f64;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    .page-link:hover {
+      background: #271f64;
+      color: white;
+      border-color: #271f64;
+    }
+    .page-link.active {
+      background: #271f64;
+      color: white;
+      border-color: #271f64;
+    }
+    .page-link.disabled {
+      color: #6c757d;
+      cursor: not-allowed;
+      background: #f8f9fa;
+    }
+    .page-link.disabled:hover {
+      background: #f8f9fa;
+      color: #6c757d;
+      border-color: #ddd;
+    }
+    
+    .view-all-container {
+      text-align: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e9ecef;
+    }
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .btn-icon:hover {
+      background: #f8f9fa;
+    }
+  </style>
 </body>
 </html>
