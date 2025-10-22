@@ -165,20 +165,23 @@
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <!-- Status buttons -->
                     {% if r.current_entry_status == "SCHEDULED" %}
-                      <button class="btn-status btn-start" data-roaster-id="{{ r.id }}" data-action="start">Start</button>
+                      <img src="{% static 'assets/images/start.png' %}" alt="Start" title="Start" class="status-icon" 
+                           data-roaster-id="{{ r.id }}" data-action="start" style="width:20px;height:20px;cursor:pointer;">
                     {% elif r.current_entry_status == "STARTED" %}
-                      <button class="btn-status btn-end" data-roaster-id="{{ r.id }}" data-action="end">End</button>
+                      <img src="{% static 'assets/images/end.png' %}" 
+                           alt="End" title="End"  class="status-icon" 
+                           data-roaster-id="{{ r.id }}" data-action="end" style="width:20px;height:20px;cursor:pointer;">
                     {% else %}
                       <button class="btn--add-roaster" disabled>Completed</button>
                     {% endif %}
-                    <!-- Edit button - only show when scheduled -->
+                  
                     {% if r.current_entry_status == "SCHEDULED" %}
                       <a href="{% url 'edit_roaster' r.id %}?page={{ page_obj.number }}" style="text-decoration: none;" >✏️</a>
-                    {% endif %}                
+                    {% endif %}
                   </div>
                 </td>
+
               </tr>
               {% endfor %}
             </tbody>
@@ -214,16 +217,17 @@
     // Status update functionality
     document.addEventListener('DOMContentLoaded', function() {
       // Status button click handlers
-      document.querySelectorAll('.btn-status').forEach(button => {
+      document.querySelectorAll('.status-icon').forEach(button => {
         button.addEventListener('click', function() {
           const roasterId = this.dataset.roasterId;
           const action = this.dataset.action;
           const newStatus = action === 'start' ? 'STARTED' : 'ENDED';
           
           // Show loading state
-          const originalText = this.textContent;
-          this.textContent = 'Updating...';
-          this.disabled = true;
+          const spinner = document.createElement('span');
+          spinner.className = 'spinner-overlay';
+          this.replaceWith(spinner);
+
           
           // Make AJAX request
           fetch(`/logistics/roasters/${action}/${roasterId}/`, {

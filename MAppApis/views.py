@@ -20,7 +20,7 @@ from utils.firebase_utils import *
 from datetime import datetime, timedelta
 from fwc.helpers import *
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from fwc.helpers import *
 from rest_framework.decorators import api_view, permission_classes
 import hashlib
@@ -191,17 +191,17 @@ class SendOTPAPIView(APIView):
         email_config = {
             'registration': {
                 'template': 'email.html',
-                'subject': 'Registration OTP - FIDE World Cup 2025',
+                'subject': 'Registration OTP - FIDE World Cup 2025 App',
                 'email_type': 'REGISTRATION'
             },
             'change_password': {
                 'template': 'change_password_email.html',
-                'subject': 'Password Change OTP - FIDE World Cup 2025',
+                'subject': 'Password Change OTP - FIDE World Cup 2025 App',
                 'email_type': 'CHANGE_PASSWORD'
             },
             'forgot_password': {
                 'template': 'forget_password_email.html',
-                'subject': 'Password Reset OTP - FIDE World Cup 2025',
+                'subject': 'Password Reset OTP - FIDE World Cup 2025 App',
                 'email_type': 'FORGOT_PASSWORD'
             }
         }
@@ -434,7 +434,8 @@ class LogoutView(APIView):
 
 class PlayerTransportationAPIView(APIView):
     """
-    POST API to fetch transportation details grouped by roaster for a specific player
+    POST API to fetch transportation details for a specific player
+    Includes both roaster-linked and standalone transport entries
     """
     
     def post(self, request):
@@ -452,22 +453,19 @@ class PlayerTransportationAPIView(APIView):
         print("player_id", player.id)
         
         try:            
-            # Get query parameters from POST data for filtering
             status_filter = request.data.get('status', None)
             transportation_type = request.data.get('transportation_type', None)
             date_from = request.data.get('date_from', None)
             date_to = request.data.get('date_to', None)
             vehicle_type = request.data.get('vehicle_type', None)
             
-            # Get all transportation details for this player
             player_transports = PlayerTransportationDetails.objects.filter(
                 playerId=player,
                 status_flag=1
-            ).select_related('roasterId', 'transportationTypeId')
+            )
             
-            # Apply filters to player transports
             if status_filter:
-                player_transports = player_transports.filter(status=status_filter)
+                player_transports = player_transports.filter(entry_status=status_filter)
             
             if transportation_type:
                 player_transports = player_transports.filter(transportationTypeId_id=transportation_type)
@@ -478,59 +476,53 @@ class PlayerTransportationAPIView(APIView):
             if date_to:
                 player_transports = player_transports.filter(travel_date__lte=date_to)
             
-            # Get unique roasters from the filtered transports
-            roaster_ids = player_transports.values_list('roasterId_id', flat=True).distinct()
+            transports_with_roasters = player_transports.filter(roasterId__isnull=False)
+            standalone_transports = player_transports.filter(roasterId__isnull=True)
+            
+            roaster_ids = transports_with_roasters.values_list('roasterId_id', flat=True).distinct()
             roasters = Roaster.objects.filter(
                 id__in=roaster_ids,
                 status_flag=1
-            ).select_related('transportationTypeId')
+            )
             
-            # Apply vehicle type filter to roasters
             if vehicle_type:
                 roasters = roasters.filter(vechicle_type__icontains=vehicle_type)
             
-            # Order roasters by creation date
+            # Prefetch transportation data for optimization
+            roasters = roasters.prefetch_related(
+                Prefetch(
+                    'playertransportationdetails_set',
+                    queryset=PlayerTransportationDetails.objects.filter(
+                        playerId=player,
+                        status_flag=1
+                    ).order_by('created_on'),
+                    to_attr='prefetched_transports'
+                )
+            )
+            
             roasters = roasters.order_by('-created_on')
             
-            # Serialize data with player context
             roaster_serializer = RoasterTransportationSerializer(
                 roasters, 
                 many=True, 
                 context={'player_id': player.id}
             )
             
-            # Calculate statistics
-            total_roasters = roasters.count()
-            total_transports = player_transports.count()
+            standalone_serializer = TransportationDetailSerializer(
+                standalone_transports.order_by('created_on'), 
+                many=True
+            )
             
-            now = timezone.now()
-            upcoming_count = player_transports.filter(travel_date__gte=now).count()
-            past_count = player_transports.filter(travel_date__lt=now).count()
-            
-            # Group by status for summary
-            status_summary = {}
-            for transport in player_transports:
-                status_val = transport.status
-                status_summary[status_val] = status_summary.get(status_val, 0) + 1
-            
-            # Prepare response
             response_data = {
                 "success": True,
-                # "filters_applied": {
-                #     "status": status_filter,
-                #     "transportation_type": transportation_type,
-                #     "date_from": date_from,
-                #     "date_to": date_to,
-                #     "vehicle_type": vehicle_type
-                # },
-                # "summary": {
-                #     "total_roasters": total_roasters,
-                #     "total_transportations": total_transports,
-                #     "upcoming_transportations": upcoming_count,
-                #     "past_transportations": past_count,
-                #     "status_breakdown": status_summary
-                # },
-                "roasters": roaster_serializer.data
+                "roasters": roaster_serializer.data,
+                "standalone_transports": standalone_serializer.data,
+                "summary": {
+                    "total_roasters": roasters.count(),
+                    "transports_with_roasters": transports_with_roasters.count(),
+                    "standalone_transports": standalone_transports.count(),
+                    "total_transports": player_transports.count()
+                }
             }
             
             return Response(response_data, status=status.HTTP_200_OK)
@@ -548,6 +540,7 @@ class PlayerTransportationAPIView(APIView):
                 "error": "Server error",
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -774,7 +767,6 @@ class ContactFormView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
-# views.py
 class EnquiryCreateOrReplyAPI(APIView):
     """
     POST API to handle both:

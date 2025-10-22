@@ -224,12 +224,8 @@
                 </td>
                 
                 <td>
-                  {% if not player.has_departure_status %}
-                  <button class="btn-mark-status" 
-                          data-player-id="{{ player.id }}" 
-                          data-player-name="{{ player.name }}">
-                    Mark as Reached Airport
-                  </button>
+                  {% if not player.has_departure_status %}                           
+                    <img class="mark-status" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" alt="Mark as Reached Airport" title="Mark as Reached Airport" src="{% static 'assets/images/reached_aiport.png' %}">
                   {% else %}
                   <span class="already-marked">✓ Already Marked</span>
                   {% endif %}
@@ -284,7 +280,7 @@
       });
 
       // Status marking functionality
-      document.querySelectorAll('.btn-mark-status').forEach(button => {
+      document.querySelectorAll('.mark-status').forEach(button => {
         button.addEventListener('click', function() {
           const playerId = this.dataset.playerId;
           const playerName = this.dataset.playerName;

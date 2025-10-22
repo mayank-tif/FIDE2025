@@ -359,7 +359,6 @@ class PlayerProfile(View):
             status_flag=1
         ).select_related(
             'roasterId', 
-            'transportationTypeId', 
         ).order_by('-created_on')
         
         # Get the latest roaster assignment
@@ -443,7 +442,7 @@ class UpdatePlayerProfile(View):
                 new_transport = PlayerTransportationDetails.objects.create(
                     playerId=player,
                     roasterId=latest_transport.roasterId,
-                    transportationTypeId=latest_transport.transportationTypeId,
+                    # transportationTypeId=latest_transport.transportationTypeId,
                     pickup_location=latest_transport.pickup_location,
                     drop_location=latest_transport.drop_location,
                     pickup_location_custom=latest_transport.pickup_location_custom,
@@ -518,7 +517,7 @@ class PlayerTransportView(View):
             
             transportation_details = PlayerTransportationDetails.objects.filter(
                 playerId=player
-            ).select_related('transportationTypeId', 'roasterId').order_by('-created_on')
+            ).select_related('roasterId').order_by('-created_on')
             
             transport_data = []
             for transport in transportation_details:
@@ -1073,7 +1072,7 @@ class EditUserView(View):
         user.roleid = role
         user.department = department
         user.updated_on = timezone.now()
-        user.updated_by = request.session.get("edit_loginid")
+        user.updated_by = request.session.get("loginid")
         user.save()
         log_user_activity(request, "Update User", f"User ID({user_id}) - {user.name} updated")
         return JsonResponse({"success": True, "message": "User updated successfully."})
@@ -1252,7 +1251,7 @@ class RoasterAddView(View):
         number_of_seats = request.POST.get('number_of_seats')
         driver_name = request.POST.get('driverName')
         mobile_no = request.POST.get('mobile_no')
-        transportation_type_id = request.POST.get('transportationTypeId')
+        # transportation_type_id = request.POST.get('transportationTypeId')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
         travel_date_str = request.POST.get('travel_date')
@@ -1280,9 +1279,9 @@ class RoasterAddView(View):
             number_of_seats=number_of_seats,
             driver_name=driver_name,
             mobile_no=mobile_no,
-            transportationTypeId_id=transportation_type_id,
+            # transportationTypeId_id=transportation_type_id,
             status_flag=1,
-            created_by=request.session.get('user_id'),
+            created_by=request.session.get('loginid'),
         )
 
         for player_id in assigned_players:
@@ -1296,8 +1295,8 @@ class RoasterAddView(View):
                 drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,   
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 travel_date=travel_date,
-                transportationTypeId_id=transportation_type_id,
-                created_by=request.session.get('user_id')
+                # transportationTypeId_id=transportation_type_id,
+                created_by=request.session.get('loginid')
             )
 
         messages.success(request, "Roaster and player travel details added successfully!")
@@ -1336,7 +1335,7 @@ class RoasterEditView(View):
         mobile_no = request.POST.get('mobile_no')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
-        transportation_type_id = request.POST.get('transportationTypeId')
+        # transportation_type_id = request.POST.get('transportationTypeId')
         travel_date_str = request.POST.get('travel_date')
         travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
         pickup_location = request.POST.get('pickup_location')
@@ -1362,7 +1361,7 @@ class RoasterEditView(View):
         roaster.number_of_seats = number_of_seats
         roaster.driver_name = driver_name
         roaster.mobile_no = mobile_no
-        roaster.transportationTypeId_id = transportation_type_id
+        # roaster.transportationTypeId_id = transportation_type_id
         roaster.updated_by = request.session.get('loginid')
         roaster.updated_on = timezone.now()
         roaster.save()
@@ -1398,7 +1397,7 @@ class RoasterEditView(View):
                 drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 travel_date=travel_date,
-                transportationTypeId_id=transportation_type_id,
+                # transportationTypeId_id=transportation_type_id,
                 created_by=request.session.get('loginid')
             )
 
@@ -1412,7 +1411,7 @@ class RoasterEditView(View):
             drop_location=drop_location,
             drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
             travel_date=travel_date,
-            transportationTypeId_id=transportation_type_id,
+            # transportationTypeId_id=transportation_type_id,
             updated_by=request.session.get('loginid'),
             updated_on=timezone.now()
         )
@@ -1437,7 +1436,7 @@ class StartTransportView(View):
                 PlayerTransportationDetails.objects.create(
                     playerId=transport.playerId,
                     roasterId=roaster,
-                    transportationTypeId=transport.transportationTypeId,
+                    # transportationTypeId=transport.transportationTypeId,
                     pickup_location=transport.pickup_location,
                     drop_location=transport.drop_location,
                     pickup_location_custom=transport.pickup_location_custom,
@@ -1471,33 +1470,31 @@ class EndTransportView(View):
             current_transports = PlayerTransportationDetails.objects.filter(
                 roasterId=roaster,
                 status_flag=1
-            )
+            ).first()
             
-            created_count = 0
-            for transport in current_transports:
-                PlayerTransportationDetails.objects.create(
-                    playerId=transport.playerId,
-                    roasterId=roaster,
-                    transportationTypeId=transport.transportationTypeId,
-                    pickup_location=transport.pickup_location,
-                    drop_location=transport.drop_location,
-                    pickup_location_custom=transport.pickup_location_custom,
-                    drop_location_custom=transport.drop_location_custom,
-                    details=transport.details,
-                    remarks=f"Transport ended from {transport.get_pickup_location_display()} to {transport.get_drop_location_display()}",
-                    entry_status=PlayerTransportationDetails.ENTRY_ENDED,
-                    travel_date=timezone.now(), 
-                    created_by=user_id
-                )
-                created_count += 1
+            PlayerTransportationDetails.objects.create(
+                playerId=current_transports.playerId,
+                roasterId=roaster,
+                # transportationTypeId=transport.transportationTypeId,
+                pickup_location=current_transports.pickup_location,
+                drop_location=current_transports.drop_location,
+                pickup_location_custom=current_transports.pickup_location_custom,
+                drop_location_custom=current_transports.drop_location_custom,
+                details=current_transports.details,
+                remarks=f"Transport ended from {current_transports.get_pickup_location_display()} to {current_transports.get_drop_location_display()}",
+                entry_status=PlayerTransportationDetails.ENTRY_ENDED,
+                travel_date=timezone.now(), 
+                created_by=user_id
+            )
             
             return JsonResponse({
                 'success': True,
-                'message': f'Transport ended for {created_count} players. New timeline entries created.',
+                'message': f'New timeline entries created.',
                 'new_status': 'ENDED'
             })
             
         except Exception as e:
+            print("Error ending transport:", str(e))
             return JsonResponse({
                 'success': False,
                 'message': f'Error ending transport: {str(e)}'
@@ -1684,7 +1681,7 @@ class DeptPlayerProfile(View):
         
         transportation_details = PlayerTransportationDetails.objects.filter(
             playerId=player, 
-        ).select_related('roasterId', 'transportationTypeId').order_by('-travel_date', '-created_on')
+        ).select_related('roasterId').order_by('-travel_date', '-created_on')
         
         return render(request, self.template_name, {
             "player": player, 
@@ -1780,3 +1777,156 @@ class MarkPlayerStatusView(View):
                 'success': False,
                 'message': f'Error updating status: {str(e)}'
             }, status=400)
+            
+            
+            
+class PlayersExportView(View):
+    
+    def get(self, request):
+        """Export players to Excel with formatted output matching HTML display"""
+        try:
+            # Get all players data
+            players = Players.objects.filter(status_flag=1).prefetch_related(
+                Prefetch(
+                    'playertransportationdetails_set',
+                    queryset=PlayerTransportationDetails.objects.filter(status_flag=1).order_by('-created_on'),
+                    to_attr='latest_transports'
+                )
+            ).order_by("-id")
+
+            # Prepare data for export
+            export_data = []
+            for player in players:
+                latest_transport = player.latest_transports[0] if player.latest_transports else None
+                transportation_status = latest_transport.player_status_display if latest_transport else "Not Set"
+
+                export_data.append({
+                    'player_id': f"P{player.id}",
+                    'player_name': player.name,
+                    'fide_id': getattr(player, 'fideId', ''),
+                    'age': getattr(player, 'age', ''),
+                    'gender': getattr(player, 'gender', ''),
+                    'country': player.countryid.country_name if player.countryid else '',
+                    'email': player.email,
+                    'status': player.get_status_display() if player.status else '',
+                    'transportation_status': transportation_status,
+                    'created_date': player.created_on.strftime("%d %b %Y") if player.created_on else '',
+                })
+
+            # Convert to DataFrame
+            df = pd.DataFrame(export_data)
+
+            # Rename columns for Excel display to match HTML
+            if not df.empty:
+                df.rename(
+                    columns={
+                        'player_id': 'Player ID',
+                        'player_name': 'Player Name',
+                        'fide_id': 'FIDE ID',
+                        'age': 'Age',
+                        'gender': 'Gender',
+                        'country': 'Country',
+                        'email': 'Email',
+                        'status': 'Status',
+                        'transportation_status': 'Transportation Status',
+                        'created_date': 'Registration Date',
+                    },
+                    inplace=True
+                )
+                
+            df = df.replace([float('inf'), float('-inf')], None)
+            df = df.fillna("")  # or .fillna("N/A") if you want
+
+
+            # Create Excel file in memory
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                # Write data starting from row 2 to leave space for title
+                df.to_excel(writer, sheet_name="Players Report", startrow=2, index=False)
+
+                workbook = writer.book
+                worksheet = writer.sheets["Players Report"]
+
+                # Add title
+                title_format = workbook.add_format({
+                    'bold': True,
+                    'font_size': 16,
+                    'align': 'center',
+                })
+
+                date_format = workbook.add_format({
+                    'bold': False,
+                    'font_size': 12,
+                    'align': 'center',
+                })
+
+                # Write title
+                worksheet.merge_range('A1:J1', 'PLAYERS REPORT', title_format)
+                worksheet.merge_range('A2:J2', f'Generated on: {datetime.now().strftime("%d %b %Y at %I:%M %p")}', date_format)
+
+                # Add header formatting
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#271f64',
+                    'font_color': 'white',
+                    'border': 1,
+                    'align': 'center',
+                })
+
+                # Apply header format
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(2, col_num, value, header_format)
+
+                # Add data formatting
+                data_format = workbook.add_format({
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'border': 1,
+                })
+
+                # Apply data format to all data cells
+                for row_num in range(3, len(df) + 3):
+                    for col_num in range(len(df.columns)):
+                        worksheet.write(row_num, col_num, df.iat[row_num-3, col_num], data_format)
+
+                # Set column widths
+                column_widths = {
+                    'Player ID': 12,
+                    'Player Name': 25,
+                    'FIDE ID': 15,
+                    'Age': 8,
+                    'Gender': 10,
+                    'Country': 15,
+                    'Email': 25,
+                    'Status': 15,
+                    'Transportation Status': 20,
+                    'Registration Date': 15,
+                }
+
+                # Apply column widths
+                for col_num, column_name in enumerate(df.columns):
+                    width = column_widths.get(column_name, 15)
+                    worksheet.set_column(col_num, col_num, width)
+
+                # Add autofilter
+                worksheet.autofilter(2, 0, len(df) + 2, len(df.columns) - 1)
+
+                # Freeze header row and title
+                worksheet.freeze_panes(3, 0)
+
+            # Prepare response
+            output.seek(0)
+            filename = f"Players_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+            response = HttpResponse(
+                output,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+            log_user_activity(request, "Export Players", "Players data exported to Excel")
+            return response
+
+        except Exception as e:
+            return HttpResponse(f"Error exporting data: {str(e)}", status=500)

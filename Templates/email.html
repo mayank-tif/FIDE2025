@@ -6,59 +6,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Welcome to FWC 2025</title>
+  <title>Password Change OTP - FWC 2025</title>
 
   <style type="text/css">
-            a,a[href],a:hover, a:link, a:visited {
-                /* This is the link colour */
-                text-decoration: none!important;
-                color: #0000EE;
-            }
+    a, a[href], a:hover, a:link, a:visited {
+      text-decoration: none!important;
+      color: #0000EE;
+    }
 
-            .link {
-                text-decoration: underline!important;
-            }
+    .link {
+      text-decoration: underline!important;
+    }
 
-            p, p:visited {
-                /* Fallback paragraph style */
-                font-size: 15px;
-                line-height: 24px;
-                font-family: 'Helvetica', Arial, sans-serif;
-                font-weight: 300;
-                text-decoration: none;
-                color: #000000;
-            }
+    p, p:visited {
+      font-size: 15px;
+      line-height: 24px;
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-weight: 300;
+      text-decoration: none;
+      color: #000000;
+    }
 
-            h1 {
-                /* Fallback heading style */
-                font-size: 22px;
-                line-height: 24px;
-                font-family: 'Helvetica', Arial, sans-serif;
-                font-weight: normal;
-                text-decoration: none;
-                color: #000000;
-            }
+    h1 {
+      font-size: 22px;
+      line-height: 24px;
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-weight: normal;
+      text-decoration: none;
+      color: #000000;
+    }
 
-            .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td {
-                line-height: 100%;
-            }
+    .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td {
+      line-height: 100%;
+    }
 
-            .ExternalClass {
-                width: 100%;
-            }
-            .document-list {
-                list-style-type: none;
-                padding: 0;
-                margin: 0;
-            }
-            .document-list li {
-                padding: 5px 0;
-                border-bottom: 1px solid #eee;
-            }
-            .document-list li:last-child {
-                border-bottom: none;
-            }
-        </style>
+    .ExternalClass {
+      width: 100%;
+    }
+
+    .otp-code {
+      font-size: 32px;
+      font-weight: bold;
+      color: #241A4F;
+      letter-spacing: 5px;
+      padding: 15px 0;
+      margin: 20px 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .security-note {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: #856404;
+    }
+
+    .expiry-note {
+      color: #dc3545;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  </style>
 
 </head>
 
@@ -67,41 +80,59 @@
   <!-- Fallback force center content -->
   <div style="text-align: center;">
 
-    
-     <!-- Start container for logo -->
+    <!-- Start container for logo -->
     <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
       <tbody>
         <tr>
           <td style="width: 596px; vertical-align: top; padding-left: 0; padding-right: 0; padding-top: 15px; padding-bottom: 15px;" width="596">
-
-       
- <img style="width: 600px; max-width: 595px; height: 350px; max-height: 350px; text-align: center;" alt="FWC image" src="https://player.fwc2025.in/static/email/FIDE_Elements-min.png" align="center" width="600" height="350">
-   
+            <img style="width: 600px; max-width: 595px; height: 350px; max-height: 350px; text-align: center;" alt="FWC image" src="https://player.fwc2025.in/static/email/FIDE_Elements-min.png" align="center" width="600" height="350">
           </td>
         </tr>
       </tbody>
     </table>
     <!-- End container for logo -->
+
     <!-- Start single column section -->
     <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
-        <tbody>
-          <tr>
-            <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
-              <h1 style="font-size: 20px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #000000;">
-              </h1>
-              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">
-                Thank you for signing up! To get started, we’ve sent a one-time password (OTP) to your registered email. Simply enter the OTP in the WebApp to verify your account .
-              </p>
-              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">Your OTP: {{otp}}</p>    
-              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;">
-                
-              </p>
-              <p style="font-size: 15px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #919293;"></p>               
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <!-- End single column section -->  
+      <tbody>
+        <tr>
+          <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
+            
+            
+            <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #495057; margin-bottom: 25px;">
+                Thank you for signing up! To get started, we’ve sent a one-time password (OTP) to your registered email. Simply enter the OTP in the WebApp to verify your account.
+            </p>
+
+            <!-- OTP Code -->
+            <div class="otp-code">
+              {{otp}}
+            </div>
+
+
+            <p style="font-size: 14px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #6c757d; margin-top: 25px;">
+              Enter this OTP in the password change section of the FIDE World Cup 2025 web application to complete the process.
+            </p>
+               
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- End single column section -->
+
+    <!-- Footer Section -->
+    <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #241A4F;" width="600">
+      <tbody>
+        <tr>
+          <td style="width: 596px; vertical-align: top; padding: 20px 30px;" width="596">
+            <p style="font-size: 12px; line-height: 18px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #ffffff;">
+              This is an automated message. Please do not reply to this email.<br>
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- End Footer Section -->
+    
   </div>
-  </body>
+</body>
 </html>

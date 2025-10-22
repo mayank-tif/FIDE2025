@@ -187,25 +187,37 @@ class DepartmentSerializer(serializers.ModelSerializer):
         model = Department
         fields = ['id', 'name']   
             
-
 class TransportationDetailSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    status_display = serializers.CharField(source='get_entry_status_display', read_only=True)
+    player_status_display = serializers.SerializerMethodField()
     transportation_type_details = serializers.SerializerMethodField()
+    pickup_location_display = serializers.CharField(source='get_pickup_location_display', read_only=True)
+    drop_location_display = serializers.CharField(source='get_drop_location_display', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
     
     class Meta:
         model = PlayerTransportationDetails
         fields = [
             'id',
             'pickup_location',
-            'drop_location',
+            'pickup_location_display',
+            'drop_location', 
+            'drop_location_display',
+            'pickup_location_custom',
+            'drop_location_custom',
             'details',
             'remarks',
-            'status',
+            'entry_status',
             'status_display',
+            'player_status_display',
             'travel_date',
             'created_on',
-            'transportation_type_details'
+            'created_by_name',
+            'transportation_type_details',
         ]
+    
+    def get_player_status_display(self, obj):
+        return obj.player_status_display
     
     def get_transportation_type_details(self, obj):
         if obj.transportationTypeId:
@@ -214,33 +226,113 @@ class TransportationDetailSerializer(serializers.ModelSerializer):
                 'name': obj.transportationTypeId.Name
             }
         return None
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            try:
+                user = MstUserLogins.objects.get(id=obj.created_by)
+                return user.name
+            except MstUserLogins.DoesNotExist:
+                return "Unknown User"
+        return None
+
 
 class RoasterTransportationSerializer(serializers.ModelSerializer):
     player_transportations = serializers.SerializerMethodField()
+    driver_mobile = serializers.CharField(source='mobile_no')
+    created_by_name = serializers.SerializerMethodField()
+    
+    # Get location fields from the first transportation record
+    pickup_location = serializers.SerializerMethodField()
+    pickup_location_display = serializers.SerializerMethodField()
+    drop_location = serializers.SerializerMethodField()
+    drop_location_display = serializers.SerializerMethodField()
+    pickup_location_custom = serializers.SerializerMethodField()
+    drop_location_custom = serializers.SerializerMethodField()
     
     class Meta:
         model = Roaster
         fields = [
             'id',
             'vechicle_type',
-            'vechicle_no',
+            'vechicle_no', 
             'number_of_seats',
             'driver_name',
+            'driver_mobile',
+            'pickup_location',
+            'pickup_location_display',
+            'drop_location',
+            'drop_location_display',
+            'pickup_location_custom',
+            'drop_location_custom',
             'player_transportations',
-            'created_on'
+            'created_on',
+            'created_by_name'
         ]
     
     def get_player_transportations(self, obj):
-        # Get all transportation details for this specific roaster and player
+        # Use pre-fetched data if available, otherwise query
         player_id = self.context.get('player_id')
-        transports = PlayerTransportationDetails.objects.filter(
-            roasterId=obj,
-            playerId_id=player_id,
-            status_flag=1
-        ).select_related('transportationTypeId').order_by('-travel_date', '-created_on')
+        
+        # Check if we have pre-fetched transports
+        if hasattr(obj, 'prefetched_transports'):
+            transports = [t for t in obj.prefetched_transports if t.playerId_id == player_id]
+        else:
+            transports = PlayerTransportationDetails.objects.filter(
+                roasterId=obj,
+                playerId_id=player_id,
+                status_flag=1
+            ).order_by('created_on')
         
         return TransportationDetailSerializer(transports, many=True).data
     
+    def _get_first_transportation(self, obj):
+        """Helper method to get the first transportation record"""
+        player_id = self.context.get('player_id')
+        
+        # Check if we have pre-fetched transports
+        if hasattr(obj, 'prefetched_transports'):
+            transports = [t for t in obj.prefetched_transports if t.playerId_id == player_id]
+            return transports[0] if transports else None
+        else:
+            return PlayerTransportationDetails.objects.filter(
+                roasterId=obj,
+                playerId_id=player_id,
+                status_flag=1
+            ).order_by('created_on').first()
+    
+    def get_pickup_location(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.pickup_location if first_transport else None
+    
+    def get_pickup_location_display(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.get_pickup_location_display() if first_transport else None
+    
+    def get_drop_location(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.drop_location if first_transport else None
+    
+    def get_drop_location_display(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.get_drop_location_display() if first_transport else None
+    
+    def get_pickup_location_custom(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.pickup_location_custom if first_transport else None
+    
+    def get_drop_location_custom(self, obj):
+        first_transport = self._get_first_transportation(obj)
+        return first_transport.drop_location_custom if first_transport else None
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            try:
+                user = MstUserLogins.objects.get(id=obj.created_by)
+                return user.name
+            except MstUserLogins.DoesNotExist:
+                return "Unknown User"
+        return None
 
 class PlayerIDRequestSerializer(serializers.Serializer):
     player_id = serializers.IntegerField(required=True)
@@ -380,10 +472,15 @@ class PlayerEnquiryResponseSerializer(serializers.ModelSerializer):
     def get_sender_type(self, obj):
         if obj.player:
             return 'player'
+        if obj.user:
+            return 'admin'
+        return 'unknown'
     
     def get_sender_name(self, obj):
         if obj.player:
             return obj.player.name
+        if obj.user:
+            return obj.user.name
         return ''
 
 class EnquiryWithConversationsSerializer(serializers.ModelSerializer):

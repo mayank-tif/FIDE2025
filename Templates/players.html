@@ -7,6 +7,72 @@
   <title>Manage Players - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
   <link rel="stylesheet" href="{% static 'assets/css/bootstrap.css' %}">
+  <style>
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .toolbar-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-left: auto;
+    }
+
+    .btn--secondary {
+        background: #271f64;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn--secondary:hover {
+        background: #545b62;
+    }
+
+    .btn--secondary:disabled {
+        background: #a0a0a0;
+        cursor: not-allowed;
+    }
+
+    .loader {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 5px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -14,15 +80,21 @@
     <main class="main-content">
       <div class="page-header">
         <h1>Manage Players</h1>
+        <div class="header-actions">
+        </div>
       </div>
       <div class="toolbar">
-        <div class="search-box" id="tableSearchContainer">
-          {% comment %} <input type="text" id="player-search" placeholder="Search Players"> {% endcomment %}
+        <div class="search-box" id="tableSearchContainer"></div>
+        <div class="toolbar-actions">
+          <button class="btn btn--secondary" id="export-btn">
+            📊 Export to Excel
+          </button>
+          <button class="btn btn--primary" data-modal-open="add-player-modal">
+            + Add Player
+          </button>
         </div>
-        <button class="btn btn--primary" data-modal-open="add-player-modal">
-          + Add Player
-        </button>
       </div>
+
       <div class="table-container">
         {% csrf_token %}
         <table id="players-table" data-page-size="10" class="table table-bordered table-striped">
@@ -182,11 +254,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
-
-  {% comment %} <script type="module" src="{% static 'assets/js/app.js' %}"></script> {% endcomment %}
-
   <script>
-
       let currentPage = 1;
 
       function reinitializeDataTable(tableId) {
@@ -225,6 +293,21 @@
               default:
                   return `<span class="badge">${status}</span>`;
           }
+      }
+
+      // Export functionality
+      function exportPlayersToExcel() {
+          const exportBtn = document.getElementById('export-btn');
+          exportBtn.innerHTML = '⏳ Exporting...';
+          exportBtn.disabled = true;
+
+          // Call export endpoint
+          window.location.href = "{% url 'export_players' %}";
+
+          setTimeout(() => {
+              exportBtn.innerHTML = '📊 Export to Excel';
+              exportBtn.disabled = false;
+          }, 3000);
       }
 
 
@@ -271,7 +354,7 @@
                       });
                       reinitializeDataTable("players-table");
                   } else {
-                      $("#players-table tbody").append('<tr><td colspan="6">No players found</td></tr>');
+                      $("#players-table tbody").append('<tr><td colspan="10">No players found</td></tr>');
                   }      
 
                   // Update pagination controls
@@ -324,13 +407,14 @@
       $(document).ready(function() {
           fetchPlayers();
 
+          // Add export button event listener
+          document.getElementById('export-btn').addEventListener('click', exportPlayersToExcel);
+
           $(document).on("click", ".profileView", function() {
               const playerId = $(this).data("id"); 
               const url = `/player/${playerId}/`;
               window.location.href = url;
           });
-
-
 
           $(document).on("click", "[data-modal-open]", function() {
               const modalId = $(this).data("modal-open");

@@ -250,7 +250,7 @@ class Roaster(models.Model):
     number_of_seats = models.IntegerField(null=False)
     driver_name = models.CharField(max_length=100, null=False)
     mobile_no = models.BigIntegerField(null=True)
-    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId')
+    transportationTypeId = models.ForeignKey(TransportationType, on_delete=models.DO_NOTHING, db_column='transportationTypeId', null=True, blank=True)
     status_flag = models.IntegerField(default=1)
     created_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
