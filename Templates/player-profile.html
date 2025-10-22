@@ -225,13 +225,6 @@
         font-style: italic;
     }
 
-    /* Back Button Styles */
-    .profile-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-    }
 
     .back-button {
         background: #6c757d;
@@ -291,6 +284,106 @@
             align-self: flex-start;
         }
     }
+    /* Roaster group */
+.roaster-entry {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.roaster-header {
+    padding: 12px 15px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.roaster-header:hover {
+    background: #e9ecef;
+}
+
+.roaster-body {
+    display: none;
+    padding: 10px 15px 15px 15px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Player transport entry inside Roaster */
+.player-entry {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.player-entry:hover {
+    border-color: #5a8372;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+}
+
+.player-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.player-body {
+    display: none;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #495057;
+}
+
+/* Badge */
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge--info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+.badge--success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.badge--warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+
+.no-data { text-align: center; padding: 20px; color: #6c757d; font-style: italic; }
+.profile-header {
+    display: flex;
+    flex-direction: column; /* stack arrow above name */
+    align-items: flex-start;    /* center horizontally */
+    gap: 5px;               /* small spacing between arrow and name */
+    margin-bottom: 20px;
+}
+
+.back-arrow {
+    font-size: 20px;
+    cursor: pointer;
+    color: #495057;
+    transition: color 0.2s;
+}
+
+.back-arrow:hover {
+    color: #5a8372;
+}
+
+.profile-title {
+    margin: 0;
+    font-size: 24px;
+    text-align: center;
+}
+
+
+
   </style>
 </head>
 <body>
@@ -299,9 +392,7 @@
     <main class="main-content">
       <div class="profile-page">
         <div class="profile-header">
-          <button class="back-button" id="backButton">
-            ← Back
-          </button>
+          <div class="back-arrow" id="backButton">←</div>
           <h1 class="profile-title" id="profile-player-name">{{ player.name }}</h1>
         </div>
         <div class="profile-tabs">
@@ -730,67 +821,110 @@
   </script>
   <script>
   document.addEventListener("DOMContentLoaded", function() {
-    const transportLog = document.getElementById("transport-log");
-    const csrfToken = "{{ csrf_token }}";
-    const playerId = "{{ player.id }}";
+  const transportLog = document.getElementById("transport-log");
+  const playerId = "{{ player.id }}";
 
-    // Load transportation data when transportation tab is clicked
-    document.querySelector('[data-tab="transportation"]').addEventListener('click', function() {
-        loadTransportData();
-    });
+  function loadTransportData() {
+    fetch(`/player/${playerId}/transport/`)
+      .then(res => res.json())
+      .then(data => {
+        transportLog.innerHTML = "";
 
-    function loadTransportData() {
-        fetch(`/player/${playerId}/transport/`)
-        .then(response => response.json())
-        .then(data => {
-            transportLog.innerHTML = ""; // clear existing list
-            
-            if (data.error) {
-                transportLog.innerHTML = `<li class="no-data">Error loading transportation data: ${data.error}</li>`;
-                return;
-            }
-            
-            if (data.length === 0) {
-                transportLog.innerHTML = '<li class="no-data">No transportation details found for this player.</li>';
-                return;
-            }
-            
-            data.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-entry';
-                
-                // Determine badge class based on status type
-                const badgeClass = item.status_type === 'A' ? 'badge--info' : 'badge--success';
-                const badgeText = item.status_type === 'A' ? 'Scheduled' : 'Status Update';
-                
-                li.innerHTML = `
-                    <div class="item-line">
-                        <div style="flex: 1;">
-                            <div class="transport-status-text">
-                                ${item.status_display}
-                            </div>
-                            <div class="transport-updated">
-                                Updated at: ${item.created_on}
-                            </div>
-                        </div>
-                        <span class="badge ${badgeClass}">${badgeText}</span>
-                    </div>
-                `;
-                
-                transportLog.appendChild(li);
-            });
-        })
-        .catch(error => {
-            console.error('Error loading transportation data:', error);
-            transportLog.innerHTML = '<li class="no-data">Error loading transportation details. Please try again.</li>';
+        if (!data || data.length === 0) {
+          transportLog.innerHTML = '<li class="no-data">No transportation details found for this player.</li>';
+          return;
+        }
+
+        // Group by roaster_id (or unique key for unassigned)
+        const roasters = {};
+        data.forEach(item => {
+          const roasterKey = item.roaster_id || `unassigned-${item.id}`;
+          if (!roasters[roasterKey]) {
+            roasters[roasterKey] = {
+              route: (item.pickup_location || item.drop_location)
+                      ? `${item.pickup_location ?? ''} → ${item.drop_location ?? ''}`
+                      : 'Arrival',
+              entries: []
+            };
+          }
+          roasters[roasterKey].entries.push(item);
         });
-    }
+        const roasterArray = Object.values(roasters)
+        .map(group => {
+          // Sort entries inside each roaster by id descending
+          group.entries.sort((a, b) => b.id - a.id);
+        
+          return {
+            roaster_id: group.entries[0].roaster_id || 0, // unassigned becomes 0
+            route: group.route,
+            entries: group.entries
+          };
+        })
+        .sort((a, b) => b.roaster_id - a.roaster_id); // descending order
+        
+        // Now iterate over roasterArray instead of Object.values(roasters)
+        roasterArray.forEach(roaster => {
+          const li = document.createElement('li');
+          li.className = 'roaster-entry';
+          li.innerHTML = `
+            <div class="roaster-header">${roaster.route} ⯆</div>
+            <div class="roaster-body"></div>
+          `;
+          transportLog.appendChild(li);
+          const body = li.querySelector('.roaster-body');
+          body.style.display = 'none';
 
-    // Load data initially if transportation tab is active
-    if (document.getElementById('tab-transportation').classList.contains('active')) {
-        loadTransportData();
-    }
+          roaster.entries.forEach(player => {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'player-entry';
+            const badgeClass = player.entry_status === 'S' ? 'badge--info' : 'badge--success';
+            const badgeText = player.entry_status === 'S' ? 'Scheduled' : 'Status Update';
+            playerDiv.innerHTML = `
+              <div class="player-line">
+                <div style="flex:1;">
+                  <div class="transport-status-text">${player.status_display}</div>
+                  <div class="transport-updated">Updated at: ${player.created_on}</div>
+                </div>
+                <span class="badge ${badgeClass}">${badgeText}</span>
+              </div>
+              <div class="player-body">
+                <p><strong>Player:</strong> ${player.player_name}</p>
+                <p><strong>Route:</strong> ${player.pickup_location} → ${player.drop_location}</p>
+                ${player.travel_date ? `<p><strong>Travel Date:</strong> ${player.travel_date}</p>` : ''}
+                ${player.vehicle_type ? `<p><strong>Vehicle:</strong> ${player.vehicle_type} ${player.vehicle_number}</p>` : ''}
+                ${player.driver_name ? `<p><strong>Driver:</strong> ${player.driver_name} | ${player.driver_phone}</p>` : ''}
+              </div>
+            `;
+
+            playerDiv.querySelector('.player-body').style.display = 'none';
+            playerDiv.querySelector('.player-line').addEventListener('click', () => {
+              const body = playerDiv.querySelector('.player-body');
+              body.style.display = body.style.display === 'none' ? 'block' : 'none';
+            });
+
+            body.appendChild(playerDiv);
+          });
+
+          // Toggle roaster body
+          li.querySelector('.roaster-header').addEventListener('click', () => {
+            body.style.display = body.style.display === 'none' ? 'block' : 'none';
+          });
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        transportLog.innerHTML = '<li class="no-data">Error loading transportation details.</li>';
+      });
+  }
+
+  // Load initially if tab is active
+  if (document.getElementById('tab-transportation').classList.contains('active')) {
+    loadTransportData();
+  }
+
+  // Reload when transportation tab is clicked
+  document.querySelector('[data-tab="transportation"]').addEventListener('click', loadTransportData);
 });
-  </script>
+</script>
 </body>
 </html>

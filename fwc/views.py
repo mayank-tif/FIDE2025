@@ -430,6 +430,7 @@ class UpdatePlayerProfile(View):
 
         # Handle transport status update
         transport_status = request.POST.get("transport_status")
+        print("transport_status", transport_status)
         if transport_status and transport_status != "no_change":
             # Get the latest transport entry for this player
             latest_transport = PlayerTransportationDetails.objects.filter(
@@ -514,115 +515,67 @@ class PlayerTransportView(View):
     def get(self, request, player_id):
         try:
             player = get_object_or_404(Players, id=player_id, status_flag=1)
-            
-            transportation_details = PlayerTransportationDetails.objects.filter(
+
+            transport_details = PlayerTransportationDetails.objects.filter(
                 playerId=player
-            ).select_related('roasterId').order_by('-created_on')
-            
+            ).select_related('roasterId').order_by('created_on')
+
             transport_data = []
-            for transport in transportation_details:
-                # Get username for Format B
+            for transport in transport_details:
                 username = "logistics team"
-                try:
-                    if transport.created_by:
-                        user = MstUserLogins.objects.get(id=transport.created_by)
+                if transport.created_by:
+                    user = MstUserLogins.objects.filter(id=transport.created_by).first()
+                    if user:
                         username = user.name
-                except MstUserLogins.DoesNotExist:
-                    pass
-                
-                # Format the status text based on requirements
+
+                transport_type = ""
+                vehicle_no = ""
+                driver_name = ""
+                driver_phone = ""
+                if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED and transport.roasterId:
+                    transport_type = transport.roasterId.vechicle_type or ""
+                    vehicle_no = transport.roasterId.vechicle_no or ""
+                    driver_name = transport.roasterId.driver_name or ""
+                    driver_phone = f"+{transport.roasterId.mobile_no}" if transport.roasterId and transport.roasterId.mobile_no else ""
+
+                pickup = transport.pickup_location_custom if transport.pickup_location == PlayerTransportationDetails.LOCATION_OTHER else transport.get_pickup_location_display()
+                dropoff = transport.drop_location_custom if transport.drop_location == PlayerTransportationDetails.LOCATION_OTHER else transport.get_drop_location_display()
+                travel_date = transport.travel_date.strftime("%d %b %Y at %I:%M %p") if transport.travel_date else ""
+
                 if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
-                    # Format A - Transport scheduled with vehicle and driver details
-                    
-                    # Get transport type - use roaster's vehicle_type first, then fallback to transportationTypeId
-                    if transport.roasterId and transport.roasterId.vechicle_type:
-                        transport_type = transport.roasterId.vechicle_type
-                    elif transport.transportationTypeId:
-                        transport_type = transport.transportationTypeId.Name
-                    else:
-                        transport_type = "vehicle"
-                    
-                    # Get vehicle number from roaster
-                    vehicle_no = transport.roasterId.vechicle_no if transport.roasterId else "N/A"
-                    
-                    # Get driver details from roaster
-                    driver_name = transport.roasterId.driver_name if transport.roasterId else "Not assigned"
-                    driver_phone = f"+{transport.roasterId.mobile_no}" if transport.roasterId and transport.roasterId.mobile_no else "Not available"
-                    
-                    # Handle pickup location (choice or custom)
-                    if transport.pickup_location:
-                        pickup = transport.get_pickup_location_display()
-                    elif transport.pickup_location_custom:
-                        pickup = transport.pickup_location_custom
-                    else:
-                        pickup = "pickup location"
-                    
-                    # Handle drop location (choice or custom)
-                    if transport.drop_location:
-                        dropoff = transport.get_drop_location_display()
-                    elif transport.drop_location_custom:
-                        dropoff = transport.drop_location_custom
-                    else:
-                        dropoff = "destination"
-                    
-                    if transport.travel_date:
-                        travel_datetime = transport.travel_date.strftime("%d %b %Y at %I:%M %p")
-                    else:
-                        travel_datetime = "scheduled time"
-                        
-                    # Format A: Transport scheduled with driver details
-                    status_text = f"Transport scheduled for {travel_datetime} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}<br>Driver: {driver_name} | Phone: {driver_phone}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
-                    
+                    status_text = f"Transport scheduled for {travel_date} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}<br>Driver: {driver_name} | Phone: {driver_phone}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
                 else:
-                    # Format B - Status updates
                     status_mapping = {
                         PlayerTransportationDetails.ENTRY_STARTED: "Enroute to Hotel",
-                        PlayerTransportationDetails.ENTRY_ENDED: "Reached Hotel", 
+                        PlayerTransportationDetails.ENTRY_ENDED: "Reached Hotel",
                         PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT: "Arrived at Airport",
                         PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE: "Reached Airport for departure",
                     }
                     status_display = status_mapping.get(transport.entry_status, transport.get_entry_status_display())
-                    
-                    # Handle locations for status updates too
-                    if transport.pickup_location:
-                        pickup = transport.get_pickup_location_display()
-                    elif transport.pickup_location_custom:
-                        pickup = transport.pickup_location_custom
-                    else:
-                        pickup = "pickup location"
-                    
-                    if transport.drop_location:
-                        dropoff = transport.get_drop_location_display()
-                    elif transport.drop_location_custom:
-                        dropoff = transport.drop_location_custom
-                    else:
-                        dropoff = "destination"
-                    
-                    # Format B: Status marked by logistics team
-                    status_text = f"Your status was marked as {status_display} by {username}<br>Route: {pickup} to {dropoff}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
-                
+                    status_text = f"Your status was marked as {status_display} by {username} from the logistics team.<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+
                 transport_data.append({
                     'id': transport.id,
-                    'status': transport.entry_status,
+                    'roaster_id': transport.roasterId.id if transport.roasterId else None,
+                    'player_name': player.name,
+                    'entry_status': transport.entry_status,
                     'status_display': status_text,
-                    'status_type': 'A' if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else 'B',
-                    'transportation_type_name': transport_type if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else (transport.transportationTypeId.Name if transport.transportationTypeId else "Transport"),
                     'pickup_location': pickup,
                     'drop_location': dropoff,
-                    'travel_date': transport.travel_date.strftime("%d %b %Y at %I:%M %p") if transport.travel_date else "",
-                    'details': transport.details or "",
-                    'remarks': transport.remarks or "",
+                    'travel_date': travel_date,
                     'created_on': transport.created_on.strftime("%d %b %Y at %I:%M %p"),
-                    'vehicle_type': transport_type if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
-                    'vehicle_number': vehicle_no if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
-                    'driver_name': driver_name if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
-                    'driver_phone': driver_phone if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED else "",
+                    'vehicle_type': transport_type,
+                    'vehicle_number': vehicle_no,
+                    'driver_name': driver_name,
+                    'driver_phone': driver_phone,
                 })
-            
+                
+            print("transport_data", transport_data)
+
             return JsonResponse(transport_data, safe=False)
-            
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
 
 
 class ComplaintListView(View):
