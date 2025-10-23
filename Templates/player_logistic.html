@@ -224,7 +224,7 @@
                 </td>
                 
                 <td>
-                  {% if not player.has_departure_status %}                           
+                  {% if not player.has_departure_status and not show_arrival %}                           
                     <img class="mark-status" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" alt="Mark as Reached Airport" title="Mark as Reached Airport" src="{% static 'assets/images/reached_aiport.png' %}">
                   {% endif %}
                 </td>
@@ -292,7 +292,7 @@
           popupContent.innerHTML = `
             <h3 class="popup-title">Confirm Status Change</h3>
             <div class="popup-message">
-              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to Reached Airport?. Once marked, this status cannot be changed!</p>
+              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to Reached Airport? Once marked, this status cannot be changed!</p>
             </div>
             
             <div class="popup-buttons">

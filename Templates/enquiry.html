@@ -220,8 +220,8 @@
     .user-response {
       border-left: 3px solid #271f64;
       background: #e7f3ff;
-      width: 558px;
-      margin-left: 600px;
+      width: 659px;
+      margin-left: 501px;
     }
     
     .player-response {
@@ -452,7 +452,7 @@
                 id="response-input-{{ e.id }}"
               ></textarea>
               <button class="send-btn" data-action="send-response" data-enquiry-id="{{ e.id }}">
-                Send Response
+                Send Reply
               </button>
             </div>
           </div>
@@ -494,12 +494,11 @@
         const card = header.closest('.compact-enquiry-card');
         const expandIcon = header.querySelector('.expand-icon');
         const conversationsList = document.getElementById(`conversations-${enquiryId}`);
-        const toggleIcon = document.querySelector(`.conversations-toggle[data-complaint-id='${enquiryId}'] .toggle-icon`);
+        const toggleIcon = document.querySelector(`.conversations-toggle[data-enquiry-id='${enquiryId}'] .toggle-icon`);
 
         
         const isExpanded = body.classList.toggle('expanded');
         card.classList.toggle('expanded');
-        body.classList.toggle('expanded');
          if (conversationsList && toggleIcon) {
           if (isExpanded) {
             conversationsList.classList.add('expanded');

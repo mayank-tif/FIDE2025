@@ -560,7 +560,7 @@ tbody tr:hover {
   color: #0c5460;
 }
 
-.badge--knocked {
+.badge--knocked, .badge--knocked_out {
   background: var(--knocked);
   color: #721c24;
 }
@@ -1947,10 +1947,10 @@ a:focus-visible {
       text-align: center;
     }
     
-    .status-open { background: #d4edda; color: #155724; }
-    .status-in-progress { background: #fff3cd; color: #856404; }
-    .status-resolved { background: #d1ecf1; color: #0c5460; }
-    .status-closed { background: #e2e3e5; color: #383d41; }
+    .status-open, .status-OPEN  { background: #d4edda; color: #155724; }
+    .status-in-progress, .status-IN_PROGRESS { background: #fff3cd; color: #856404; }
+    .status-resolved, .status-RESOLVED { background: #d1ecf1; color: #0c5460; }
+    .status-closed, .status-CLOSED { background: #e2e3e5; color: #383d41; }
     
     .expand-icon {
       font-size: 12px;
@@ -2048,6 +2048,7 @@ a:focus-visible {
       font-size: 12px;
       min-width: 120px;
       height: 28px;
+      margin-bottom: 27px;
     }
     
     .compact-remarks-input {
@@ -2145,7 +2146,7 @@ a:focus-visible {
   border-radius: 4px;
   font-size: 12px;
   min-width: 140px;
-  height: 28px;
+  margin-bottom: 27px;
 }
 
 /* Update compact-actions for multiple selects */

@@ -258,6 +258,12 @@ class PlayerView(View):
             gender = request.POST.get("gender")
             fide_id = request.POST.get("fideId")
             country_id = request.POST.get("country")
+            fide_record = FideIDMst.objects.filter(fide_id=fide_id, status_flag=1)
+            if not fide_record:
+                return JsonResponse({"success": False, "error": "Invalid FIDE ID"})
+            
+            if Players.objects.filter(fide_id=fide_id).exists():
+                return JsonResponse({"success": False, "error": "This FIDE ID is already registered."})
 
             player = Players.objects.create(
                 name=name,
@@ -270,6 +276,11 @@ class PlayerView(View):
                 status_flag=1,
                 countryid_id=country_id,
                 is_self_registered=False
+            )
+            PlayerTransportationDetails.objects.create(
+                playerId=player,
+                status_flag=1,
+                entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT,
             )
             log_user_activity(request, "Add Player", f"Player '{name}' added successfully")
 
@@ -356,7 +367,7 @@ class PlayerTransportStatusView(View):
             for roaster in roasters:
                 roaster_options.append({
                     'id': roaster.id,
-                    'display_text': f"{roaster.vechicle_no} - {roaster.vechicle_type} | {roaster.get_pickup_location_display()} → {roaster.get_drop_location_display()} | {roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else 'No date'}",
+                    'display_text': f"{roaster.get_pickup_location_display()} → {roaster.get_drop_location_display()} | {roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else 'No date'} | {roaster.vechicle_no} - {roaster.vechicle_type} ",
                     'pickup_location': roaster.pickup_location,
                     'drop_location': roaster.drop_location,
                     'vehicle_no': roaster.vechicle_no,
@@ -1684,7 +1695,7 @@ class PlayerLogisticsView(ListView):
     paginate_by = per_page
     
     def get_queryset(self):
-        queryset = super().get_queryset().filter(status_flag=1).order_by('name')
+        queryset = super().get_queryset().filter(status_flag=1).order_by('-created_on')
         
         search_query = self.request.GET.get('search', '')
         if search_query:
@@ -1787,7 +1798,7 @@ class PlayersExportView(View):
                 export_data.append({
                     'player_id': f"P{player.id}",
                     'player_name': player.name,
-                    'fide_id': getattr(player, 'fideId', ''),
+                    'fide_id': getattr(player, 'fide_id', ''),
                     'age': getattr(player, 'age', ''),
                     'gender': getattr(player, 'gender', ''),
                     'country': player.countryid.country_name if player.countryid else '',

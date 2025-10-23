@@ -194,7 +194,7 @@
         white-space: nowrap;
     }
 
-    .badge--info {
+    {% comment %} .badge--info {
         background: #d1ecf1;
         color: #0c5460;
         border: 1px solid #bee5eb;
@@ -210,13 +210,9 @@
         background: #fff3cd;
         color: #856404;
         border: 1px solid #ffeaa7;
-    }
+    } {% endcomment %}
 
-    .badge--primary {
-        background: #cce7ff;
-        color: #004085;
-        border: 1px solid #b3d7ff;
-    }
+    
 
     .no-data {
         text-align: center;
@@ -345,16 +341,25 @@
 
 /* Badge */
 .badge {
-    padding: 4px 8px;
+    display: inline-flex;           /* allows centering content */
+    align-items: center;            /* vertical center */
+    justify-content: center;        /* horizontal center */
+    width: 80px;                    /* fixed width for all badges */
+    height: 28px;                   /* fixed height for all badges */
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
+    white-space: nowrap;            /* prevent text wrap */
+    overflow: hidden;               /* cut overflow text */
+    text-overflow: ellipsis;        /* show ... for long text */
+    box-sizing: border-box; 
 }
 
 .badge--info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
 .badge--success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .badge--warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+.badge--primary { background: #cce7ff; color: #004085; border: 1px solid #b3d7ff; }
 
 .no-data { text-align: center; padding: 20px; color: #6c757d; font-style: italic; }
 .profile-header {
@@ -824,7 +829,7 @@
             roasters[roasterKey] = {
               route: (item.pickup_location || item.drop_location)
                       ? `${item.pickup_location ?? ''} → ${item.drop_location ?? ''}`
-                      : 'Arrival',
+                      : item.entry_status == "ARRIVED_AIRPORT" ? 'Arrival' : item.entry_status == "REACHED_AIRPORT_DEPARTURE"? 'Departure' : "",
               entries: []
             };
           }
@@ -858,8 +863,8 @@
           roaster.entries.forEach(player => {
             const playerDiv = document.createElement('div');
             playerDiv.className = 'player-entry';
-            const badgeClass = player.entry_status === 'S' ? 'badge--info' : 'badge--success';
-            const badgeText = player.entry_status === 'S' ? 'Scheduled' : 'Status Update';
+            const badgeClass = player.entry_status === 'STARTED' ? 'badge--info' : player.entry_status === 'ENDED' ? 'badge--success' : player.entry_status === 'SCHEDULED' ? 'badge--warning': "";
+            const badgeText = player.entry_status === 'STARTED' ? 'Started' : player.entry_status === 'ENDED' ? "Ended" : player.entry_status === 'SCHEDULED' ? 'Scheduled' : '';
             playerDiv.innerHTML = `
               <div class="player-line">
                 <div style="flex:1;">

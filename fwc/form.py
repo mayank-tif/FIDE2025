@@ -326,6 +326,11 @@ class PlayerRegistrationForm(forms.ModelForm):
                     # Rename the file
                     player_doc.reg_document.name = new_filename
                     player_doc.save()
+                PlayerTransportationDetails.objects.create(
+                    playerId=instance,
+                    status_flag=1,
+                    entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT,
+                )
 
                 audit_log_instance = self.create_audit_log(
                     submission_status='SUCCESS',

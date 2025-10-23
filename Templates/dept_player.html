@@ -113,13 +113,13 @@
                 <th>S.No.</th>
                 <th>Photo</th>
                 <th>Player Name</th>
+                <th>Email</th>
+                <th>Accompanying Persons</th>                
+                <th>Allergies</th>
+                <th>Room Cleaning</th>
                 <th>Hotel</th>
                 <th>Room</th>
-                <th>Room Cleaning</th>
-                <th>Accompanying Persons</th>
-                <th>Food Allergies</th>
-                <th>Email</th>
-                <th>Status</th>
+                {% comment %} <th>Status</th> {% endcomment %}
                 <th>Action</th>
               </tr>
             </thead>
@@ -139,7 +139,48 @@
                   {% endif %}
                 </td>
                 <td>{{ player.name|default:"" }}</td>
+                <td>{{ player.email|default:"" }}</td>
+                <!-- Accompanying Persons -->
+                <td>
+                  {% if player.accompanying_persons %}
+                    <div style="cursor: pointer" class="expandable-content" data-player-name="{{ player.name }}" data-type="accompanying" data-content="{{ player.accompanying_persons }}">
+                      <div class="truncated-text">
+                        {{ player.accompanying_persons|truncatechars:30 }}
+                        <span class="expand-indicator"></span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;"></span>
+                  {% endif %}
+                </td>
+                <!-- Food Allergies & Dietary Restrictions -->
+                <td>
+                  {% if player.details %}
+                    <div style="cursor: pointer" class="expandable-content" data-player-name="{{ player.name }}" data-type="allergies" data-content="{{ player.details }}">
+                      <div class="truncated-text">
+                        {{ player.details|truncatechars:35 }}
+                        <span class="expand-indicator"></span>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;"></span>
+                  {% endif %}
+                </td>
                 
+                <!-- Room Cleaning Preference -->
+                <td>
+                  {% if player.room_cleaning_preference == "MORNING" %}
+                    <span class="badge badge--morning" title="Morning slot">Morning</span>
+                  {% elif player.room_cleaning_preference == "AFTERNOON" %}
+                    <span class="badge badge--afternoon" title="Afternoon slot (3:00 PM – 6:00 PM)">Afternoon</span>
+                  {% elif player.room_cleaning_preference == "EVENING" %}
+                    <span class="badge badge--evening" title="Evening slot">Evening</span>
+                  {% elif player.room_cleaning_preference == "AT_HOTEL" %}
+                    <span class="badge badge--hotel" title="Will give instructions at hotel">At Hotel</span>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;">Not specified</span>
+                  {% endif %}
+                </td>                
                 <!-- Hotel & Room Assignment -->
                 <td>
                   {% if player.hotel and player.room_no %}
@@ -158,53 +199,9 @@
                   {% else %}
                     <span style="color: #6c757d; font-style: italic;">Not assigned</span>
                   {% endif %}
-                </td>
+                </td>                
                 
-                <!-- Room Cleaning Preference -->
-                <td>
-                  {% if player.room_cleaning_preference == "MORNING" %}
-                    <span class="badge badge--morning" title="Morning slot">Morning</span>
-                  {% elif player.room_cleaning_preference == "AFTERNOON" %}
-                    <span class="badge badge--afternoon" title="Afternoon slot (3:00 PM – 6:00 PM)">Afternoon</span>
-                  {% elif player.room_cleaning_preference == "EVENING" %}
-                    <span class="badge badge--evening" title="Evening slot">Evening</span>
-                  {% elif player.room_cleaning_preference == "AT_HOTEL" %}
-                    <span class="badge badge--hotel" title="Will give instructions at hotel">At Hotel</span>
-                  {% else %}
-                    <span style="color: #6c757d; font-style: italic;">Not specified</span>
-                  {% endif %}
-                </td>
-                
-                <!-- Accompanying Persons -->
-                <td>
-                  {% if player.accompanying_persons %}
-                    <div class="expandable-content" data-player-name="{{ player.name }}" data-type="accompanying" data-content="{{ player.accompanying_persons }}">
-                      <div class="truncated-text">
-                        {{ player.accompanying_persons|truncatechars:30 }}
-                        <span class="expand-indicator"></span>
-                      </div>
-                    </div>
-                  {% else %}
-                    <span style="color: #6c757d; font-style: italic;"></span>
-                  {% endif %}
-                </td>
-                
-                <!-- Food Allergies & Dietary Restrictions -->
-                <td>
-                  {% if player.details %}
-                    <div class="expandable-content" data-player-name="{{ player.name }}" data-type="allergies" data-content="{{ player.details }}">
-                      <div class="truncated-text">
-                        {{ player.details|truncatechars:35 }}
-                        <span class="expand-indicator"></span>
-                      </div>
-                    </div>
-                  {% else %}
-                    <span style="color: #6c757d; font-style: italic;"></span>
-                  {% endif %}
-                </td>
-                
-                <td>{{ player.email|default:"" }}</td>
-                <td>
+                {% comment %} <td>
                   {% if player.status == "ACTIVE" %}
                     <span class="badge badge--active">Active</span>
                   {% elif player.status == "DEPARTED" %}
@@ -214,7 +211,7 @@
                   {% else %}
                     <span class="badge">{{ player.status|default:"" }}</span>
                   {% endif %}
-                </td>
+                </td> {% endcomment %}
                 <td>
                   {% comment %} <a href="{% url 'DeptPlayerProfile' player.id %}" 
                      class="btn-icon profile-view-btn" 
@@ -256,6 +253,38 @@
       </div>
     </main>
   </div>
+  <!-- Modal HTML (place once in your template, outside table) -->
+<div id="popup-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+    background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.3); z-index:1000;">
+  <h4 id="popup-title"></h4>
+  <p id="popup-content"></p>
+  <button onclick="closePopup()" style="margin-top:10px;">Close</button>
+</div>
+<div id="popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.5); z-index:999;" onclick="closePopup()"></div>
+
+<script>
+  // Open popup with content
+  document.querySelectorAll('.expandable-content').forEach(el => {
+    el.addEventListener('click', () => {
+      const playerName = el.dataset.playerName;
+      const type = el.dataset.type;
+      const content = el.dataset.content;
+
+      document.getElementById('popup-title').innerText = playerName + (type === 'accompanying' ? " - Accompanying" : " - Allergies/Details");
+      document.getElementById('popup-content').innerText = content;
+
+      document.getElementById('popup-modal').style.display = 'block';
+      document.getElementById('popup-overlay').style.display = 'block';
+    });
+  });
+
+  function closePopup() {
+    document.getElementById('popup-modal').style.display = 'none';
+    document.getElementById('popup-overlay').style.display = 'none';
+  }
+</script>
+
 
   <!-- Hotel & Room Assignment Modal -->
   <div class="assignment-modal" id="assignmentModal">

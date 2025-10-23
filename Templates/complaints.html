@@ -12,11 +12,15 @@
       background: #f8f9fa;
       width: 560px;
     }
+    span.dep-name-new {
+    min-width: 340px;
+    text-align: left;
+}
      .user-response {
       border-left: 3px solid #271f64;
       background: #e7f3ff;
-      width: 558px;
-      margin-left: 600px;
+      width: 706px;
+      margin-left: 454px;
     }
     .header-actions {
         display: flex;
@@ -134,11 +138,12 @@
             <span class="complaint-id">#C{{ c.id }}</span>
             <span class="player-name">{{ c.player.name }}</span>
             <span class="complaint-preview">{{ c.description|truncatechars:80 }}</span>
+            {% if c.department %}
+             <span class="dep-name-new">{{ c.department.name }}</span>
+            {% endif %}
             <div class="complaint-meta">
-              {% if c.department %}
-                <span>{{ c.department.name }}</span>
-              {% endif %}
-              <span>{{ c.created_on|date:"M d" }}</span>
+              
+              <span>{{ c.created_on|date:"M d, h:i A" }}</span>
               <span class="status-badge status-{{ c.status }}">{{ c.get_status_display }}</span>
             </div>
             <span class="expand-icon">▼</span>

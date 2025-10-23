@@ -123,7 +123,7 @@ class PlayerRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("Enter a valid email address.")
         
         existing_player = Players.objects.filter(email=value, status_flag=1).first()
-        if existing_player.securepassword:
+        if existing_player and existing_player.securepassword:
             raise serializers.ValidationError("This email is already registered. Please use a different email.")
         
         return value

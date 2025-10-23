@@ -351,6 +351,11 @@ class RegisterPlayerAPIView(APIView):
                         securepassword=str_encrypt(password),
                         created_on=timezone.now()
                     )
+                    PlayerTransportationDetails.objects.create(
+                        playerId=player,
+                        status_flag=1,
+                        entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT,
+                    )
                     
                     return Response({
                         "success": True,
