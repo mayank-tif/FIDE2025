@@ -470,11 +470,17 @@ class PlayerTransportationAPIView(APIView):
             if transportation_type:
                 player_transports = player_transports.filter(transportationTypeId_id=transportation_type)
             
-            if date_from:
-                player_transports = player_transports.filter(travel_date__gte=date_from)
-            
-            if date_to:
-                player_transports = player_transports.filter(travel_date__lte=date_to)
+            # Filter by travel_date from Roaster (since it's moved to Roaster model)
+            if date_from or date_to:
+                transports_with_dates = player_transports.filter(roasterId__isnull=False)
+                if date_from:
+                    transports_with_dates = transports_with_dates.filter(roasterId__travel_date__gte=date_from)
+                if date_to:
+                    transports_with_dates = transports_with_dates.filter(roasterId__travel_date__lte=date_to)
+                
+                # Also get standalone transports without date filtering
+                standalone_transports = player_transports.filter(roasterId__isnull=True)
+                player_transports = transports_with_dates | standalone_transports
             
             transports_with_roasters = player_transports.filter(roasterId__isnull=False)
             standalone_transports = player_transports.filter(roasterId__isnull=True)

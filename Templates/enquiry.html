@@ -220,11 +220,14 @@
     .user-response {
       border-left: 3px solid #271f64;
       background: #e7f3ff;
+      width: 558px;
+      margin-left: 600px;
     }
     
     .player-response {
       border-left: 3px solid #28a745;
       background: #f8f9fa;
+      width: 560px;
     }
     
     .compact-response strong {
@@ -490,9 +493,22 @@
         const body = document.getElementById(`enquiry-body-${enquiryId}`);
         const card = header.closest('.compact-enquiry-card');
         const expandIcon = header.querySelector('.expand-icon');
+        const conversationsList = document.getElementById(`conversations-${enquiryId}`);
+        const toggleIcon = document.querySelector(`.conversations-toggle[data-complaint-id='${enquiryId}'] .toggle-icon`);
+
         
+        const isExpanded = body.classList.toggle('expanded');
         card.classList.toggle('expanded');
         body.classList.toggle('expanded');
+         if (conversationsList && toggleIcon) {
+          if (isExpanded) {
+            conversationsList.classList.add('expanded');
+            toggleIcon.textContent = '▲';
+          } else {
+            conversationsList.classList.remove('expanded');
+            toggleIcon.textContent = '▼';
+          }
+        }
       });
     });
 

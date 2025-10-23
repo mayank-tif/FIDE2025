@@ -366,9 +366,9 @@
 }
 
 .back-arrow {
-    font-size: 20px;
+    font-size:495057 20px;
     cursor: pointer;
-    color: #495057;
+    color: #;
     transition: color 0.2s;
 }
 
@@ -381,8 +381,6 @@
     font-size: 24px;
     text-align: center;
 }
-
-
 
   </style>
 </head>
@@ -484,22 +482,6 @@
                   <textarea id="profile-food-allergies" name="food_allergies" rows="3" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'." required>{{ player.details|default:'' }}</textarea>
                 </div>
               </div>
-              <!-- Transport Status Field -->
-<div class="form-row">
-    <div class="form-group">
-        <label for="profile-transport-status">Transport Status</label>
-        <select id="profile-transport-status" name="transport_status">
-            <option value="no_change">No Change</option>
-            {% for status_value, status_label in transport_status_choices %}
-                <option value="{{ status_value }}" 
-                    {% if current_transport_status == status_value %}selected{% endif %}>
-                    {{ status_label }}
-                </option>
-            {% endfor %}
-        </select>
-        <small>Changing this will create a new transport entry</small>
-    </div>
-</div>
 
               <div class="form-row">
                 <div class="form-group">
@@ -772,7 +754,6 @@
         formData.append("food_allergies", profileForm.food_allergies.value);
         formData.append("room_cleaning_preference", profileForm.room_cleaning_preference.value);
         formData.append("accompanying_persons", profileForm.accompanying_persons.value);
-        formData.append("transport_status", profileForm.transport_status.value);
 
         if (uploadInput.files.length > 0) {
           formData.append("profile_pic", uploadInput.files[0]);
@@ -883,7 +864,6 @@
               <div class="player-line">
                 <div style="flex:1;">
                   <div class="transport-status-text">${player.status_display}</div>
-                  <div class="transport-updated">Updated at: ${player.created_on}</div>
                 </div>
                 <span class="badge ${badgeClass}">${badgeText}</span>
               </div>

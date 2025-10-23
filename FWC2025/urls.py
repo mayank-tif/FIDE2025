@@ -53,6 +53,7 @@ urlpatterns = [
     path('logistics/roasters/end/<int:roaster_id>/', EndTransportView.as_view(), name='end_transport'),
     path('player-logistics/mark-status/<int:player_id>/', MarkPlayerStatusView.as_view(), name='mark_player_status'),
     path('export-players/', PlayersExportView.as_view(), name='export_players'),
+    path('players/<int:player_id>/transport-status/', PlayerTransportStatusView.as_view(), name='player_transport_status'),
 ]
 
 if settings.DEBUG:

@@ -272,42 +272,48 @@
 
               <!-- Pickup Location -->
               <div class="form-group">
-                <label for="pickup_location">Pickup Location</label>
-                <select id="pickup_location" name="pickup_location" required>
-                  <option value="">Select Pickup Location</option>
-                  {% for key, value in location_choices %}
-                      <option value="{{ key }}" {% if current_transport.pickup_location == key %}selected{% endif %}>{{ value }}</option>
-                  {% endfor %}
-                </select>
-                <div class="error-message" id="pickupLocationError">Please select pickup location</div>
+                  <label for="pickup_location">Pickup Location</label>
+                  <select id="pickup_location" name="pickup_location" required>
+                      <option value="">Select Pickup Location</option>
+                      {% for key, value in location_choices %}
+                          <option value="{{ key }}" 
+                              {% if roaster.pickup_location == key %}selected{% endif %}>
+                              {{ value }}
+                          </option>
+                      {% endfor %}
+                  </select>
+                  <div class="error-message" id="pickupLocationError">Please select pickup location</div>
               </div>
 
-              <div class="custom-location-group" id="pickup_custom_group" style="display: none;">
-                <label for="pickup_location_custom">Specify Pickup Location</label>
-                <input type="text" id="pickup_location_custom" name="pickup_location_custom" 
-                       value="{{ current_transport.pickup_location_custom|default:'' }}"
-                       placeholder="Enter specific pickup location (e.g., Hotel Taj, Conference Center, etc.)">
-                <div class="error-message" id="pickupCustomError">Please specify pickup location for "Other"</div>
+              <div class="custom-location-group" id="pickup_custom_group" style="display: {% if roaster.pickup_location == 'OTHER' %}block{% else %}none{% endif %};">
+                  <label for="pickup_location_custom">Specify Pickup Location</label>
+                  <input type="text" id="pickup_location_custom" name="pickup_location_custom" 
+                         value="{{ roaster.pickup_location_custom|default:'' }}"
+                         placeholder="Enter specific pickup location (e.g., Hotel Taj, Conference Center, etc.)">
+                  <div class="error-message" id="pickupCustomError">Please specify pickup location for "Other"</div>
               </div>
 
               <!-- Drop Location -->
               <div class="form-group">
-                <label for="drop_location">Drop Location</label>
-                <select id="drop_location" name="drop_location" required>
-                  <option value="">Select Drop Location</option>
-                  {% for key, value in location_choices %}
-                      <option value="{{ key }}" class="drop-option" {% if current_transport.drop_location == key %}selected{% endif %}>{{ value }}</option>
-                  {% endfor %}
-                </select>
-                <div class="error-message" id="dropLocationError">Please select drop location</div>
+                  <label for="drop_location">Drop Location</label>
+                  <select id="drop_location" name="drop_location" required>
+                      <option value="">Select Drop Location</option>
+                      {% for key, value in location_choices %}
+                          <option value="{{ key }}" class="drop-option" 
+                              {% if roaster.drop_location == key %}selected{% endif %}>
+                              {{ value }}
+                          </option>
+                      {% endfor %}
+                  </select>
+                  <div class="error-message" id="dropLocationError">Please select drop location</div>
               </div>
 
-              <div class="custom-location-group" id="drop_custom_group" style="display: none;">
-                <label for="drop_location_custom">Specify Drop Location</label>
-                <input type="text" id="drop_location_custom" name="drop_location_custom" 
-                       value="{{ current_transport.drop_location_custom|default:'' }}"
-                       placeholder="Enter specific drop location (e.g., Hotel Taj, Conference Center, etc.)">
-                <div class="error-message" id="dropCustomError">Please specify drop location for "Other"</div>
+              <div class="custom-location-group" id="drop_custom_group" style="display: {% if roaster.drop_location == 'OTHER' %}block{% else %}none{% endif %};">
+                  <label for="drop_location_custom">Specify Drop Location</label>
+                  <input type="text" id="drop_location_custom" name="drop_location_custom" 
+                         value="{{ roaster.drop_location_custom|default:'' }}"
+                         placeholder="Enter specific drop location (e.g., Hotel Taj, Conference Center, etc.)">
+                  <div class="error-message" id="dropCustomError">Please specify drop location for "Other"</div>
               </div>
 
               <!-- Assigned Players -->
@@ -335,7 +341,7 @@
               <!-- Date & Time -->
               <div class="form-group">
                 <label for="date">Date & Time</label>
-                {% with current_transport.travel_date|default:roaster.created_on as travel_date %}
+                {% with roaster.travel_date|default:roaster.created_on as travel_date %}
                 <input type="datetime-local" id="date" name="travel_date" value="{{ travel_date|date:'Y-m-d\\TH:i' }}" required>
                 {% endwith %}
                 <div class="error-message" id="dateError">Please select date and time</div>

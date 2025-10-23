@@ -103,6 +103,8 @@
                 <th>Vehicle Type</th>
                 <th>Vehicle Number</th>
                 <th>Driver</th>
+                <th>Travel Date</th>
+                <th>Logistic Contact</th>
                 <th>Seats</th>
                 <th>Pickup</th>
                 <th>Drop</th>
@@ -117,6 +119,8 @@
                 <td>{{ r.vechicle_type }}</td>
                 <td>{{ r.vechicle_no }}</td>
                 <td>{{ r.driver_name }}</td>
+                <td>{{ r.travel_date|date:"d M Y, h:i A" }}</td>
+                <td>{{ r.mobile_no }}</td>
                 <td>{{ r.number_of_seats }}</td>
                 <td>
                   {% if r.pickup_location %}

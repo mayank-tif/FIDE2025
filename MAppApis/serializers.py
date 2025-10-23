@@ -191,26 +191,20 @@ class TransportationDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_entry_status_display', read_only=True)
     player_status_display = serializers.SerializerMethodField()
     transportation_type_details = serializers.SerializerMethodField()
-    pickup_location_display = serializers.CharField(source='get_pickup_location_display', read_only=True)
-    drop_location_display = serializers.CharField(source='get_drop_location_display', read_only=True)
+    # REMOVED: pickup_location and drop_location fields since they're now in Roaster
     created_by_name = serializers.SerializerMethodField()
     
     class Meta:
         model = PlayerTransportationDetails
         fields = [
             'id',
-            'pickup_location',
-            'pickup_location_display',
-            'drop_location', 
-            'drop_location_display',
-            'pickup_location_custom',
-            'drop_location_custom',
+            # REMOVED: pickup_location, drop_location, pickup_location_custom, drop_location_custom
             'details',
             'remarks',
             'entry_status',
             'status_display',
             'player_status_display',
-            'travel_date',
+            # REMOVED: travel_date (now in Roaster)
             'created_on',
             'created_by_name',
             'transportation_type_details',
@@ -242,13 +236,10 @@ class RoasterTransportationSerializer(serializers.ModelSerializer):
     driver_mobile = serializers.CharField(source='mobile_no')
     created_by_name = serializers.SerializerMethodField()
     
-    # Get location fields from the first transportation record
-    pickup_location = serializers.SerializerMethodField()
-    pickup_location_display = serializers.SerializerMethodField()
-    drop_location = serializers.SerializerMethodField()
-    drop_location_display = serializers.SerializerMethodField()
-    pickup_location_custom = serializers.SerializerMethodField()
-    drop_location_custom = serializers.SerializerMethodField()
+    # Location fields now come directly from Roaster
+    pickup_location_display = serializers.CharField(source='get_pickup_location_display', read_only=True)
+    drop_location_display = serializers.CharField(source='get_drop_location_display', read_only=True)
+    travel_date_formatted = serializers.SerializerMethodField()
     
     class Meta:
         model = Roaster
@@ -259,12 +250,15 @@ class RoasterTransportationSerializer(serializers.ModelSerializer):
             'number_of_seats',
             'driver_name',
             'driver_mobile',
+            # Location fields now directly from Roaster
             'pickup_location',
             'pickup_location_display',
             'drop_location',
             'drop_location_display',
             'pickup_location_custom',
             'drop_location_custom',
+            'travel_date',
+            'travel_date_formatted',
             'player_transportations',
             'created_on',
             'created_by_name'
@@ -286,44 +280,10 @@ class RoasterTransportationSerializer(serializers.ModelSerializer):
         
         return TransportationDetailSerializer(transports, many=True).data
     
-    def _get_first_transportation(self, obj):
-        """Helper method to get the first transportation record"""
-        player_id = self.context.get('player_id')
-        
-        # Check if we have pre-fetched transports
-        if hasattr(obj, 'prefetched_transports'):
-            transports = [t for t in obj.prefetched_transports if t.playerId_id == player_id]
-            return transports[0] if transports else None
-        else:
-            return PlayerTransportationDetails.objects.filter(
-                roasterId=obj,
-                playerId_id=player_id,
-                status_flag=1
-            ).order_by('created_on').first()
-    
-    def get_pickup_location(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.pickup_location if first_transport else None
-    
-    def get_pickup_location_display(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.get_pickup_location_display() if first_transport else None
-    
-    def get_drop_location(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.drop_location if first_transport else None
-    
-    def get_drop_location_display(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.get_drop_location_display() if first_transport else None
-    
-    def get_pickup_location_custom(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.pickup_location_custom if first_transport else None
-    
-    def get_drop_location_custom(self, obj):
-        first_transport = self._get_first_transportation(obj)
-        return first_transport.drop_location_custom if first_transport else None
+    def get_travel_date_formatted(self, obj):
+        if obj.travel_date:
+            return obj.travel_date.strftime("%d %b %Y at %I:%M %p")
+        return None
     
     def get_created_by_name(self, obj):
         if obj.created_by:

@@ -216,7 +216,7 @@
                 
                 <td>
                   {% if player.current_transport_status %}
-                  <span class="transport-status {% if player.current_transport_status == 'Arrived at Airport' %}status-arrived{% elif player.current_transport_status == 'Reached Airport for Departure' %}status-departure{% endif %}" 
+                  <span class="transport-status {% if player.current_transport_status == 'Arrived at Airport' %}status-arrived{% elif player.current_transport_status == 'Reached Airport' %}status-departure{% endif %}" 
                         id="status-{{ player.id }}">
                     {{ player.current_transport_status }}
                   </span>
@@ -226,8 +226,6 @@
                 <td>
                   {% if not player.has_departure_status %}                           
                     <img class="mark-status" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" alt="Mark as Reached Airport" title="Mark as Reached Airport" src="{% static 'assets/images/reached_aiport.png' %}">
-                  {% else %}
-                  <span class="already-marked">✓ Already Marked</span>
                   {% endif %}
                 </td>
               </tr>
@@ -294,7 +292,7 @@
           popupContent.innerHTML = `
             <h3 class="popup-title">Confirm Status Change</h3>
             <div class="popup-message">
-              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to: Reached Airport for Departure?. Once marked, this status cannot be changed!</p>
+              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to Reached Airport?. Once marked, this status cannot be changed!</p>
             </div>
             
             <div class="popup-buttons">

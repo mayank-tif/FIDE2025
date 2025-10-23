@@ -20,13 +20,13 @@ import os
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from datetime import datetime
 from django.db.models import Prefetch
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.core.files.base import ContentFile
 from FWC2025.env_details import *
 import xlsxwriter
+from datetime import datetime
 
 
 per_page = 50
@@ -342,8 +342,95 @@ class PlayerView(View):
         except MstUserLogins.DoesNotExist:
             return JsonResponse({"success": False, "error": "Player not found"})
         
+
+class PlayerTransportStatusView(View):
+    def get(self, request, player_id):
+        """Get all roasters and status options for a player"""
+        try:
+            player = get_object_or_404(Players, id=player_id, status_flag=1)
+            
+            # Get all active roasters for dropdown
+            roasters = Roaster.objects.filter(status_flag=1).order_by('-created_on')
+            
+            roaster_options = []
+            for roaster in roasters:
+                roaster_options.append({
+                    'id': roaster.id,
+                    'display_text': f"{roaster.vechicle_no} - {roaster.vechicle_type} | {roaster.get_pickup_location_display()} → {roaster.get_drop_location_display()} | {roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else 'No date'}",
+                    'pickup_location': roaster.pickup_location,
+                    'drop_location': roaster.drop_location,
+                    'vehicle_no': roaster.vechicle_no,
+                    'vehicle_type': roaster.vechicle_type,
+                    'travel_date': roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else None
+                })
+            
+            # Get all status mappings for dropdown
+            status_mappings = TransportStatusMapping.objects.filter(status_flag=1)
+            
+            status_options = []
+            for mapping in status_mappings:
+                status_options.append({
+                    'status_type': mapping.status_type,
+                    'display_text': f"{mapping.get_status_type_display()} - {mapping.player_status}",
+                    'player_status': mapping.player_status,
+                    'pickup_location': mapping.pickup_location,
+                    'drop_location': mapping.drop_location,
+                    'mapping_id': mapping.id
+                })
+            
+            return JsonResponse({
+                'player_name': player.name,
+                'roasters': roaster_options,
+                'status_options': status_options
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
+    def post(self, request, player_id):
+        """Create transport entry with selected roaster and status"""
+        try:
+            player = get_object_or_404(Players, id=player_id, status_flag=1)
+            status_type = request.POST.get('status_type')
+            roaster_id = request.POST.get('roaster_id')
+            
+            if not status_type:
+                return JsonResponse({'success': False, 'error': 'Status type is required'})
+            
+            if not roaster_id:
+                return JsonResponse({'success': False, 'error': 'Roaster selection is required'})
+            
+            # Get the selected roaster
+            roaster = get_object_or_404(Roaster, id=roaster_id, status_flag=1)
+            
+            # Verify the status mapping exists
+            mapping = TransportStatusMapping.objects.filter(
+                status_type=status_type,
+                status_flag=1
+            ).first()
+            
+            if not mapping:
+                return JsonResponse({'success': False, 'error': 'Invalid status mapping'})
+            
+            # Create a new transport entry
+            PlayerTransportationDetails.objects.create(
+                playerId=player,
+                roasterId=roaster,
+                entry_status=status_type,
+                created_by=request.session.get('loginid'),
+                status_flag=1
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Transport status updated: {mapping.get_status_type_display()} - {mapping.player_status}',
+                'player_status': mapping.player_status
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})        
         
-        
+                        
 class PlayerProfile(View):
     template_name = "player-profile.html"
 
@@ -376,7 +463,6 @@ class PlayerProfile(View):
         
         # Get current transport status for the dropdown
         current_transport_status = latest_transport.entry_status if latest_transport else None
-        print("current_transport_status", current_transport_status)
         
         return render(request, self.template_name, {
             "player": player, 
@@ -427,34 +513,6 @@ class UpdatePlayerProfile(View):
         player.details = request.POST.get("food_allergies", player.details)
         player.room_cleaning_preference = request.POST.get("room_cleaning_preference", player.room_cleaning_preference)
         player.accompanying_persons = request.POST.get("accompanying_persons", player.accompanying_persons)
-
-        # Handle transport status update
-        transport_status = request.POST.get("transport_status")
-        print("transport_status", transport_status)
-        if transport_status and transport_status != "no_change":
-            # Get the latest transport entry for this player
-            latest_transport = PlayerTransportationDetails.objects.filter(
-                playerId=player,
-                status_flag=1
-            ).order_by('-created_on').first()
-            
-            if latest_transport:
-                # Create a new transport entry with updated status
-                new_transport = PlayerTransportationDetails.objects.create(
-                    playerId=player,
-                    roasterId=latest_transport.roasterId,
-                    # transportationTypeId=latest_transport.transportationTypeId,
-                    pickup_location=latest_transport.pickup_location,
-                    drop_location=latest_transport.drop_location,
-                    pickup_location_custom=latest_transport.pickup_location_custom,
-                    drop_location_custom=latest_transport.drop_location_custom,
-                    details=latest_transport.details,
-                    remarks=f"Status updated from {latest_transport.entry_status} to {transport_status} via profile update",
-                    entry_status=transport_status,
-                    travel_date=latest_transport.travel_date,
-                    created_by=request.session.get("loginid"),
-                    status_flag=1
-                )
 
         # Handle profile picture upload
         if "profile_pic" in request.FILES: 
@@ -532,26 +590,36 @@ class PlayerTransportView(View):
                 vehicle_no = ""
                 driver_name = ""
                 driver_phone = ""
-                if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED and transport.roasterId:
-                    transport_type = transport.roasterId.vechicle_type or ""
-                    vehicle_no = transport.roasterId.vechicle_no or ""
-                    driver_name = transport.roasterId.driver_name or ""
-                    driver_phone = f"+{transport.roasterId.mobile_no}" if transport.roasterId and transport.roasterId.mobile_no else ""
+                pickup = ""
+                dropoff = ""
+                travel_date = ""
 
-                pickup = transport.pickup_location_custom if transport.pickup_location == PlayerTransportationDetails.LOCATION_OTHER else transport.get_pickup_location_display()
-                dropoff = transport.drop_location_custom if transport.drop_location == PlayerTransportationDetails.LOCATION_OTHER else transport.get_drop_location_display()
-                travel_date = transport.travel_date.strftime("%d %b %Y at %I:%M %p") if transport.travel_date else ""
+                # Get location and vehicle info from Roaster if available
+                if transport.roasterId:
+                    roaster = transport.roasterId
+                    transport_type = roaster.vechicle_type or ""
+                    vehicle_no = roaster.vechicle_no or ""
+                    driver_name = roaster.driver_name or ""
+                    driver_phone = f"+{roaster.mobile_no}" if roaster.mobile_no else ""
+                    
+                    # Get locations from Roaster
+                    if roaster.pickup_location:
+                        pickup = roaster.pickup_location_custom if roaster.pickup_location == Roaster.LOCATION_OTHER else roaster.get_pickup_location_display()
+                    
+                    if roaster.drop_location:
+                        dropoff = roaster.drop_location_custom if roaster.drop_location == Roaster.LOCATION_OTHER else roaster.get_drop_location_display()
+                    
+                    travel_date = roaster.travel_date.strftime("%d %b %Y at %I:%M %p") if roaster.travel_date else ""
 
+                # Handle status text based on entry status
                 if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
-                    status_text = f"Transport scheduled for {travel_date} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}<br>Driver: {driver_name} | Phone: {driver_phone}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+                    if transport.roasterId:
+                        status_text = f"Transport scheduled for {travel_date} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}<br>Driver: {driver_name} | Phone: {driver_phone}<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+                    else:
+                        status_text = f"Transport scheduled<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
                 else:
-                    status_mapping = {
-                        PlayerTransportationDetails.ENTRY_STARTED: "Enroute to Hotel",
-                        PlayerTransportationDetails.ENTRY_ENDED: "Reached Hotel",
-                        PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT: "Arrived at Airport",
-                        PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE: "Reached Airport for departure",
-                    }
-                    status_display = status_mapping.get(transport.entry_status, transport.get_entry_status_display())
+                    # Use the player_status_display property from the model
+                    status_display = transport.player_status_display
                     status_text = f"Your status was marked as {status_display} by {username} from the logistics team.<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
 
                 transport_data.append({
@@ -1152,12 +1220,8 @@ class RoasterListView(View):
             
             if latest_transport:
                 r.current_entry_status = latest_transport.entry_status
-                r.pickup_location = latest_transport.pickup_location
-                r.drop_location = latest_transport.drop_location
             else:
                 r.current_entry_status = "SCHEDULED"
-                r.pickup_location = None
-                r.drop_location = None
 
             players_transports = PlayerTransportationDetails.objects.filter(
                 roasterId=r,
@@ -1194,7 +1258,7 @@ class RoasterAddView(View):
         return render(request, self.template_name, {
             'players': players,
             'transportation_types': transportation_types,
-            'location_choices': PlayerTransportationDetails.LOCATION_CHOICES,
+            'location_choices': Roaster.LOCATION_CHOICES,
             'current_page': current_page
         })
 
@@ -1214,15 +1278,15 @@ class RoasterAddView(View):
         pickup_location_custom = request.POST.get('pickup_location_custom', '').strip()
         drop_location_custom = request.POST.get('drop_location_custom', '').strip()
 
-        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and drop_location == PlayerTransportationDetails.LOCATION_OTHER:
+        if pickup_location == Roaster.LOCATION_OTHER and drop_location == Roaster.LOCATION_OTHER:
             messages.error(request, "Cannot create transport from 'Other' to 'Other' location.")
             return redirect(f"{reverse('add_roaster')}?page={current_page}")
 
-        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and not pickup_location_custom:
+        if pickup_location == Roaster.LOCATION_OTHER and not pickup_location_custom:
             messages.error(request, "Please specify the pickup location for 'Other'.")
             return redirect(f"{reverse('add_roaster')}?page={current_page}")
 
-        if drop_location == PlayerTransportationDetails.LOCATION_OTHER and not drop_location_custom:
+        if drop_location == Roaster.LOCATION_OTHER and not drop_location_custom:
             messages.error(request, "Please specify the drop location for 'Other'.")
             return redirect(f"{reverse('add_roaster')}?page={current_page}")
 
@@ -1233,6 +1297,11 @@ class RoasterAddView(View):
             driver_name=driver_name,
             mobile_no=mobile_no,
             # transportationTypeId_id=transportation_type_id,
+            pickup_location=pickup_location, 
+            pickup_location_custom=pickup_location_custom if pickup_location == Roaster.LOCATION_OTHER else None,
+            drop_location=drop_location,   
+            drop_location_custom=drop_location_custom if drop_location == Roaster.LOCATION_OTHER else None,   
+            travel_date=travel_date,
             status_flag=1,
             created_by=request.session.get('loginid'),
         )
@@ -1241,14 +1310,8 @@ class RoasterAddView(View):
             player = Players.objects.get(id=player_id)
             PlayerTransportationDetails.objects.create(
                 playerId=player,
-                roasterId=roaster,
-                pickup_location=pickup_location, 
-                pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
-                drop_location=drop_location,   
-                drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,   
+                roasterId=roaster, 
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
-                travel_date=travel_date,
-                # transportationTypeId_id=transportation_type_id,
                 created_by=request.session.get('loginid')
             )
 
@@ -1274,13 +1337,14 @@ class RoasterEditView(View):
             'players': players,
             'assigned_player_ids': assigned_player_ids,
             'transportation_types': transportation_types,
-            'location_choices': PlayerTransportationDetails.LOCATION_CHOICES,
+            'location_choices': Roaster.LOCATION_CHOICES,
             'current_transport': current_transport,
             'current_page': current_page
         })
 
     def post(self, request, roaster_id):
         roaster = get_object_or_404(Roaster, id=roaster_id)
+        print("reques. post", request.POST)
         vehicle_type = request.POST.get('vehicleType')
         vehicle_number = request.POST.get('vehicleNumber')
         number_of_seats = request.POST.get('number_of_seats')
@@ -1288,25 +1352,25 @@ class RoasterEditView(View):
         mobile_no = request.POST.get('mobile_no')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
-        # transportation_type_id = request.POST.get('transportationTypeId')
-        travel_date_str = request.POST.get('travel_date')
+        travel_date_str = str(request.POST.get('travel_date'))
         travel_date = datetime.strptime(travel_date_str, "%Y-%m-%d %I:%M %p") if travel_date_str else None
         pickup_location = request.POST.get('pickup_location')
         drop_location = request.POST.get('drop_location')
         pickup_location_custom = request.POST.get('pickup_location_custom', '').strip()
         drop_location_custom = request.POST.get('drop_location_custom', '').strip()
 
-        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and drop_location == PlayerTransportationDetails.LOCATION_OTHER:
+        if pickup_location == Roaster.LOCATION_OTHER and drop_location == Roaster.LOCATION_OTHER:
             messages.error(request, "Cannot create transport from 'Other' to 'Other' location.")
             return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
 
-        if pickup_location == PlayerTransportationDetails.LOCATION_OTHER and not pickup_location_custom:
+        if pickup_location == Roaster.LOCATION_OTHER and not pickup_location_custom:
             messages.error(request, "Please specify the pickup location for 'Other'.")
             return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
 
-        if drop_location == PlayerTransportationDetails.LOCATION_OTHER and not drop_location_custom:
+        if drop_location == Roaster.LOCATION_OTHER and not drop_location_custom:
             messages.error(request, "Please specify the drop location for 'Other'.")
             return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
+        
 
         # Update roaster with mobile number
         roaster.vechicle_type = vehicle_type
@@ -1314,7 +1378,11 @@ class RoasterEditView(View):
         roaster.number_of_seats = number_of_seats
         roaster.driver_name = driver_name
         roaster.mobile_no = mobile_no
-        # roaster.transportationTypeId_id = transportation_type_id
+        roaster.pickup_location=pickup_location
+        roaster.pickup_location_custom=pickup_location_custom if pickup_location == Roaster.LOCATION_OTHER else None
+        roaster.drop_location=drop_location
+        roaster.drop_location_custom=drop_location_custom if drop_location == Roaster.LOCATION_OTHER else None
+        roaster.travel_date=travel_date
         roaster.updated_by = request.session.get('loginid')
         roaster.updated_on = timezone.now()
         roaster.save()
@@ -1344,30 +1412,9 @@ class RoasterEditView(View):
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 roasterId=roaster,
-                pickup_location=pickup_location,
-                pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
-                drop_location=drop_location,
-                drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
-                travel_date=travel_date,
-                # transportationTypeId_id=transportation_type_id,
                 created_by=request.session.get('loginid')
             )
-
-        PlayerTransportationDetails.objects.filter(
-            roasterId=roaster,
-            playerId__id__in=new_assigned_players,
-            status_flag=1
-        ).update(
-            pickup_location=pickup_location,
-            pickup_location_custom=pickup_location_custom if pickup_location == PlayerTransportationDetails.LOCATION_OTHER else None,
-            drop_location=drop_location,
-            drop_location_custom=drop_location_custom if drop_location == PlayerTransportationDetails.LOCATION_OTHER else None,
-            travel_date=travel_date,
-            # transportationTypeId_id=transportation_type_id,
-            updated_by=request.session.get('loginid'),
-            updated_on=timezone.now()
-        )
 
         messages.success(request, "Roaster updated successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
@@ -1384,31 +1431,21 @@ class StartTransportView(View):
                 status_flag=1
             )
             
-            created_count = 0
             for transport in current_transports:
                 PlayerTransportationDetails.objects.create(
                     playerId=transport.playerId,
                     roasterId=roaster,
-                    # transportationTypeId=transport.transportationTypeId,
-                    pickup_location=transport.pickup_location,
-                    drop_location=transport.drop_location,
-                    pickup_location_custom=transport.pickup_location_custom,
-                    drop_location_custom=transport.drop_location_custom,
-                    details=transport.details,
-                    remarks=f"Transport started from {transport.get_pickup_location_display()} to {transport.get_drop_location_display()}",
                     entry_status=PlayerTransportationDetails.ENTRY_STARTED,
-                    travel_date=timezone.now(), 
                     created_by=user_id
                 )
-                created_count += 1
             
             return JsonResponse({
                 'success': True,
-                'message': f'Transport started for {created_count} players. New timeline entries created.',
                 'new_status': 'STARTED'
             })
             
         except Exception as e:
+            print("Error starting transport:", str(e))
             return JsonResponse({
                 'success': False,
                 'message': f'Error starting transport: {str(e)}'
@@ -1422,23 +1459,18 @@ class EndTransportView(View):
             
             current_transports = PlayerTransportationDetails.objects.filter(
                 roasterId=roaster,
-                status_flag=1
-            ).first()
-            
-            PlayerTransportationDetails.objects.create(
-                playerId=current_transports.playerId,
-                roasterId=roaster,
-                # transportationTypeId=transport.transportationTypeId,
-                pickup_location=current_transports.pickup_location,
-                drop_location=current_transports.drop_location,
-                pickup_location_custom=current_transports.pickup_location_custom,
-                drop_location_custom=current_transports.drop_location_custom,
-                details=current_transports.details,
-                remarks=f"Transport ended from {current_transports.get_pickup_location_display()} to {current_transports.get_drop_location_display()}",
-                entry_status=PlayerTransportationDetails.ENTRY_ENDED,
-                travel_date=timezone.now(), 
-                created_by=user_id
+                status_flag=1,
+                entry_status=PlayerTransportationDetails.ENTRY_STARTED
             )
+            
+            for transport in current_transports:
+                PlayerTransportationDetails.objects.create(
+                    playerId=transport.playerId,
+                    roasterId=roaster,
+                    details=transport.details,
+                    entry_status=PlayerTransportationDetails.ENTRY_ENDED,
+                    created_by=user_id
+                )
             
             return JsonResponse({
                 'success': True,
@@ -1704,13 +1736,12 @@ class MarkPlayerStatusView(View):
             cutoff_date = timezone.datetime(2025, 11, 3).date()
             
             entry_status = PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE
-            status_display = "Reached Airport for Departure"
+            status_display = "Reached Airport"
             
             # Create new transport entry with only status
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 entry_status=entry_status,
-                travel_date=timezone.now(),
                 details=f"Player marked as {status_display}",
                 remarks=f"Status changed to {status_display} by user {user_id}",
                 created_by=user_id

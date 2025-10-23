@@ -113,7 +113,8 @@
                 <th>S.No.</th>
                 <th>Photo</th>
                 <th>Player Name</th>
-                <th>Hotel & Room</th>
+                <th>Hotel</th>
+                <th>Room</th>
                 <th>Room Cleaning</th>
                 <th>Accompanying Persons</th>
                 <th>Food Allergies</th>
@@ -143,7 +144,16 @@
                 <td>
                   {% if player.hotel and player.room_no %}
                     <div class="assignment-badge">
-                      {{ player.hotel }} - Room {{ player.room_no }}
+                      {{ player.hotel }}
+                    </div>
+                  {% else %}
+                    <span style="color: #6c757d; font-style: italic;">Not assigned</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if player.room_no %}
+                    <div class="assignment-badge">
+                      {{ player.room_no }}
                     </div>
                   {% else %}
                     <span style="color: #6c757d; font-style: italic;">Not assigned</span>
@@ -206,10 +216,10 @@
                   {% endif %}
                 </td>
                 <td>
-                  <a href="{% url 'DeptPlayerProfile' player.id %}" 
+                  {% comment %} <a href="{% url 'DeptPlayerProfile' player.id %}" 
                      class="btn-icon profile-view-btn" 
                      title="View Profile"
-                     data-player-id="{{ player.id }}">👁️</a>
+                     data-player-id="{{ player.id }}">👁️</a> {% endcomment %}
                   <button class="btn-icon assign-room-btn" 
                           title="Assign Hotel & Room"
                           data-player-id="{{ player.id }}"

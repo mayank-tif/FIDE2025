@@ -7,6 +7,17 @@
   <title>Manage Complaints - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
   <style>
+    .player-response {
+      border-left: 3px solid #28a745;
+      background: #f8f9fa;
+      width: 560px;
+    }
+     .user-response {
+      border-left: 3px solid #271f64;
+      background: #e7f3ff;
+      width: 558px;
+      margin-left: 600px;
+    }
     .header-actions {
         display: flex;
         gap: 10px;
@@ -147,7 +158,7 @@
               <div class="compact-conversations-list" id="conversations-{{ c.id }}">
                 {% if c.conversations.all %}
                   {% for convo in c.conversations.all %}
-                    <div class="compact-remark">
+                    <div class="compact-remark {% if convo.sender_user %} user-response{% else %}player-response{% endif %}">
                       <strong>
                         {% if convo.sender_player %}
                           {{ convo.sender_player.name }}
@@ -261,17 +272,37 @@
     // Expand/Collapse complaint cards
     document.querySelectorAll('.compact-complaint-header').forEach(header => {
       header.addEventListener('click', (e) => {
-        if (e.target.closest('.status-select') || e.target.closest('.conversations-toggle')) return;
-        
+        // Prevent click events on other controls from triggering expansion
+        if (
+          e.target.closest('.status-select') ||
+          e.target.closest('.conversations-toggle') ||
+          e.target.closest('.send-btn')
+        ) return;
+      
         const complaintId = header.getAttribute('data-complaint-id');
         const body = document.getElementById(`complaint-body-${complaintId}`);
         const card = header.closest('.compact-complaint-card');
         const expandIcon = header.querySelector('.expand-icon');
-        
+        const conversationsList = document.getElementById(`conversations-${complaintId}`);
+        const toggleIcon = document.querySelector(`.conversations-toggle[data-complaint-id='${complaintId}'] .toggle-icon`);
+      
+        // Toggle expansion
+        const isExpanded = body.classList.toggle('expanded');
         card.classList.toggle('expanded');
-        body.classList.toggle('expanded');
+      
+        // Automatically expand/collapse conversations too
+        if (conversationsList && toggleIcon) {
+          if (isExpanded) {
+            conversationsList.classList.add('expanded');
+            toggleIcon.textContent = '▲';
+          } else {
+            conversationsList.classList.remove('expanded');
+            toggleIcon.textContent = '▼';
+          }
+        }
       });
     });
+
 
     // Expand/Collapse conversations
     document.querySelectorAll('.conversations-toggle').forEach(toggle => {
