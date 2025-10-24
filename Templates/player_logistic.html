@@ -224,7 +224,7 @@
                 </td>
                 
                 <td>
-                  {% if not player.has_departure_status and not show_arrival %}                           
+                  {% if player.has_departure_status and not show_arrival %}                           
                     <img class="mark-status" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" alt="Mark as Reached Airport" title="Mark as Reached Airport" src="{% static 'assets/images/reached_aiport.png' %}">
                   {% endif %}
                 </td>

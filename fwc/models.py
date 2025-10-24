@@ -594,7 +594,7 @@ class EmailLog(models.Model):
     ]
     
     # Basic email information
-    email_type = models.CharField(max_length=20, default='WELCOME')
+    email_type = models.CharField(max_length=60, default='WELCOME')
     subject = models.CharField(max_length=255)
     recipient_email = models.EmailField()
     

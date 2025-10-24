@@ -440,7 +440,7 @@ class LogoutView(APIView):
 class PlayerTransportationAPIView(APIView):
     """
     POST API to fetch transportation details for a specific player
-    Includes both roaster-linked and standalone transport entries
+    Includes both roaster-linked and standalone transport entries combined in one array
     """
     
     def post(self, request):
@@ -499,14 +499,13 @@ class PlayerTransportationAPIView(APIView):
             if vehicle_type:
                 roasters = roasters.filter(vechicle_type__icontains=vehicle_type)
             
-            # Prefetch transportation data for optimization
             roasters = roasters.prefetch_related(
                 Prefetch(
                     'playertransportationdetails_set',
                     queryset=PlayerTransportationDetails.objects.filter(
                         playerId=player,
                         status_flag=1
-                    ).order_by('created_on'),
+                    ).order_by('-created_on'),
                     to_attr='prefetched_transports'
                 )
             )
@@ -520,14 +519,18 @@ class PlayerTransportationAPIView(APIView):
             )
             
             standalone_serializer = TransportationDetailSerializer(
-                standalone_transports.order_by('created_on'), 
+                standalone_transports.order_by('-created_on'), 
                 many=True
+            )
+            
+            combined_data = self._combine_and_sort_transportation_data(
+                roaster_serializer.data, 
+                standalone_serializer.data
             )
             
             response_data = {
                 "success": True,
-                "roasters": roaster_serializer.data,
-                "standalone_transports": standalone_serializer.data,
+                "transportation_data": combined_data, 
                 "summary": {
                     "total_roasters": roasters.count(),
                     "transports_with_roasters": transports_with_roasters.count(),
@@ -551,6 +554,90 @@ class PlayerTransportationAPIView(APIView):
                 "error": "Server error",
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _combine_and_sort_transportation_data(self, roasters_data, standalone_data):
+        """
+        Combine roasters and standalone transports into a single array
+        and apply the same sorting logic as in frontend
+        """
+        combined = []
+        
+        roasters_dict = {}
+        
+        for roaster in roasters_data:
+            roaster_id = roaster['id']
+            
+            if roaster.get('pickup_location') or roaster.get('drop_location'):
+                route = f"{roaster.get('pickup_location', '')} → {roaster.get('drop_location', '')}"
+            else:
+                if roaster.get('player_transportations'):
+                    entry_status = roaster['player_transportations'][0].get('entry_status', '')
+                    if entry_status == "ARRIVED_AIRPORT":
+                        route = 'Arrival'
+                    elif entry_status == "REACHED_AIRPORT_DEPARTURE":
+                        route = 'Departure'
+                    else:
+                        route = ""
+                else:
+                    route = ""
+            
+            if roaster_id not in roasters_dict:
+                roasters_dict[roaster_id] = {
+                    'roaster_id': roaster_id,
+                    'route': route,
+                    'entries': []
+                }
+            
+            roasters_dict[roaster_id]['entries'].append({
+                **roaster,
+                'type': 'roaster',
+                'id': roaster_id 
+            })
+        
+        for transport in standalone_data:
+            standalone_key = f"standalone-{transport['id']}"
+            
+            entry_status = transport.get('entry_status', '')
+            if entry_status == "ARRIVED_AIRPORT":
+                route = 'Arrival'
+            elif entry_status == "REACHED_AIRPORT_DEPARTURE":
+                route = 'Departure'
+            else:
+                route = ""
+            
+            if standalone_key not in roasters_dict:
+                roasters_dict[standalone_key] = {
+                    'roaster_id': 0,
+                    'route': route,
+                    'entries': []
+                }
+            
+            roasters_dict[standalone_key]['entries'].append({
+                **transport,
+                'type': 'standalone',
+                'id': transport['id']
+            })
+        
+        roaster_array = list(roasters_dict.values())
+        
+        for group in roaster_array:
+            group['entries'].sort(key=lambda x: x['id'], reverse=True)
+            
+            if group['route'] == 'Departure':
+                group['route_type'] = 1
+            elif '→' in group['route']:
+                group['route_type'] = 2
+            elif group['route'] == 'Arrival':
+                group['route_type'] = 3
+            else:
+                group['route_type'] = 4
+        
+        roaster_array.sort(key=lambda x: (
+            x['route_type'],  
+            -x['roaster_id'] 
+        ))
+        
+        return roaster_array
 
 
 
@@ -831,8 +918,13 @@ class EnquiryCreateOrReplyAPI(APIView):
             status_flag=1
         )
         
-        # Send email notification (reuse your existing email logic)
-        self._send_enquiry_email(player, message, enquiry.id)
+        # Send email notification for new enquiry
+        self._send_enquiry_email(
+            player=player, 
+            message=message, 
+            enquiry_id=enquiry.id, 
+            is_new_enquiry=True
+        )
         
         response_data = {
             "success": True,
@@ -872,7 +964,12 @@ class EnquiryCreateOrReplyAPI(APIView):
             enquiry.save()
             
             # Send email notification for the reply
-            self._send_enquiry_email(player, message, enquiry.id)
+            self._send_enquiry_email(
+                player=player, 
+                message=message, 
+                enquiry_id=enquiry.id, 
+                is_new_enquiry=False
+            )
             
             response_data = {
                 "success": True,
@@ -897,25 +994,32 @@ class EnquiryCreateOrReplyAPI(APIView):
                 "message": "The specified enquiry does not exist or doesn't belong to you"
             }, status=status.HTTP_404_NOT_FOUND)
     
-    def _send_enquiry_email(self, player, message, enquiry_id):
-        """Send email for new enquiry (reuse your existing logic)"""
-        html_message = render_to_string(
-           'enquiry_email.html',
-           {
-                'player_name': player.name,
-                'player_fide_id': player.fide_id or 'Not provided',
-                'player_email': player.email,
-                'message': message,
-                'enquiry_id': enquiry_id,
-                'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
-           }
-        )
+    def _send_enquiry_email(self, player, message, enquiry_id, is_new_enquiry=True):
+        """Send email for new enquiry or reply"""
+        context = {
+            'is_new_enquiry': is_new_enquiry,
+            'player_name': player.name,
+            'player_fide_id': player.fide_id or 'Not provided',
+            'player_email': player.email,
+            'player_id': player.id,
+            'message': message,
+            'enquiry_id': enquiry_id,
+            'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p")
+        }
         
-        subject = f"New Player Enquiry from {player.name} (ID: {enquiry_id})"
+        html_message = render_to_string('enquiry_email.html', context)
+        
+        # Set appropriate subject based on enquiry type
+        if is_new_enquiry:
+            subject = f"NEW ENQUIRY from {player.name} (ID: {enquiry_id})"
+            email_type = 'ENQUIRY'
+        else:
+            subject = f"ENQUIRY REPLY from {player.name} (ID: {enquiry_id})"
+            email_type = 'ENQUIRY_REPLY'
         
         # Create email log entry
         email_log = EmailLog.objects.create(
-            email_type='ENQUIRY',
+            email_type=email_type,
             subject=subject,
             recipient_email=CHESS_FWC_2025_EMAIL,
             status='PENDING',
@@ -937,6 +1041,7 @@ class EnquiryCreateOrReplyAPI(APIView):
         except Exception as e:
             email_log.status = 'FAILED'
             email_log.save()
+            print(f"Email sending failed: {str(e)}")
 
 class PlayerEnquiriesWithConversationsAPI(APIView):
     """
@@ -1101,6 +1206,7 @@ class RaiseComplaintView(APIView):
             )
             
             context = {
+                'is_new_complaint': True,
                 'player_name': player.name,
                 'player_fide_id': player.fide_id or 'Not provided',
                 'player_email': player.email,
@@ -1115,7 +1221,7 @@ class RaiseComplaintView(APIView):
             # Render HTML email template
             html_message = render_to_string('complaint_email.html', context)
 
-            subject = f"COMPLAINT from {player.name} - #C{complaint.id} - {department.name}"
+            subject = f"NEW COMPLAINT from {player.name} - #C{complaint.id} - {department.name}"
             
             # Create email log entry
             email_log = EmailLog.objects.create(
@@ -1171,7 +1277,7 @@ class RaiseComplaintView(APIView):
                 "error": "Complaint submission failed",
                 "message": "An error occurred while submitting your complaint. Please try again."
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+
             
 class EditComplaintRemarkView(APIView):
     """
@@ -1206,6 +1312,8 @@ class EditComplaintRemarkView(APIView):
             player = Players.objects.get(id=player_id, status_flag=1)
             complaint = PlayerComplaint.objects.get(id=complaint_id, status_flag=1)
             
+            department = Department.objects.get(id=complaint.department.id, status_flag=1)
+            
             # Verify the complaint belongs to this player
             if complaint.player.id != player.id:
                 return Response({
@@ -1225,6 +1333,46 @@ class EditComplaintRemarkView(APIView):
             # Update complaint timestamp
             complaint.updated_on = timezone.now()
             complaint.save()
+            
+            context = {
+                'is_new_complaint': False,
+                'player_name': player.name,
+                'player_fide_id': player.fide_id or 'Not provided',
+                'player_email': player.email,
+                'player_id': player.id,
+                'complaint_id': complaint.id,
+                'description': message,
+                'department_name': department.name,
+                'status': complaint.status,
+                'submitted_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+            }
+            
+            # Render HTML email template
+            html_message = render_to_string('complaint_email.html', context)
+
+            subject = f"COMPLAINT REPLY from {player.name} - #C{complaint.id} - {department.name}"
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='COMPLAINT_REPLY',
+                subject=subject,
+                recipient_email=CHESS_FWC_2025_EMAIL,
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[CHESS_FWC_2025_EMAIL],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
             
             response_data = {
                 "success": True,

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>New Player Complaint - FWC 2025</title>
+  <title>{% if is_new_complaint %}New Player Complaint{% else %}Player Complaint Reply{% endif %} - FWC 2025</title>
 
   <style type="text/css">
     a, a[href], a:hover, a:link, a:visited {
@@ -68,6 +68,13 @@
       margin: 20px 0;
       border-radius: 4px;
     }
+    .reply-box {
+      background-color: #f0f8ff;
+      padding: 15px;
+      border-left: 4px solid #241A4F;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
     .player-info {
       background-color: #e8f4fd;
       padding: 15px;
@@ -76,6 +83,16 @@
     }
     .urgency-badge {
       background-color: #dc3545;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .reply-badge {
+      background-color: #241A4F;
       color: white;
       padding: 4px 8px;
       border-radius: 12px;
@@ -118,14 +135,25 @@
         <tr>
           <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
             
+            {% if is_new_complaint %}
             <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #dc3545; margin-bottom: 10px;">
               ⚠️ New Player Complaint
             </h1>
-            <span class="urgency-badge">URGENT ATTENTION REQUIRED</span>
+            <span class="urgency-badge">NEW COMPLAINT</span>
             
             <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
-              A player has submitted a complaint that requires immediate attention.
+              A player has submitted a new complaint that requires attention.
             </p>
+            {% else %}
+            <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-bottom: 10px;">
+              📩 Player Complaint Reply
+            </h1>
+            <span class="reply-badge">NEW REPLY</span>
+            
+            <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
+              A player has sent a new reply to an existing complaint.
+            </p>
+            {% endif %}
             
             <!-- Player Information Box -->
             <div class="player-info">
@@ -155,7 +183,7 @@
             <!-- Complaint Details -->
             <table class="info-table">
               <tr>
-                <td class="label">Submitted On:</td>
+                <td class="label">Date:</td>
                 <td>{{ submitted_date }}</td>
               </tr>
               <tr>
@@ -170,7 +198,8 @@
               </tr>
             </table>
             
-            <!-- Complaint Description Section -->
+            <!-- Content Section -->
+            {% if is_new_complaint %}
             <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #dc3545; text-align: left; margin-top: 30px;">
               Complaint Description:
             </h2>
@@ -180,17 +209,31 @@
                 {{ description }}
               </p>
             </div>
+            {% else %}
+            <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; text-align: left; margin-top: 30px;">
+              Player's Reply:
+            </h2>
             
-            <!-- Urgent Action Section -->
-            <div style="background-color: #f8d7da; padding: 15px; border-radius: 4px; border-left: 4px solid #dc3545; margin: 30px 0;">
-              <h3 style="font-size: 16px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #721c24; margin-top: 0;">
-                🚨 Immediate Action Required
-              </h3>
-              <p style="font-size: 14px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #721c24; margin: 0; text-align: left;">
-                This complaint requires immediate attention from the <strong>{{ department_name }}</strong> department. 
+            <div class="reply-box">
+              <p style="font-size: 15px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; text-align: left; margin: 0;">
+                {{ description }}
               </p>
             </div>
+            {% endif %}
             
+            <!-- Action Section -->
+            <div style="background-color: {% if is_new_complaint %}#f8d7da{% else %}#d1ecf1{% endif %}; padding: 15px; border-radius: 4px; border-left: 4px solid {% if is_new_complaint %}#dc3545{% else %}#241A4F{% endif %}; margin: 30px 0;">
+              <h3 style="font-size: 16px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: {% if is_new_complaint %}#721c24{% else %}#0c5460{% endif %}; margin-top: 0;">
+                {% if is_new_complaint %}🚨 Immediate Action Required{% else %}📋 Action Required{% endif %}
+              </h3>
+              <p style="font-size: 14px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: {% if is_new_complaint %}#721c24{% else %}#0c5460{% endif %}; margin: 0; text-align: left;">
+                {% if is_new_complaint %}
+                This new complaint requires immediate attention from the <strong>{{ department_name }}</strong> department. 
+                {% else %}
+                This reply requires attention from the <strong>{{ department_name }}</strong> department. Please review and respond accordingly.
+                {% endif %}
+              </p>
+            </div>
             
             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
             

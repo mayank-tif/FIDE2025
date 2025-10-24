@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{% if is_new_enquiry %}New Player Enquiry{% else %}Player Enquiry Reply{% endif %} - FWC 2025</title>
+  <title>Reply to Your Enquiry - FWC 2025</title>
 
   <style type="text/css">
     a, a[href], a:hover, a:link, a:visited {
@@ -62,34 +62,17 @@
       width: 30%;
     }
     .message-box {
-      background-color: #f8f9fa;
-      padding: 15px;
-      border-left: 4px solid #241A4F;
-      margin: 20px 0;
-      border-radius: 4px;
-    }
-    .reply-box {
       background-color: #f0f8ff;
       padding: 15px;
       border-left: 4px solid #17a2b8;
       margin: 20px 0;
       border-radius: 4px;
     }
-    .player-info {
+    .enquiry-info {
       background-color: #e8f4fd;
       padding: 15px;
       border-radius: 8px;
       margin: 20px 0;
-    }
-    .enquiry-badge {
-      background-color: #241A4F;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: bold;
-      display: inline-block;
-      margin-left: 10px;
     }
     .reply-badge {
       background-color: #17a2b8;
@@ -100,13 +83,6 @@
       font-weight: bold;
       display: inline-block;
       margin-left: 10px;
-    }
-    .action-box {
-      background-color: #e8f4fd;
-      padding: 15px;
-      border-radius: 4px;
-      border-left: 4px solid #241A4F;
-      margin: 30px 0;
     }
   </style>
 </head>
@@ -134,73 +110,50 @@
         <tr>
           <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
             
-            {% if is_new_enquiry %}
-            <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-bottom: 10px;">
-              📧 New Player Enquiry
-            </h1>
-            <span class="enquiry-badge">NEW ENQUIRY</span>
-            
-            <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
-              A player has submitted a new enquiry through the FIDE World Cup 2025 system.
-            </p>
-            {% else %}
             <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #17a2b8; margin-bottom: 10px;">
-              💬 Player Enquiry Reply
+              💬 Reply to Your Enquiry
             </h1>
-            <span class="reply-badge">NEW REPLY</span>
             
             <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
-              A player has sent a new reply to an existing enquiry.
+              Hello {{ player_name }}, we have a response to your enquiry.
             </p>
-            {% endif %}
             
-            <!-- Player Information Box -->
-            <div class="player-info">
+            <!-- Enquiry Information Box -->
+            <div class="enquiry-info">
               <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-top: 0;">
-                Player Details
+                Enquiry Details
               </h2>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold; width: 40%;">Player Name:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ player_name }}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold; width: 40%;">Enquiry ID:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">#{{ enquiry_id }}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold;">FIDE ID:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ player_fide_id }}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold;">Replied By:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ admin_name }}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold;">Email:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ player_email }}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; text-align: left; font-weight: bold;">Enquiry ID:</td>
-                  <td style="padding: 8px 0; text-align: left;">#{{ enquiry_id }}</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: bold;">Reply Date:</td>
+                  <td style="padding: 8px 0; text-align: left;">{{ reply_date }}</td>
                 </tr>
               </table>
             </div>
             
-            <!-- Message Section -->
-            <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: {% if is_new_enquiry %}#241A4F{% else %}#17a2b8{% endif %}; text-align: left; margin-top: 30px;">
-              {% if is_new_enquiry %}Enquiry Message:{% else %}Player's Reply:{% endif %}
+            <!-- Admin Message Section -->
+            <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #17a2b8; text-align: left; margin-top: 30px;">
+              Response from {{ admin_name }}:
             </h2>
             
-            <div class="{% if is_new_enquiry %}message-box{% else %}reply-box{% endif %}">
+            <div class="message-box">
               <p style="font-size: 15px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; text-align: left; margin: 0;">
-                {{ message }}
+                {{ admin_message }}
               </p>
             </div>
 
-            <!-- Action Section -->
-            <div class="action-box">
-              <h3 style="font-size: 16px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-top: 0;">
-                {% if is_new_enquiry %}📋 Action Required{% else %}💡 Response Needed{% endif %}
-              </h3>
-              <p style="font-size: 14px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #241A4F; margin: 0; text-align: left;">
-                {% if is_new_enquiry %}
-                This new enquiry requires your attention. Please review and respond to the player as soon as possible.
-                {% else %}
-                The player has responded to your previous message. Please review their reply and continue the conversation.
-                {% endif %}
+            <!-- Original Enquiry Reference -->
+            <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; margin: 20px 0;">
+              <p style="font-size: 13px; line-height: 18px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #666; margin: 0; text-align: left;">
+                <strong>Your original enquiry:</strong> "{{ original_enquiry }}"
               </p>
             </div>
             
@@ -208,7 +161,7 @@
             
             <p style="font-size: 12px; line-height: 16px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 300; text-decoration: none; color: #919293;">
               This email was automatically generated by the FIDE World Cup 2025 enquiry system.
-              <br>Enquiry ID: #{{ enquiry_id }} | Player ID: {{ player_id }} | Date: {{ submitted_date }}
+              <br>Enquiry ID: #{{ enquiry_id }} | Please do not reply to this email directly.
             </p>
                
           </td>

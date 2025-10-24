@@ -836,17 +836,28 @@
           roasters[roasterKey].entries.push(item);
         });
         const roasterArray = Object.values(roasters)
-        .map(group => {
-          // Sort entries inside each roaster by id descending
-          group.entries.sort((a, b) => b.id - a.id);
-        
-          return {
-            roaster_id: group.entries[0].roaster_id || 0, // unassigned becomes 0
-            route: group.route,
-            entries: group.entries
-          };
-        })
-        .sort((a, b) => b.roaster_id - a.roaster_id); // descending order
+.map(group => {
+  // Sort entries inside each roaster by id descending
+  group.entries.sort((a, b) => b.id - a.id);
+  
+  return {
+    roaster_id: group.entries[0].roaster_id || 0,
+    route: group.route,
+    route_type: group.route === 'Departure' ? 1 : 
+                group.route.includes('→') ? 2 : 
+                group.route === 'Arrival' ? 3 : 4, // Priority: Departure(1) -> Routes(2) -> Arrival(3)
+    entries: group.entries
+  };
+})
+// Sort by custom priority: Departure -> Routes -> Arrival
+.sort((a, b) => {
+  // First sort by route type priority
+  if (a.route_type !== b.route_type) {
+    return a.route_type - b.route_type;
+  }
+  // If same type, sort by roaster_id descending
+  return b.roaster_id - a.roaster_id;
+});
         
         // Now iterate over roasterArray instead of Object.values(roasters)
         roasterArray.forEach(roaster => {
