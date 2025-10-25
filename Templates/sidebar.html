@@ -14,6 +14,14 @@
         <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
         <span>Players</span>
       </a>
+      <a href="{% url 'DeptLogPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptLogPlayers' %}active{% endif %}">
+        <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
+        <span>Players(Logistics)</span>
+      </a>
+      <a href="{% url 'DeptAccFBPlayers' %}" class="nav-link {% if request.resolver_match.url_name == 'DeptAccFBPlayers' %}active{% endif %}">
+        <span class="nav-icon"><img src="{% static 'assets/images/chess-player.png' %}"></span>
+        <span>Players(Accomodation)</span>
+      </a>
       <a href="{% url 'complaint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">
         <span class="nav-icon"><img src="{% static 'assets/images/Note.png' %}"></span>
         <span>Complaints</span>

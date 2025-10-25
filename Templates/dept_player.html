@@ -114,7 +114,8 @@
                 <th>Photo</th>
                 <th>Player Name</th>
                 <th>Email</th>
-                <th>Accompanying Persons</th>                
+                <th>Accompanying Persons</th>
+                <th>Uploads Link</th>                
                 <th>Allergies</th>
                 <th>Room Cleaning</th>
                 <th>Hotel</th>
@@ -152,6 +153,20 @@
                   {% else %}
                     <span style="color: #6c757d; font-style: italic;"></span>
                   {% endif %}
+                </td>
+                <!-- File Uploads Column - SIMPLEST VERSION -->
+                <td>
+                  <div class="file-uploads">
+                    {% for document in player.player_documents.all %}
+                      {% if document.status_flag == 1 %}
+                        <a style="text-decoration: none" href="{{ document.reg_document.url }}" class="file-link" target="_blank" title="View {{ document.document_type }} - {{ document.original_filename }}">
+                          📄
+                        </a>
+                      {% endif %}
+                    {% empty %}
+                      <span class="no-files"></span>
+                    {% endfor %}
+                  </div>
                 </td>
                 <!-- Food Allergies & Dietary Restrictions -->
                 <td>

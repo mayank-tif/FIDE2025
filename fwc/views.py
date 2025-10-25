@@ -314,11 +314,11 @@ class PlayerView(View):
                 countryid_id=country_id,
                 is_self_registered=False
             )
-            PlayerTransportationDetails.objects.create(
-                playerId=player,
-                status_flag=1,
-                entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT,
-            )
+            # PlayerTransportationDetails.objects.create(
+            #     playerId=player,
+            #     status_flag=1,
+            #     entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT,
+            # )
             log_user_activity(request, "Add Player", f"Player '{name}' added successfully")
 
             return JsonResponse({"success": True, "message": "Player added successfully"})
@@ -1822,7 +1822,6 @@ class DeptPlayerView(View):
         paginator = Paginator(players, per_page)
         current_page = paginator.page(page)
 
-        # Get countries for dropdown
         countries = CountryMst.objects.filter(status_flag=1).order_by("country_name")
         
         # Hotel choices
@@ -1830,6 +1829,18 @@ class DeptPlayerView(View):
             ('Rio Resort', 'Rio Resort'),
             ('Rio Boutique', 'Rio Boutique'),
         ]
+        
+        player_ids = [player.id for player in current_page]
+        player_documents = PlayerDocument.objects.filter(
+            player_id__in=player_ids,
+            status_flag=1
+        )
+        
+        documents_dict = {}
+        for doc in player_documents:
+            if doc.player_id not in documents_dict:
+                documents_dict[doc.player_id] = []
+            documents_dict[doc.player_id].append(doc)
         
         context = {
             "players": current_page,
@@ -1839,6 +1850,7 @@ class DeptPlayerView(View):
             "paginator": paginator,
             "page_obj": current_page,
             "hotel_choices": HOTEL_CHOICES,
+            "documents_dict": documents_dict,
         }
         
         return render(request, self.template_name, context)
@@ -1865,7 +1877,6 @@ class DeptPlayerView(View):
             messages.error(request, f'Error assigning room: {str(e)}')
         
         return redirect('DeptAccFBPlayers')
-    
         
         
 class DeptPlayerProfile(View):
@@ -1913,30 +1924,34 @@ class PlayerLogisticsView(ListView):
         show_arrival = current_date <= cutoff_date
 
         for player in context['players']:
-            # Get the latest non-scheduled transport record
-            latest_non_scheduled_transport = PlayerTransportationDetails.objects.filter(
+            transport_records = PlayerTransportationDetails.objects.filter(
                 playerId=player,
                 status_flag=1
-            ).exclude(entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED).order_by('-created_on').first()
-        
-
-            if latest_non_scheduled_transport:
-                player.current_transport_status = latest_non_scheduled_transport.player_status_display
-                player.has_departure_status = (latest_non_scheduled_transport.entry_status != 
-                                             PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE)
+            ).exclude(entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED).order_by('-created_on')
+            
+            has_arrived = transport_records.filter(
+                entry_status=PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT
+            ).exists()
+            
+            has_departed = transport_records.filter(
+                entry_status=PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE
+            ).exists()
+            
+            latest_transport = transport_records.first()
+            if latest_transport:
+                player.current_transport_status = latest_transport.player_status_display
             else:
-                # Check if there are any scheduled records (for edge cases)
-                scheduled_transport = PlayerTransportationDetails.objects.filter(
-                    playerId=player,
-                    status_flag=1
-                ).order_by('-created_on').first()
-
-                if scheduled_transport and scheduled_transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
-                    player.current_transport_status = ""  # Empty for scheduled
-                    player.has_departure_status = False
-                else:
-                    player.current_transport_status = ""
-                    player.has_departure_status = False
+                player.current_transport_status = ""
+            
+            player.has_arrived_status = has_arrived
+            player.has_departure_status = has_departed
+            
+            if show_arrival:
+                player.show_arrival_button = not has_arrived
+                player.show_departure_button = False
+            else:
+                player.show_departure_button = not has_departed
+                player.show_arrival_button = False
 
         context.update({
             'search_query': self.request.GET.get('search', ''),
@@ -1956,22 +1971,43 @@ class MarkPlayerStatusView(View):
             player = get_object_or_404(Players, id=player_id)
             user_id = request.session.get('loginid')
             
-            current_date = timezone.now().date()
-            cutoff_date = timezone.datetime(2025, 11, 3).date()
+            is_departure = data.get('is_departure', False)
             
-            entry_status = PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE
-            status_display = "Reached Airport"
+            if is_departure:
+                entry_status = PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE
+                status_display = "Reached Airport for Departure"
+                details = "Player marked as reached airport for departure"
+            else:
+                entry_status = PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT
+                status_display = "Arrived Airport"
+                details = "Player marked as arrived at airport"
             
-            # Create new transport entry with only status
+            # Check if status already exists to prevent duplicates
+            existing_status = PlayerTransportationDetails.objects.filter(
+                playerId=player,
+                entry_status=entry_status
+            ).first()
+            
+            if existing_status:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'{player.name} is already marked as {status_display}.'
+                }, status=400)
+            
+            # Create new transport entry
             PlayerTransportationDetails.objects.create(
                 playerId=player,
                 entry_status=entry_status,
-                details=f"Player marked as {status_display}",
+                details=details,
                 remarks=f"Status changed to {status_display} by user {user_id}",
                 created_by=user_id
             )
             
-            log_user_activity(request, "Mark Player Status", f"Player ID({player_id}) - {player.name} marked as {status_display}")
+            log_user_activity(
+                request, 
+                "Mark Player Status", 
+                f"Player ID({player_id}) - {player.name} marked as {status_display}"
+            )
             
             return JsonResponse({
                 'success': True,
@@ -1979,6 +2015,11 @@ class MarkPlayerStatusView(View):
                 'new_status': status_display
             })
             
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid JSON data'
+            }, status=400)
         except Exception as e:
             print("Error updating status:", e)
             return JsonResponse({

@@ -143,6 +143,7 @@ class RoleBasedAccessMiddleware:
             'mark_player_status',
             'start_transport',
             'end_transport',
+            'disable_roaster',
             'login',
             'logout',
         }

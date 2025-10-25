@@ -224,9 +224,34 @@
                 </td>
                 
                 <td>
-                  {% if player.has_departure_status and not show_arrival %}                           
-                    <img class="mark-status" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" alt="Mark as Reached Airport" title="Mark as Reached Airport" src="{% static 'assets/images/reached_aiport.png' %}">
-                  {% endif %}
+                    {% if player.show_arrival_button %}                           
+                      <img class="mark-status" 
+                           data-is-departure="false" 
+                           data-player-id="{{ player.id }}" 
+                           data-player-name="{{ player.name }}" 
+                           alt="Mark as Arrived Airport" 
+                           title="Mark as Arrived Airport" 
+                           src="{% static 'assets/images/reached_aiport.png' %}">
+                    {% elif player.show_departure_button %}                           
+                      <img class="mark-status" 
+                           data-is-departure="true" 
+                           data-player-id="{{ player.id }}" 
+                           data-player-name="{{ player.name }}" 
+                           alt="Mark as Reached Airport for Departure" 
+                           title="Mark as Reached Airport for Departure" 
+                           src="{% static 'assets/images/reached_aiport.png' %}">
+                    {% else %}
+                      <!-- No button - either already marked or not applicable -->
+                      <span class="already-marked">
+                        {% if player.has_departure_status %}
+                          Departure Marked
+                        {% elif player.has_arrived_status %}
+                          Arrival Marked
+                        {% else %}
+                          -
+                        {% endif %}
+                      </span>
+                    {% endif %}
                 </td>
               </tr>
               {% empty %}
@@ -282,7 +307,10 @@
         button.addEventListener('click', function() {
           const playerId = this.dataset.playerId;
           const playerName = this.dataset.playerName;
-          
+          const isDeparture = this.dataset.isDeparture === 'true';
+
+          const statusType = isDeparture ? 'Reached Airport for Departure' : 'Arrived Airport';
+
           // Create custom popup
           const popupOverlay = document.createElement('div');
           popupOverlay.className = 'popup-overlay';
@@ -292,7 +320,7 @@
           popupContent.innerHTML = `
             <h3 class="popup-title">Confirm Status Change</h3>
             <div class="popup-message">
-              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to Reached Airport? Once marked, this status cannot be changed!</p>
+              <p>Are you sure you want to change the status of <strong>${playerName}</strong> to ${statusType}? Once marked, this status cannot be changed!</p>
             </div>
             
             <div class="popup-buttons">
@@ -322,7 +350,9 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
               },
-              body: JSON.stringify({})
+              body: JSON.stringify({
+                is_departure: isDeparture
+              })
             })
             .then(response => response.json())
             .then(data => {
