@@ -216,9 +216,9 @@
                 
                 <td>
                   {% if player.current_transport_status %}
-                  <span class="transport-status {% if player.current_transport_status == 'Arrived at Airport' %}status-arrived{% elif player.current_transport_status == 'Reached Airport' %}status-departure{% endif %}" 
-                        id="status-{{ player.id }}">
-                    {{ player.current_transport_status }}
+                  <span class="" 
+                        id="status-{{ player.id }}"><i>
+                    {{ player.current_transport_status }}</i>
                   </span>
                   {% endif %}
                 </td>

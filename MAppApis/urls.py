@@ -25,4 +25,5 @@ urlpatterns = [
     path('departure-details/', DepartureDetailsAPIView.as_view(), name='create-departure-details-alt'),
     path('fwc-dept-list/', get_departments, name='fwc-dept-list'),
     path('get-departure-details/', DepartureDetailsAPI.as_view(), name='departure-details'),
+    path('save-device-token/', SaveDeviceTokenAPI.as_view(), name='save_device_token'),
 ]

@@ -16,10 +16,28 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from fwc.views import *
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.staticfiles.views import serve
+
+def serve_service_worker(request):
+    """
+    Serve service worker from project root
+    """
+    # Get the path to your service worker in root directory
+    sw_path = os.path.join(settings.BASE_DIR, 'firebase-messaging-sw.js')
+    
+    try:
+        with open(sw_path, 'r') as f:
+            sw_content = f.read()
+        
+        response = HttpResponse(sw_content, content_type='application/javascript')
+        response['Service-Worker-Allowed'] = '/'
+        return response
+    except FileNotFoundError:
+        return HttpResponse('Service worker not found', status=404)
 
 urlpatterns = [
     path('fwcadmin/', admin.site.urls),
@@ -54,6 +72,8 @@ urlpatterns = [
     path('player-logistics/mark-status/<int:player_id>/', MarkPlayerStatusView.as_view(), name='mark_player_status'),
     path('export-players/', PlayersExportView.as_view(), name='export_players'),
     path('players/<int:player_id>/transport-status/', PlayerTransportStatusView.as_view(), name='player_transport_status'),
+    path('logistics/roasters/disable/<int:roaster_id>/', DisableRoasterView.as_view(), name='disable_roaster'),
+    path('firebase-messaging-sw.js', serve_service_worker, name='firebase-messaging-sw'),
 ]
 
 if settings.DEBUG:

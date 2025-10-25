@@ -248,14 +248,14 @@
 
               <div class="form-group">
                 <label for="driverName">Driver Name</label>
-                <input type="text" id="driverName" name="driverName" placeholder="e.g., Rajesh Kumar" required>
+                <input type="text" id="driverName" name="driverName" placeholder="e.g., Rajesh Kumar">
                 <div class="error-message" id="driverNameError">Please enter driver name</div>
               </div>
 
               <!-- NEW: Mobile Number Field -->
               <div class="form-group">
                 <label for="mobile_no">Driver Mobile Number</label>
-                <input maxlength="10" type="tel" id="mobile_no" name="mobile_no" placeholder="e.g., 9876543210" pattern="[0-9]{10}" required>
+                <input maxlength="10" type="tel" id="mobile_no" name="mobile_no" placeholder="e.g., 9876543210" pattern="[0-9]{10}">
                 <div class="error-message" id="mobileError">Please enter valid 10-digit mobile number</div>
               </div>
 
@@ -640,8 +640,8 @@
         { id: 'vehicleType', errorId: 'vehicleTypeError', message: 'Please select a vehicle type' },
         { id: 'vehicleNumber', errorId: 'vehicleNumberError', message: 'Please enter vehicle number' },
         { id: 'numberOfSeats', errorId: 'seatsError', message: 'Please enter valid number of seats' },
-        { id: 'driverName', errorId: 'driverNameError', message: 'Please enter driver name' },
-        { id: 'mobile_no', errorId: 'mobileError', message: 'Please enter mobile number' },
+        //{ id: 'driverName', errorId: 'driverNameError', message: 'Please enter driver name' },
+        //{ id: 'mobile_no', errorId: 'mobileError', message: 'Please enter mobile number' },
         { id: 'transport-type', errorId: 'transportTypeError', message: 'Please select transportation type' },
         { id: 'pickup_location', errorId: 'pickupLocationError', message: 'Please select pickup location' },
         { id: 'drop_location', errorId: 'dropLocationError', message: 'Please select drop location' },

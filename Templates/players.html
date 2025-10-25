@@ -642,17 +642,6 @@
         </div>
         <div class="modal-body">
             <form id="transport-status-form">
-                <div id="transport-status-content">
-                    <p>Loading transport options...</p>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="roaster-select">Select Roaster:</label>
-                        <select id="roaster-select" name="roaster_id" required>
-                            <option value="">Select a roaster</option>
-                        </select>
-                    </div>
-                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="status-select">Select Status:</label>
@@ -817,28 +806,6 @@
                 return;
             }
 
-            let html = `
-            `;
-
-            $('#transport-status-content').html(html);
-
-            // Populate roasters dropdown
-            const roasterSelect = $('#roaster-select');
-            roasterSelect.empty().append('<option value="">Select a roaster</option>');
-            
-            data.roasters.forEach(roaster => {
-                roasterSelect.append(`
-                    <option value="${roaster.id}" 
-                            data-pickup="${roaster.pickup_location}"
-                            data-drop="${roaster.drop_location}"
-                            data-vehicle-no="${roaster.vehicle_no}"
-                            data-vehicle-type="${roaster.vehicle_type}"
-                            data-travel-date="${roaster.travel_date || 'No date'}">
-                        ${roaster.display_text}
-                    </option>
-                `);
-            });
-
             // Populate status dropdown
             const statusSelect = $('#status-select');
             statusSelect.empty().append('<option value="">Select a status</option>');
@@ -846,6 +813,7 @@
             data.status_options.forEach(status => {
                 statusSelect.append(`
                     <option value="${status.status_type}" 
+                            data-mapping-id="${status.mapping_id}"
                             data-player-status="${status.player_status}"
                             data-display-text="${status.display_text}">
                         ${status.display_text}
@@ -854,17 +822,14 @@
             });
 
             // Show form if we have data
-            if (data.roasters.length > 0 && data.status_options.length > 0) {
+            if (data.status_options.length > 0) {
                 $('.form-row').show();
                 $('#update-status-btn').prop('disabled', false);
             } else {
                 let errorHtml = `
                     <div class="no-data-available">
-                        <p>No transport data available.</p>
-                        <ul>
-                            ${data.roasters.length === 0 ? '<li>No roasters available</li>' : ''}
-                            ${data.status_options.length === 0 ? '<li>No status mappings available</li>' : ''}
-                        </ul>
+                        <p>No transport status options available.</p>
+                        <p class="info-text">Please check transport status mappings in the system.</p>
                     </div>
                 `;
                 $('#transport-status-content').append(errorHtml);
@@ -882,35 +847,26 @@
     });
 }
 
-// Handle dropdown changes to show selected information
-$(document).on('change', '#roaster-select, #status-select', function() {
-    const roasterSelect = $('#roaster-select');
+// Handle status dropdown change
+$(document).on('change', '#status-select', function() {
     const statusSelect = $('#status-select');
     const selectedInfo = $('#selected-info');
-    const roasterDetails = $('#roaster-details');
     const statusDetails = $('#status-details');
     
-    const selectedRoaster = roasterSelect.find('option:selected');
     const selectedStatus = statusSelect.find('option:selected');
     
-    if (selectedRoaster.val() && selectedStatus.val()) {
-        // Show roaster details
-        roasterDetails.html(`
-            <div class="detail-item">
-                <strong>Roaster:</strong> ${selectedRoaster.text()}
-            </div>
-        `);
-        
+    if (selectedStatus.val()) {
         // Show status details
-        statusDetails.html(`
+        if (!$('#status-details').length) {
+            $('#transport-status-content').append('<div id="status-details"></div>');
+        }
+        $('#status-details').html(`
             <div class="detail-item">
-                <strong>Status:</strong> ${selectedStatus.data('display-text')}
+                <strong>Selected Status:</strong> ${selectedStatus.data('display-text')}
             </div>
         `);
-        
-        selectedInfo.show();
     } else {
-        selectedInfo.hide();
+        $('#status-details').remove();
     }
 });
 
@@ -919,7 +875,6 @@ function closeTransportModal() {
     $('#transport-status-modal').removeClass('active');
     $('#transport-status-content').html('<p>Loading transport options...</p>');
     $('#transport-status-form')[0].reset();
-    $('#selected-info').hide();
     $('#update-status-btn').prop('disabled', false).html('Update Status');
 }
 
@@ -928,18 +883,18 @@ $(document).on('submit', '#transport-status-form', function(e) {
     e.preventDefault();
     
     const playerId = currentPlayerId;
-    const roasterId = $('#roaster-select').val();
     const statusType = $('#status-select').val();
+    const mapping_id = $('#status-select option:selected').attr('data-mapping-id');
     
-    if (!roasterId || !statusType) {
-        showMessage('Please select both roaster and status', 'error');
+    if (!statusType) {
+        showMessage('Please select a status', 'error');
         return;
     }
     
     const formData = new FormData();
-    formData.append('roaster_id', roasterId);
     formData.append('status_type', statusType);
     formData.append('csrfmiddlewaretoken', $("input[name='csrfmiddlewaretoken']").val());
+    formData.append('mapping_id', mapping_id);
 
     // Show loading state
     $('#update-status-btn').prop('disabled', true).html('<span class="loader"></span> Updating...');
@@ -1135,10 +1090,10 @@ function openTransportStatusModal(playerId, playerName) {
       $(document).ready(function() {
           fetchPlayers();
           $(document).on("click", ".transport-status-btn", function() {
-        const playerId = $(this).data("id");
-        const playerName = $(this).data("name");
-        openTransportStatusModal(playerId, playerName);
-    });
+              const playerId = $(this).data("id");
+              const playerName = $(this).data("name");
+              openTransportStatusModal(playerId, playerName);
+          });
 
           // Add export button event listener
           document.getElementById('export-btn').addEventListener('click', exportPlayersToExcel);

@@ -324,8 +324,15 @@ class PlayerTransportationDetails(models.Model):
         elif self.entry_status == self.ENTRY_REACHED_AIRPORT_DEPARTURE:
             return "Reached Airport"
         elif self.entry_status == self.ENTRY_SCHEDULED:
-            return "Scheduled" 
+            return "Scheduled"
         
+        if not self.roasterId and (self.entry_status == "STARTED" or self.entry_status == "ENDED"):
+            trans_map = ''
+            if self.details:
+                id = int(self.details)
+                trans_map = TransportStatusMapping.objects.filter(id=id).first().player_status
+            return trans_map
+                 
         # Get locations from Roaster instead of self
         if self.roasterId:
             try:
@@ -335,6 +342,7 @@ class PlayerTransportationDetails(models.Model):
                     status_type=self.entry_status, 
                     status_flag=1
                 )
+                print("mapping.player_status", mapping.player_status)
                 return mapping.player_status
                 
             except TransportStatusMapping.DoesNotExist:

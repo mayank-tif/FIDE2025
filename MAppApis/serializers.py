@@ -583,3 +583,9 @@ class DepartureDetailsSerializer(serializers.ModelSerializer):
             'departure_airport',
             'departure_fight_no',
         ]
+        
+        
+        
+class DeviceTokenSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    device_token = serializers.CharField(required=True, max_length=500)

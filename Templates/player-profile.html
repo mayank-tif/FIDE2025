@@ -829,35 +829,40 @@
             roasters[roasterKey] = {
               route: (item.pickup_location || item.drop_location)
                       ? `${item.pickup_location ?? ''} → ${item.drop_location ?? ''}`
-                      : item.entry_status == "ARRIVED_AIRPORT" ? 'Arrival' : item.entry_status == "REACHED_AIRPORT_DEPARTURE"? 'Departure' : "",
-              entries: []
+                      : item.entry_status == "ARRIVED_AIRPORT" ? 'Arrival' : 
+                        item.entry_status == "REACHED_AIRPORT_DEPARTURE" ? 'Departure' : 
+                        'Status Update',
+              entries: [],
+              latest_timestamp: item.created_on_timestamp,
+              has_roaster: item.has_roaster
             };
           }
           roasters[roasterKey].entries.push(item);
+          
+          // Update latest timestamp for the group
+          if (item.created_on_timestamp > roasters[roasterKey].latest_timestamp) {
+            roasters[roasterKey].latest_timestamp = item.created_on_timestamp;
+          }
         });
+
         const roasterArray = Object.values(roasters)
-.map(group => {
-  // Sort entries inside each roaster by id descending
-  group.entries.sort((a, b) => b.id - a.id);
-  
-  return {
-    roaster_id: group.entries[0].roaster_id || 0,
-    route: group.route,
-    route_type: group.route === 'Departure' ? 1 : 
-                group.route.includes('→') ? 2 : 
-                group.route === 'Arrival' ? 3 : 4, // Priority: Departure(1) -> Routes(2) -> Arrival(3)
-    entries: group.entries
-  };
-})
-// Sort by custom priority: Departure -> Routes -> Arrival
-.sort((a, b) => {
-  // First sort by route type priority
-  if (a.route_type !== b.route_type) {
-    return a.route_type - b.route_type;
-  }
-  // If same type, sort by roaster_id descending
-  return b.roaster_id - a.roaster_id;
-});
+          .map(group => {
+            // Sort entries inside each roaster by created_on_timestamp descending (latest first)
+            group.entries.sort((a, b) => b.created_on_timestamp - a.created_on_timestamp);
+            
+            return {
+              roaster_id: group.entries[0].roaster_id || 0,
+              route: group.route,
+              route_type: group.route === 'Departure' ? 1 : 
+                          group.route.includes('→') ? 2 : 
+                          group.route === 'Arrival' ? 3 : 4,
+              entries: group.entries,
+              latest_timestamp: group.latest_timestamp,
+              has_roaster: group.has_roaster
+            };
+          })
+          // Sort by latest timestamp descending (most recent groups first)
+          .sort((a, b) => b.latest_timestamp - a.latest_timestamp);
         
         // Now iterate over roasterArray instead of Object.values(roasters)
         roasterArray.forEach(roaster => {

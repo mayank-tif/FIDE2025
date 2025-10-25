@@ -26,6 +26,7 @@ class SessionCheckByMiddleware:
             'fwcadmin:login',
             'fwcadmin:password_change',
             'fwcadmin:logout',
+            'firebase-messaging-sw'
             # Add more if needed
         ]
 

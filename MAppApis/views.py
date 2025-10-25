@@ -512,27 +512,106 @@ class PlayerTransportationAPIView(APIView):
             
             roasters = roasters.order_by('-created_on')
             
-            roaster_serializer = RoasterTransportationSerializer(
-                roasters, 
-                many=True, 
-                context={'player_id': player.id}
-            )
+            # Serialize roasters with their transport details
+            roaster_data = []
+            for roaster in roasters:
+                # Get all transport entries for this roaster
+                roaster_transports = roaster.prefetched_transports
+                
+                # Sort transports by created_on (newest first)
+                sorted_transports = sorted(roaster_transports, key=lambda x: x.created_on, reverse=True)
+                
+                # Determine route
+                pickup = roaster.pickup_location_custom if roaster.pickup_location == Roaster.LOCATION_OTHER else roaster.get_pickup_location_display()
+                dropoff = roaster.drop_location_custom if roaster.drop_location == Roaster.LOCATION_OTHER else roaster.get_drop_location_display()
+                route = f"{pickup} → {dropoff}" if pickup or dropoff else ""
+                
+                # Create roaster entry with all its transports
+                roaster_entry = {
+                    'id': roaster.id,
+                    'roaster_id': roaster.id,
+                    'route': route,
+                    'has_roaster': True,
+                    'vehicle_type': roaster.vechicle_type,
+                    'vehicle_number': roaster.vechicle_no,
+                    'driver_name': roaster.driver_name,
+                    'driver_phone': f"+{roaster.mobile_no}" if roaster.mobile_no else None,
+                    'pickup_location': pickup,
+                    'drop_location': dropoff,
+                    'pickup_location_custom': roaster.pickup_location_custom,
+                    'drop_location_custom': roaster.drop_location_custom,
+                    'travel_date': roaster.travel_date.strftime("%Y-%m-%d %H:%M:%S") if roaster.travel_date else None,
+                    'travel_date_display': roaster.travel_date.strftime("%d %b %Y at %I:%M %p") if roaster.travel_date else None,
+                    'entries': []
+                }
+                
+                # Add all transport entries for this roaster
+                for transport in sorted_transports:
+                    transport_entry = {
+                        'id': transport.id,
+                        'entry_status': transport.entry_status,
+                        'player_status_display': transport.player_status_display,
+                        'created_on': transport.created_on.strftime("%Y-%m-%d %H:%M:%S"),
+                        'created_on_display': transport.created_on.strftime("%d %b %Y at %I:%M %p"),
+                        'type': 'roaster',
+                        'details': transport.details,
+                        'remarks': transport.remarks,
+                    }
+                    roaster_entry['entries'].append(transport_entry)
+                
+                roaster_data.append(roaster_entry)
             
-            standalone_serializer = TransportationDetailSerializer(
-                standalone_transports.order_by('-created_on'), 
-                many=True
-            )
+            # Serialize standalone transports (sorted by created_on)
+            standalone_data = []
+            sorted_standalone = standalone_transports.order_by('-created_on')
             
-            combined_data = self._combine_and_sort_transportation_data(
-                roaster_serializer.data, 
-                standalone_serializer.data
-            )
+            for transport in sorted_standalone:
+                # Determine route for standalone entries
+                if transport.entry_status == "ARRIVED_AIRPORT":
+                    route = "Arrival"
+                elif transport.entry_status == "REACHED_AIRPORT_DEPARTURE":
+                    route = "Departure"
+                else:
+                    route = transport.player_status_display or "Transport"
+                
+                standalone_entry = {
+                    'id': transport.id,
+                    'roaster_id': 0,
+                    'route': route,
+                    'has_roaster': False,
+                    'entries': [
+                        {
+                            'id': transport.id,
+                            'entry_status': transport.entry_status,
+                            'player_status_display': transport.player_status_display,
+                            'created_on': transport.created_on.strftime("%Y-%m-%d %H:%M:%S"),
+                            'created_on_display': transport.created_on.strftime("%d %b %Y at %I:%M %p"),
+                            'type': 'standalone',
+                            'details': transport.details,
+                            'remarks': transport.remarks,
+                        }
+                    ]
+                }
+                standalone_data.append(standalone_entry)
+            
+            # Combine both lists
+            combined_data = roaster_data + standalone_data
+            
+            # Sort the combined data by the latest created_on timestamp in each group
+            def get_latest_timestamp(group):
+                if group['entries']:
+                    # Get the latest created_on timestamp from the entries
+                    latest_entry = max(group['entries'], key=lambda x: x['id'])  # Using ID as proxy for timestamp
+                    return latest_entry['id']
+                return 0
+            
+            combined_data.sort(key=get_latest_timestamp, reverse=True)
             
             response_data = {
                 "success": True,
                 "transportation_data": combined_data, 
                 "summary": {
-                    "total_roasters": roasters.count(),
+                    "total_roasters": len(roaster_data),
                     "transports_with_roasters": transports_with_roasters.count(),
                     "standalone_transports": standalone_transports.count(),
                     "total_transports": player_transports.count()
@@ -549,95 +628,14 @@ class PlayerTransportationAPIView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
             
         except Exception as e:
+            import traceback
+            print(f"Error in PlayerTransportationAPIView: {str(e)}")
+            print(traceback.format_exc())
             return Response({
                 "success": False,
                 "error": "Server error",
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def _combine_and_sort_transportation_data(self, roasters_data, standalone_data):
-        """
-        Combine roasters and standalone transports into a single array
-        and apply the same sorting logic as in frontend
-        """
-        combined = []
-        
-        roasters_dict = {}
-        
-        for roaster in roasters_data:
-            roaster_id = roaster['id']
-            
-            if roaster.get('pickup_location') or roaster.get('drop_location'):
-                route = f"{roaster.get('pickup_location', '')} → {roaster.get('drop_location', '')}"
-            else:
-                if roaster.get('player_transportations'):
-                    entry_status = roaster['player_transportations'][0].get('entry_status', '')
-                    if entry_status == "ARRIVED_AIRPORT":
-                        route = 'Arrival'
-                    elif entry_status == "REACHED_AIRPORT_DEPARTURE":
-                        route = 'Departure'
-                    else:
-                        route = ""
-                else:
-                    route = ""
-            
-            if roaster_id not in roasters_dict:
-                roasters_dict[roaster_id] = {
-                    'roaster_id': roaster_id,
-                    'route': route,
-                    'entries': []
-                }
-            
-            roasters_dict[roaster_id]['entries'].append({
-                **roaster,
-                'type': 'roaster',
-                'id': roaster_id 
-            })
-        
-        for transport in standalone_data:
-            standalone_key = f"standalone-{transport['id']}"
-            
-            entry_status = transport.get('entry_status', '')
-            if entry_status == "ARRIVED_AIRPORT":
-                route = 'Arrival'
-            elif entry_status == "REACHED_AIRPORT_DEPARTURE":
-                route = 'Departure'
-            else:
-                route = ""
-            
-            if standalone_key not in roasters_dict:
-                roasters_dict[standalone_key] = {
-                    'roaster_id': 0,
-                    'route': route,
-                    'entries': []
-                }
-            
-            roasters_dict[standalone_key]['entries'].append({
-                **transport,
-                'type': 'standalone',
-                'id': transport['id']
-            })
-        
-        roaster_array = list(roasters_dict.values())
-        
-        for group in roaster_array:
-            group['entries'].sort(key=lambda x: x['id'], reverse=True)
-            
-            if group['route'] == 'Departure':
-                group['route_type'] = 1
-            elif '→' in group['route']:
-                group['route_type'] = 2
-            elif group['route'] == 'Arrival':
-                group['route_type'] = 3
-            else:
-                group['route_type'] = 4
-        
-        roaster_array.sort(key=lambda x: (
-            x['route_type'],  
-            -x['roaster_id'] 
-        ))
-        
-        return roaster_array
 
 
 
@@ -864,6 +862,24 @@ class ContactFormView(APIView):
                 "message": "An error occurred while processing your request. Please try again."
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
+            
+def notify_admins(request, title, body):
+        admins = MstUserLogins.objects.filter(roleid=1, status_flag=1)
+
+        tokens = UserDeviceToken.objects.filter(
+            user_email__in=[a.email for a in admins],
+            status_flag=1
+        ).values_list('device_token', flat=True)
+
+        for token in tokens:
+            if token: 
+                try:
+                    send_push_notification(request, token, title, body)
+                except Exception as e:
+                    print(f"Failed to send notification to {token}: {str(e)}")
+            else:
+                print("Skipping empty token")
+            
 
 class EnquiryCreateOrReplyAPI(APIView):
     """
@@ -890,8 +906,19 @@ class EnquiryCreateOrReplyAPI(APIView):
             player = Players.objects.get(id=player_id, status_flag=1)
             
             if enquiry_id:
+                notify_admins(
+                    request,
+                    title=f"New Enquiry from {player.name}",
+                    body=f"Message: {message[:100]}..."
+                )
                 return self._handle_enquiry_reply(enquiry_id, player, message)
             else:
+                notify_admins(
+                    request,
+                    title=f"Enquiry Reply from {player.name}",
+                    body=f"Message: {message[:100]}..."
+                )
+
                 return self._handle_new_enquiry(player, message)
                 
         except Players.DoesNotExist:
@@ -1042,6 +1069,9 @@ class EnquiryCreateOrReplyAPI(APIView):
             email_log.status = 'FAILED'
             email_log.save()
             print(f"Email sending failed: {str(e)}")
+            
+    
+
 
 class PlayerEnquiriesWithConversationsAPI(APIView):
     """
@@ -1163,6 +1193,26 @@ class ComplaintListView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             
+def notify_department_users(request, department_id, title, body):
+    users = MstUserLogins.objects.filter(department_id=department_id, status_flag=1)
+    
+    tokens = UserDeviceToken.objects.filter(
+        user_email__in=[u.email for u in users],
+        status_flag=1
+    ).values_list('device_token', flat=True)
+    print("sending notification to department users", tokens.count())
+    
+    for token in tokens:
+        if token:
+            try:
+                send_push_notification(request, token, title, body)
+            except Exception as e:
+                print(f"Failed to send notification to {token}: {str(e)}")
+        else:
+            print("Skipping empty token")
+
+            
+            
 class RaiseComplaintView(APIView):
     """
     POST API for player to raise a new complaint
@@ -1203,6 +1253,12 @@ class RaiseComplaintView(APIView):
                 department=department,
                 status='OPEN',
                 status_flag=1
+            )
+            notify_department_users(
+                request,
+                department_id=department.id,
+                title=f"New Complaint from {player.name}",
+                body=f"Complaint #C{complaint.id}: {description[:100]}..."
             )
             
             context = {
@@ -1333,6 +1389,13 @@ class EditComplaintRemarkView(APIView):
             # Update complaint timestamp
             complaint.updated_on = timezone.now()
             complaint.save()
+            
+            notify_department_users(
+                request,
+                department_id=department.id,
+                title=f"New Complaint Reply from {player.name}",
+                body=f"Complaint #C{complaint.id}: {message[:100]}..."
+            )
             
             context = {
                 'is_new_complaint': False,
@@ -1611,5 +1674,47 @@ class DepartureDetailsAPI(APIView):
             return Response({
                 "success": False,
                 "error": "Failed to fetch departure details",
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+
+class SaveDeviceTokenAPI(APIView):
+    
+    def post(self, request):
+        validate_email_and_device_with_token(request)
+        serializer = DeviceTokenSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "error": "Validation failed",
+                "details": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        email = data['email']
+        token = data['device_token']
+        
+        try:
+            obj, created = UserDeviceToken.objects.update_or_create(
+                user_email=email,
+                defaults={
+                    "device_token":token,
+                    "updated_on": timezone.now(),
+                    "status_flag": 1
+                }
+            )
+            
+            return Response({
+                "success": True,
+                "message": "Device token saved successfully",
+                "created": created
+            }, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": "Failed to save device token",
                 "message": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

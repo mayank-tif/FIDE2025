@@ -1,7 +1,9 @@
 import json
+import time
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View, ListView
+from utils.firebase_utils import send_push_notification
 from .models import *
 from django.urls import reverse
 from django.core.paginator import Paginator
@@ -39,13 +41,25 @@ class View_platformlogin(TemplateView):
         msg = request.GET.get('msg', None)
         
         if msg == "Unauthorized":
-            logout(request)  
+            logout(request) 
+            
+        print("in request", request.session.get('roleid'), request.session.get('department'), request.session.get('is_active'))
+            
+        if request.session.get('roleid') == 2 and request.session.get('department') == 1:
+            return redirect("/complaints")
+        elif request.session.get('roleid') == 2 and request.session.get('department') == 2:
+            return redirect("roaster_list") 
         
         if request.session.get('is_active'):
             return redirect("/home")
         
         msg = request.GET.get('msg', None)
-        return render(request,"login.html",{'msg': msg, 'site_key': RECAPTCHA_SITE_KEY})
+        return render(request,"login.html",{
+            'msg': msg, 
+            'site_key': RECAPTCHA_SITE_KEY,
+            "firebase_config": settings.FIREBASE_CONFIG, 
+            'firebase_vapid_key': settings.FIREBASE_VAPID_KEY, 
+            'cache_buster': int(time.time())})
     
     def post(self, request):
         username = request.POST.get('username')
@@ -67,12 +81,12 @@ class View_platformlogin(TemplateView):
 
             # Check reCAPTCHA success and score (Google recommends 0.5+)
             if not recaptcha_result.get("success") or recaptcha_result.get("score", 0) < 0.5:
-                return render(request, "index.html", {"message": "reCAPTCHA failed. Please try again.", "status": False, "site_key": RECAPTCHA_SITE_KEY})
+                return render(request, "index.html", {"message": "reCAPTCHA failed. Please try again.", "status": False, "site_key": RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
             
             if pd.isnull(username) or username == '' or username is None:
-                return render(request,"login.html",{'message': 'Username should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY})
+                return render(request,"login.html",{'message': 'Username should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
             if pd.isnull(pswd) or pswd == '' or pswd is None:
-                return render(request,"login.html",{'message': 'Password should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY})
+                return render(request,"login.html",{'message': 'Password should not be empty..!', "status": False, 'site_key': RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
             
             if username is not None and pswd is not None:
                 user_dtls = MstUserLogins.objects.filter(loginname=username, securepassword=pswd,status_flag=1)
@@ -86,29 +100,38 @@ class View_platformlogin(TemplateView):
                     request.session['loggedin_user_name'] = user_dtls[0].name
                     request.session['loggedin_user_email'] = user_dtls[0].email
                     log_user_activity(request, "Login", f"User '{username}' logged in successfully")
+                    fcm_token = request.POST.get("fcm_token")
+                    print("fcm_token-------------", fcm_token)
+                    if fcm_token:
+                        UserDeviceToken.objects.update_or_create(
+                            user_email=user_dtls[0].email,
+                            defaults={
+                                "device_token":fcm_token,
+                                "updated_on": timezone.now(),
+                                "updated_by": user_dtls[0].id,
+                                "status_flag": 1
+                            }
+                        )
                     if user_dtls[0].roleid.id == 2:
                         return redirect("/complaints")
-                    elif user_dtls[0].roleid.id == 3:
+                    elif user_dtls[0].roleid.id != 1 and user_dtls[0].department.id == 2:
                         return redirect("roaster_list")
                     return redirect("/home")
                 else:
-                    return render(request,"login.html",{"message": "Incorrect Password!!", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
+                    return render(request,"login.html",{"message": "Incorrect Password!!", "status": False, 'site_key': RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
             else:
-                return render(request,"login.html",{"message": "Please provide both username and password", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
+                return render(request,"login.html",{"message": "Please provide both username and password", "status": False, 'site_key': RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
         except Exception as e:
-            return render(request,"login.html",{"message": "Please provide both username and password ({e})", "status": False, 'site_key': RECAPTCHA_SITE_KEY})
+            return render(request,"login.html",{"message": "Please provide both username and password ({e})", "status": False, 'site_key': RECAPTCHA_SITE_KEY, "firebase_config": settings.FIREBASE_CONFIG, })
 
 class PlatformLogoutView(View):
     def post(self, request):
         log_user_activity(request, "Logout", f"User '{request.session.get('loginname')}' logged out successfully")
+        user = MstUserLogins.objects.filter(id=request.session.get('loginid')).first()
+        UserDeviceToken.objects.filter(user_email=user.email).update(status_flag=0)
         logout(request)
         return redirect(reverse('login'))
     
-    
-
-from django.core.paginator import Paginator
-from django.db.models import Prefetch
-from .models import Players, PlayerTransportationDetails
 
 class Dashboard(TemplateView):
     template_name = "dashboard.html"
@@ -133,7 +156,7 @@ class Dashboard(TemplateView):
                 Prefetch(
                     'playertransportationdetails_set',
                     queryset=PlayerTransportationDetails.objects.filter(status_flag=1).order_by('-created_on'),
-                    to_attr='latest_transports'
+                    to_attr='all_transports'
                 )
             ).select_related('countryid').order_by('-created_on')
             
@@ -143,8 +166,17 @@ class Dashboard(TemplateView):
 
             players_with_transport = []
             for player in players_page:
-                latest_transport = player.latest_transports[0] if player.latest_transports else None
-                transportation_status = latest_transport.player_status_display if latest_transport else "Not Set"
+                # Find the latest non-scheduled transport status
+                transportation_status = "Not Set"
+                
+                if player.all_transports:
+                    # Iterate through transports to find the first non-scheduled one
+                    for transport in player.all_transports:
+                        if transport.entry_status != PlayerTransportationDetails.ENTRY_SCHEDULED:
+                            transportation_status = transport.player_status_display
+                            break
+                    else:
+                        transportation_status = ""
                 
                 players_with_transport.append({
                     'player': player,
@@ -156,8 +188,8 @@ class Dashboard(TemplateView):
                 "active_players": active_players,
                 "pending_complaints": pending_complaints,
                 "total_announcements": total_announcements,
-                "players_with_transport": players_with_transport,  # Use the new list
-                "players_page": players_page,  # Keep pagination object
+                "players_with_transport": players_with_transport,
+                "players_page": players_page,
             }
 
             return render(request, self.template_name, context)
@@ -212,7 +244,7 @@ class PlayerView(View):
             Prefetch(
                 'playertransportationdetails_set',
                 queryset=PlayerTransportationDetails.objects.filter(status_flag=1).order_by('-created_on'),
-                to_attr='latest_transports'
+                to_attr='all_transports'
             )
         ).order_by("-id")
 
@@ -221,8 +253,13 @@ class PlayerView(View):
 
         player_data = []
         for player in current_page:
-            latest_transport = player.latest_transports[0] if player.latest_transports else None
-            transportation_status = latest_transport.player_status_display if latest_transport else ""
+            transportation_status = ""
+
+            if player.all_transports:
+                for transport in player.all_transports:
+                    if transport.entry_status != PlayerTransportationDetails.ENTRY_SCHEDULED:
+                        transportation_status = transport.player_status_display
+                        break
 
             player_data.append({
                 "id": player.id,
@@ -356,24 +393,9 @@ class PlayerView(View):
 
 class PlayerTransportStatusView(View):
     def get(self, request, player_id):
-        """Get all roasters and status options for a player"""
+        """Get status options for a player"""
         try:
             player = get_object_or_404(Players, id=player_id, status_flag=1)
-            
-            # Get all active roasters for dropdown
-            roasters = Roaster.objects.filter(status_flag=1).order_by('-created_on')
-            
-            roaster_options = []
-            for roaster in roasters:
-                roaster_options.append({
-                    'id': roaster.id,
-                    'display_text': f"{roaster.get_pickup_location_display()} → {roaster.get_drop_location_display()} | {roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else 'No date'} | {roaster.vechicle_no} - {roaster.vechicle_type} ",
-                    'pickup_location': roaster.pickup_location,
-                    'drop_location': roaster.drop_location,
-                    'vehicle_no': roaster.vechicle_no,
-                    'vehicle_type': roaster.vechicle_type,
-                    'travel_date': roaster.travel_date.strftime('%d %b %Y %I:%M %p') if roaster.travel_date else None
-                })
             
             # Get all status mappings for dropdown
             status_mappings = TransportStatusMapping.objects.filter(status_flag=1)
@@ -391,7 +413,6 @@ class PlayerTransportStatusView(View):
             
             return JsonResponse({
                 'player_name': player.name,
-                'roasters': roaster_options,
                 'status_options': status_options
             })
             
@@ -399,20 +420,14 @@ class PlayerTransportStatusView(View):
             return JsonResponse({'error': str(e)}, status=400)
     
     def post(self, request, player_id):
-        """Create transport entry with selected roaster and status"""
+        """Create transport entry with selected status"""
         try:
             player = get_object_or_404(Players, id=player_id, status_flag=1)
             status_type = request.POST.get('status_type')
-            roaster_id = request.POST.get('roaster_id')
+            mapping_id = request.POST.get('mapping_id')
             
             if not status_type:
                 return JsonResponse({'success': False, 'error': 'Status type is required'})
-            
-            if not roaster_id:
-                return JsonResponse({'success': False, 'error': 'Roaster selection is required'})
-            
-            # Get the selected roaster
-            roaster = get_object_or_404(Roaster, id=roaster_id, status_flag=1)
             
             # Verify the status mapping exists
             mapping = TransportStatusMapping.objects.filter(
@@ -423,13 +438,13 @@ class PlayerTransportStatusView(View):
             if not mapping:
                 return JsonResponse({'success': False, 'error': 'Invalid status mapping'})
             
-            # Create a new transport entry
+            # Create a new transport entry without roaster
             PlayerTransportationDetails.objects.create(
                 playerId=player,
-                roasterId=roaster,
                 entry_status=status_type,
                 created_by=request.session.get('loginid'),
-                status_flag=1
+                status_flag=1,
+                details=mapping_id
             )
             
             return JsonResponse({
@@ -439,7 +454,7 @@ class PlayerTransportStatusView(View):
             })
             
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})        
+            return JsonResponse({'success': False, 'error': str(e)})     
         
                         
 class PlayerProfile(View):
@@ -643,6 +658,7 @@ class PlayerTransportView(View):
                     'drop_location': dropoff,
                     'travel_date': travel_date,
                     'created_on': transport.created_on.strftime("%d %b %Y at %I:%M %p"),
+                    'created_on_timestamp': transport.created_on.timestamp(),
                     'vehicle_type': transport_type,
                     'vehicle_number': vehicle_no,
                     'driver_name': driver_name,
@@ -907,30 +923,105 @@ class ComplaintUpdateView(View):
         message = request.POST.get("message")
         print("new_status", new_status, "new_department", new_department, "message", message)
 
+        notification_needed = False
+        notification_message = ""
+
         if new_status:
             complaint.status = new_status
             complaint.save()
             log_user_activity(request, "Update Complaint Status", f"Complaint ID(#C{complaint_id}) status updated to {new_status}")
-        
+            notification_needed = True
+            notification_message += f"Status updated to {new_status}. "
+
         if new_department:
             try:
                 department = Department.objects.get(id=new_department)
                 complaint.department = department
                 complaint.save()
                 log_user_activity(request, "Update Complaint Department", f"Complaint ID(#C{complaint_id}) department updated to {department.name}")
+                notification_needed = True
+                notification_message += f"Department changed to {department.name}. "
             except Department.DoesNotExist:
                 return JsonResponse({"success": False, "message": "Invalid department."})
-        
+
         if message:
             sender = MstUserLogins.objects.get(id=request.session.get("loginid"), status_flag=1)
             PlayerComplaintConversation.objects.create(complaint=complaint, sender_user=sender, message=message)
             log_user_activity(request, "Add Remark", f"Complaint ID({complaint_id}) remark added")
-            
+            notification_needed = True
+            notification_message += "New remark added. "
+            self._send_complaint_reply_email(complaint, message, sender)
+
         complaint.updated_by = request.session.get("loginid")
         complaint.updated_on = timezone.now()
         complaint.save()
-            
+
+        # --- SEND PUSH NOTIFICATION ---
+        if notification_needed:
+            try:
+                # Get all device tokens for the player
+                device_tokens = UserDeviceToken.objects.filter(
+                    user_email=complaint.player.email,
+                    status_flag=1
+                ).values_list("device_token", flat=True)
+
+                title = f"Complaint #{complaint.id} Updated"
+                body = notification_message.strip()
+
+                for token in device_tokens:
+                    if token:
+                        try:
+                            send_push_notification(request, token, title, body)
+                            print(f"Push sent to token: {token}")
+                        except Exception as e:
+                            print(f"Failed to send push to token {token}: {str(e)}")
+            except Exception as e:
+                print("Error sending push notifications:", e)
+
         return JsonResponse({"success": True, "message": "Complaint updated successfully."})
+
+    def _send_complaint_reply_email(self, complaint, message, sender):
+        """Send email notification to player about complaint reply"""
+        try:
+            player = complaint.player
+            context = {
+                'player_name': player.name,
+                'complaint_id': complaint.id,
+                'admin_message': message,
+                'admin_name': sender.name if hasattr(sender, 'name') else "Admin Team",
+                'complaint_status': complaint.status,
+                'department_name': complaint.department.name,
+                'reply_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+                'complaint_description': complaint.description[:100] + "..." if len(complaint.description) > 100 else complaint.description
+            }
+
+            html_message = render_to_string('complaint_reply_to_player.html', context)
+            subject = f"Update on Your Complaint #C{complaint.id} - FWC 2025"
+
+            email_log = EmailLog.objects.create(
+                email_type='COMPLAINT_REPLY_TO_PLAYER',
+                subject=subject,
+                recipient_email=player.email,
+                status='PENDING',
+                html_content=html_message,
+                text_content=f"Update on your complaint #{complaint.id}",
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[player.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+
+            email_log.status = 'SENT'
+            email_log.save()
+
+        except Exception as e:
+            print(f"Failed to send complaint reply email: {str(e)}")
+
     
 
 class AnnouncementListView(View):
@@ -972,20 +1063,39 @@ class AnnouncementListView(View):
             created_on=timezone.now()
         )
 
-        # Assign recipients
         if "all" in audience_ids:
             recipients = Players.objects.filter(status_flag=1)
         else:
             recipients = Players.objects.filter(id__in=audience_ids)
 
-        # Add recipients in bulk
         AnnouncementRecipients.objects.bulk_create([
             AnnouncementRecipients(announcement=announcement, player=p, sent_on=timezone.now())
             for p in recipients
         ])
         log_user_activity(request, "Create Announcement", f"Announcement '{title}' created successfully")
+        
+        try:
+            device_tokens = UserDeviceToken.objects.filter(
+                user_email__in=[p.email for p in recipients],
+                status_flag=1
+            ).values_list("device_token", flat=True)
+            print("sending notification for announcement",)
 
-        return redirect("announcements")  # Redirect back to list
+            notification_title = f"New Announcement: {title}"
+            notification_body = details[:100] + "..." if len(details) > 100 else details
+
+            for token in device_tokens:
+                if token:
+                    try:
+                        send_push_notification(request, token, notification_title, notification_body)
+                        print(f"Push sent to token: {token}")
+                    except Exception as e:
+                        print(f"Failed to send push to token {token}: {str(e)}")
+
+        except Exception as e:
+            print("Error sending push notifications:", e)
+
+        return redirect("announcements")
     
     
 class ManageUsersView(View):
@@ -1277,8 +1387,8 @@ class RoasterAddView(View):
         vehicle_type = request.POST.get('vehicleType')
         vehicle_number = request.POST.get('vehicleNumber')
         number_of_seats = request.POST.get('number_of_seats')
-        driver_name = request.POST.get('driverName')
-        mobile_no = request.POST.get('mobile_no')
+        driver_name = request.POST.get('driverName', None)
+        mobile_no = request.POST.get('mobile_no', None)
         # transportation_type_id = request.POST.get('transportationTypeId')
         assigned_players = request.POST.getlist('players')
         current_page = request.POST.get('current_page', 1)
@@ -1300,6 +1410,14 @@ class RoasterAddView(View):
         if drop_location == Roaster.LOCATION_OTHER and not drop_location_custom:
             messages.error(request, "Please specify the drop location for 'Other'.")
             return redirect(f"{reverse('add_roaster')}?page={current_page}")
+        
+        if mobile_no == '':
+            mobile_no = None
+        elif mobile_no is not None:
+            try:
+                mobile_no = int(mobile_no)
+            except (ValueError, TypeError):
+                mobile_no = None
 
         roaster = Roaster.objects.create(
             vechicle_type=vehicle_type,
@@ -1381,6 +1499,13 @@ class RoasterEditView(View):
         if drop_location == Roaster.LOCATION_OTHER and not drop_location_custom:
             messages.error(request, "Please specify the drop location for 'Other'.")
             return redirect(f"{reverse('edit_roaster', args=[roaster_id])}?page={current_page}")
+        if mobile_no == '':
+            mobile_no = None
+        elif mobile_no is not None:
+            try:
+                mobile_no = int(mobile_no)
+            except (ValueError, TypeError):
+                mobile_no = None
         
 
         # Update roaster with mobile number
@@ -1568,13 +1693,41 @@ class EnquiryListView(View):
             enquiry = EnquiryDetails.objects.get(id=enquiry_id)
             user = MstUserLogins.objects.get(id=user_id)
             
-            PlayerEnquiryResponses.objects.create(
+            # Create the response
+            enquiry_response = PlayerEnquiryResponses.objects.create(
                 enquiry=enquiry,
                 user=user,
                 rnquiry_response=response_text
             )
             enquiry.is_replied = True
             enquiry.save()
+            
+            # Send email notification to player
+            self._send_enquiry_reply_email(enquiry, response_text, user)
+            
+            try:
+                device_tokens = UserDeviceToken.objects.filter(
+                    user_email=enquiry.player.email,
+                    status_flag=1
+                ).values_list('device_token', flat=True)
+
+                title = f"Enquiry #{enquiry.id} Replied"
+                body = response_text[:100] + "..." if len(response_text) > 100 else response_text
+                print("sending notification for enquiry", enquiry.id)
+
+                for token in device_tokens:
+                    if token:
+                        try:
+                            send_push_notification(request, token, title, body)
+                            print(f"Push sent to token: {token}")
+                        except Exception as e:
+                            print(f"Failed to send push to token {token}: {str(e)}")
+
+            except Exception as e:
+                print(f"Error sending push notifications: {str(e)}")
+            
+            # Log user activity
+            log_user_activity(request, "Enquiry Response", f"Replied to enquiry ID #{enquiry_id}")
             
             return JsonResponse({
                 'success': True,
@@ -1591,6 +1744,55 @@ class EnquiryListView(View):
                 'success': False,
                 'error': str(e)
             })
+    
+    def _send_enquiry_reply_email(self, enquiry, response_text, admin_user):
+        """Send email notification to player about enquiry reply"""
+        try:
+            player = enquiry.player
+            context = {
+                'player_name': player.name,
+                'enquiry_id': enquiry.id,
+                'admin_message': response_text,
+                'admin_name': admin_user.name if hasattr(admin_user, 'name') else "Admin Team",
+                'reply_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+                'original_enquiry': enquiry.message[:100] + "..." if len(enquiry.message) > 100 else enquiry.message
+            }
+            
+            html_message = render_to_string('enquiry_reply_to_player.html', context)
+            
+            subject = f"Reply to Your Enquiry #E{enquiry.id} - FWC 2025"
+            
+            email_log = EmailLog.objects.create(
+                email_type='ENQ_REPLY_TO_PLAYER',
+                subject=subject,
+                recipient_email=player.email,
+                status='PENDING',
+                html_content=html_message,
+                text_content=f"Reply to your enquiry #{enquiry.id}. Message: {response_text[:100]}...",
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[player.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
+            
+            print(f"Enquiry reply email sent successfully to {player.email}")
+            
+        except Exception as e:
+            # Log the error but don't break the main functionality
+            print(f"Failed to send enquiry reply email: {str(e)}")
+            # If email log was created, update its status to failed
+            if 'email_log' in locals():
+                email_log.status = 'FAILED'
+                email_log.save()
 
 
 class DeptPlayerView(View):
@@ -1711,19 +1913,30 @@ class PlayerLogisticsView(ListView):
         show_arrival = current_date <= cutoff_date
 
         for player in context['players']:
-            latest_transport = PlayerTransportationDetails.objects.filter(
+            # Get the latest non-scheduled transport record
+            latest_non_scheduled_transport = PlayerTransportationDetails.objects.filter(
                 playerId=player,
                 status_flag=1
-            ).order_by('-created_on').first()
+            ).exclude(entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED).order_by('-created_on').first()
+        
 
-            if latest_transport:
-                print("player status", latest_transport.player_status_display)
-                player.current_transport_status = latest_transport.player_status_display
-                player.has_departure_status = (latest_transport.entry_status != 
-                                             PlayerTransportationDetails.ENTRY_ARRIVED_AIRPORT)
+            if latest_non_scheduled_transport:
+                player.current_transport_status = latest_non_scheduled_transport.player_status_display
+                player.has_departure_status = (latest_non_scheduled_transport.entry_status != 
+                                             PlayerTransportationDetails.ENTRY_REACHED_AIRPORT_DEPARTURE)
             else:
-                player.current_transport_status = ""
-                player.has_departure_status = False
+                # Check if there are any scheduled records (for edge cases)
+                scheduled_transport = PlayerTransportationDetails.objects.filter(
+                    playerId=player,
+                    status_flag=1
+                ).order_by('-created_on').first()
+
+                if scheduled_transport and scheduled_transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
+                    player.current_transport_status = ""  # Empty for scheduled
+                    player.has_departure_status = False
+                else:
+                    player.current_transport_status = ""
+                    player.has_departure_status = False
 
         context.update({
             'search_query': self.request.GET.get('search', ''),
@@ -1925,3 +2138,18 @@ class PlayersExportView(View):
 
         except Exception as e:
             return HttpResponse(f"Error exporting data: {str(e)}", status=500)
+        
+        
+class DisableRoasterView(View):
+    def post(self, request, roaster_id):
+        try:
+            print("roaster_id", roaster_id)
+            log_user_activity(request, "Disable Roaster", f"Roaster ID({roaster_id}) has been disabled")
+            roaster = Roaster.objects.get(id=roaster_id)
+            roaster.status_flag = 0
+            roaster.save()
+            return JsonResponse({"success": True, "message": "Roaster has been disabled successfully."})
+        except Roaster.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Roaster not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=500)

@@ -47,6 +47,7 @@
           <!-- Google reCAPTCHA -->
           <!-- Hidden field for reCAPTCHA response -->
           <input type="hidden" name="g-recaptcha-response" id="recaptchaResponse">
+          <input type="hidden" id="fcm_token" name="fcm_token">
           <button type="submit" class="btn btn--primary btn--block btn--login">Sign In</button>
           <div class="error-message" id="error_message" style="display: none">
               Wrong Username or Password
@@ -62,7 +63,6 @@
         </form>
       </div>
     </div>
-    <script type="module" src="{% static 'assets/js/app.js' %}"></script>
     <script type="text/JavaScript">
        document
         .getElementById("login-form")
@@ -95,6 +95,82 @@
           });
       });
     </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+<script>
+  const firebaseConfig = {{ firebase_config|safe }};
+  
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
+  async function initializeFirebaseMessaging() {
+    try {
+      const permission = await Notification.requestPermission();
+      console.log('Notification permission:', permission);
+      
+      if (permission !== 'granted') return;
+
+      // ✅ REGISTER YOUR CUSTOM SERVICE WORKER
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+        scope: '/'
+      });
+      
+      console.log('Custom Service Worker registered successfully');
+
+      // Get FCM token with custom service worker
+      const token = await messaging.getToken({
+        vapidKey: "{{ firebase_vapid_key }}",
+        serviceWorkerRegistration: registration
+      });
+
+      if (token) {
+        console.log('FCM Token:', token);
+        document.getElementById("fcm_token").value = token;
+        localStorage.setItem('fcm_token', token);
+        console.log('Ready for notifications with custom service worker!');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeFirebaseMessaging);
+</script>
+{% comment %} <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+<script>
+  const firebaseConfig = {{ firebase_config|safe }};
+  
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
+  async function initializeFirebaseMessaging() {
+    try {
+      const permission = await Notification.requestPermission();
+      console.log('Notification permission:', permission);
+      
+      if (permission !== 'granted') return;
+
+      // Use Firebase's default service worker - NO custom service worker needed
+      const token = await messaging.getToken({ 
+        vapidKey: "{{ firebase_vapid_key }}" 
+      });
+
+      if (token) {
+        console.log('FCM Token:', token);
+        document.getElementById("fcm_token").value = token;
+        localStorage.setItem('fcm_token', token);
+        console.log('Notifications will work with default service worker!');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeFirebaseMessaging);
+</script> {% endcomment %}
   </body>
   
 </html>

@@ -183,6 +183,7 @@
                     {% if r.current_entry_status == "SCHEDULED" %}
                       <a href="{% url 'edit_roaster' r.id %}?page={{ page_obj.number }}" style="text-decoration: none;" >✏️</a>
                     {% endif %}
+                    <button class="btn-icon btn-disable" data-roaster-id="{{ r.id }}"  data-action="delete" title="Delete">🗑️</button>
                   </div>
                 </td>
 
@@ -204,6 +205,20 @@
       </div>
     </main>
   </div>
+
+  <!-- Disable Confirmation Modal -->
+<div id="disableModal" class="players-modal">
+  <div class="players-modal-content">
+    <span class="players-modal-close" id="disableModalClose">&times;</span>
+    <h3>Disable Roaster</h3>
+    <p>Are you sure you want to disable this roaster? This action cannot be undone.</p>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+      <button id="cancelDisableBtn" class="btn-status" style="background-color:#6c757d;color:white;">Cancel</button>
+      <button id="confirmDisableBtn" class="btn-status" style="background-color:#dc3545;color:white;">Disable</button>
+    </div>
+  </div>
+</div>
+
 
   <!-- Player List Modal -->
   <div id="playersModal" class="players-modal">
@@ -363,5 +378,60 @@
       {% endfor %}
     {% endif %}
   </script>
+  <script>
+    // Disable button + modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const disableModal = document.getElementById('disableModal');
+  const closeModal = document.getElementById('disableModalClose');
+  const cancelDisableBtn = document.getElementById('cancelDisableBtn');
+  const confirmDisableBtn = document.getElementById('confirmDisableBtn');
+  let selectedRoasterId = null;
+
+  // Open modal when clicking Disable
+  document.querySelectorAll('.btn-disable').forEach(button => {
+    button.addEventListener('click', function() {
+      selectedRoasterId = this.dataset.roasterId;
+      disableModal.style.display = 'block';
+    });
+  });
+
+  // Close modal
+  function closeDisableModal() {
+    disableModal.style.display = 'none';
+    selectedRoasterId = null;
+  }
+
+  closeModal.addEventListener('click', closeDisableModal);
+  cancelDisableBtn.addEventListener('click', closeDisableModal);
+  window.addEventListener('click', (e) => {
+    if (e.target === disableModal) closeDisableModal();
+  });
+
+  // Confirm disable
+  confirmDisableBtn.addEventListener('click', function() {
+    if (!selectedRoasterId) return;
+
+    fetch(`/logistics/roasters/disable/${selectedRoasterId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ status_flag: 0 })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showMessage(data.message, "success");
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showMessage(data.message, 'error');
+      }
+    })
+    .catch(err => showMessage('Error disabling roaster: ' + err, 'error'))
+    .finally(closeDisableModal);
+  });
+});
+</script>
 </body>
 </html>
