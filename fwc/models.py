@@ -202,6 +202,7 @@ class Players(models.Model):
     transport_status = models.CharField(max_length=50, choices=TRANSPORT_STATUS_CHOICES, null=True, blank=True)
     hotel = models.CharField(max_length=300, null=True)
     room_no = models.CharField(max_length=40, null=True)
+    notification_read_timestamp = models.DateTimeField(null=True)
 
     def __str__(self):
         return self.loginname
@@ -322,7 +323,7 @@ class PlayerTransportationDetails(models.Model):
         if self.entry_status == self.ENTRY_ARRIVED_AIRPORT:
             return "Arrived at Airport"
         elif self.entry_status == self.ENTRY_REACHED_AIRPORT_DEPARTURE:
-            return "Reached Airport"
+            return "Reached Airport for Departure"
         elif self.entry_status == self.ENTRY_SCHEDULED:
             return "Scheduled"
         

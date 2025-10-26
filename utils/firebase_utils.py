@@ -25,7 +25,7 @@ if not firebase_admin._apps:
 
 def send_push_notification(request, token, title, body):
     if settings.NOTIFICATION_STATUS:
-        print("sent notification")
+        print("sent notification", token)
         # message = messaging.Message(
         #     notification=messaging.Notification(
         #         title=title,
@@ -34,7 +34,7 @@ def send_push_notification(request, token, title, body):
         #     token=token
         # )
         base_url = f"{request.scheme}://{request.get_host()}"
-        icon_url = f"{base_url}/static/assets/images/fide-world-cup-logo.png"
+        icon_url = "https://dashboard.fwc2025.in/static/email/new_email_logo.jpg"
         message = messaging.Message(
             notification=messaging.Notification(
                 title=title,

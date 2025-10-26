@@ -945,8 +945,8 @@ class EnquiryCreateOrReplyAPI(APIView):
             status_flag=1
         )
         
-        # Send email notification for new enquiry
-        self._send_enquiry_email(
+        # Send email notifications for new enquiry
+        self._send_enquiry_emails(
             player=player, 
             message=message, 
             enquiry_id=enquiry.id, 
@@ -990,8 +990,8 @@ class EnquiryCreateOrReplyAPI(APIView):
             enquiry.is_replied = False  # Mark as pending admin response
             enquiry.save()
             
-            # Send email notification for the reply
-            self._send_enquiry_email(
+            # Send email notifications for the reply
+            self._send_enquiry_emails(
                 player=player, 
                 message=message, 
                 enquiry_id=enquiry.id, 
@@ -1021,8 +1021,8 @@ class EnquiryCreateOrReplyAPI(APIView):
                 "message": "The specified enquiry does not exist or doesn't belong to you"
             }, status=status.HTTP_404_NOT_FOUND)
     
-    def _send_enquiry_email(self, player, message, enquiry_id, is_new_enquiry=True):
-        """Send email for new enquiry or reply"""
+    def _send_enquiry_emails(self, player, message, enquiry_id, is_new_enquiry=True):
+        """Send emails for new enquiry or reply to admins and CHESS_FWC_2025_EMAIL separately"""
         context = {
             'is_new_enquiry': is_new_enquiry,
             'player_name': player.name,
@@ -1044,11 +1044,44 @@ class EnquiryCreateOrReplyAPI(APIView):
             subject = f"ENQUIRY REPLY from {player.name} (ID: {enquiry_id})"
             email_type = 'ENQUIRY_REPLY'
         
+        # Get all admin users emails
+        admin_users = MstUserLogins.objects.filter(roleid=1, status_flag=1)
+        admin_emails = [user.email for user in admin_users if user.email]
+        print("admin_emails", admin_emails)
+        
+        # Send email to CHESS_FWC_2025_EMAIL separately
+        self._send_single_email(
+            subject=subject,
+            html_message=html_message,
+            recipient_email=CHESS_FWC_2025_EMAIL,
+            email_type=email_type
+        )
+        
+        # Send one email to all admins at once (if there are any admins)
+        if admin_emails:
+            self._send_single_email(
+                subject=subject,
+                html_message=html_message,
+                recipient_list=admin_emails,
+                email_type=email_type
+            )
+    
+    def _send_single_email(self, subject, html_message, recipient_email=None, recipient_list=None, email_type=None):
+        """Send a single email to one or multiple recipients"""
+        if recipient_list:
+            # For multiple recipients (admins)
+            recipients = recipient_list
+            recipient_display = ", ".join(recipient_list)
+        else:
+            # For single recipient (CHESS_FWC_2025_EMAIL)
+            recipients = [recipient_email]
+            recipient_display = recipient_email
+        
         # Create email log entry
         email_log = EmailLog.objects.create(
             email_type=email_type,
             subject=subject,
-            recipient_email=CHESS_FWC_2025_EMAIL,
+            recipient_email=recipient_display,
             status='PENDING',
             html_content=html_message,
             text_content="", 
@@ -1059,7 +1092,7 @@ class EnquiryCreateOrReplyAPI(APIView):
                 subject=subject,
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[CHESS_FWC_2025_EMAIL],
+                recipient_list=recipients,
                 html_message=html_message,
                 fail_silently=False,
             )
@@ -1068,7 +1101,7 @@ class EnquiryCreateOrReplyAPI(APIView):
         except Exception as e:
             email_log.status = 'FAILED'
             email_log.save()
-            print(f"Email sending failed: {str(e)}")
+            print(f"Email sending failed to {recipient_display}: {str(e)}")
             
     
 
@@ -1254,6 +1287,8 @@ class RaiseComplaintView(APIView):
                 status='OPEN',
                 status_flag=1
             )
+            
+            # Notify department users
             notify_department_users(
                 request,
                 department_id=department.id,
@@ -1279,6 +1314,54 @@ class RaiseComplaintView(APIView):
 
             subject = f"NEW COMPLAINT from {player.name} - #C{complaint.id} - {department.name}"
             
+            # Get department users and admin users emails
+            department_users = MstUserLogins.objects.filter(department_id=department_id, status_flag=1)
+            admin_users = MstUserLogins.objects.filter(roleid=1, status_flag=1)
+            print("department_users", department_users, "admin_users", admin_users)
+            
+            # Collect all recipient emails
+            recipient_emails = set()
+            
+            # Add department users emails
+            for user in department_users:
+                if user.email:
+                    print("dept.email", user.email)
+                    recipient_emails.add(user.email)
+            
+            # Add admin users emails
+            for user in admin_users:
+                if user.email:
+                    print("dept.email", user.email)
+                    recipient_emails.add(user.email)
+                        
+            # Convert to list for sending
+            recipient_list = list(recipient_emails)
+            
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='COMPLAINT',
+                subject=subject,
+                recipient_email=", ".join(recipient_list),
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            # Send email to all recipients
+            if recipient_list:
+                send_mail(
+                    subject=subject,
+                    message="",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=recipient_list,
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                # Update email log with success
+                email_log.status = 'SENT'
+                email_log.save()
+                
             # Create email log entry
             email_log = EmailLog.objects.create(
                 email_type='COMPLAINT',
@@ -1288,7 +1371,6 @@ class RaiseComplaintView(APIView):
                 html_content=html_message,
                 text_content="", 
             )
-
             send_mail(
                 subject=subject,
                 message="",
@@ -1390,6 +1472,7 @@ class EditComplaintRemarkView(APIView):
             complaint.updated_on = timezone.now()
             complaint.save()
             
+            # Notify department users
             notify_department_users(
                 request,
                 department_id=department.id,
@@ -1415,16 +1498,63 @@ class EditComplaintRemarkView(APIView):
 
             subject = f"COMPLAINT REPLY from {player.name} - #C{complaint.id} - {department.name}"
             
+            # Get department users and admin users emails
+            department_users = MstUserLogins.objects.filter(department_id=department.id, status_flag=1)
+            admin_users = MstUserLogins.objects.filter(roleid=1, status_flag=1)
+            print("department_users", department_users, "admin_users", admin_users)
+            
+            # Collect all recipient emails
+            recipient_emails = set()
+            
+            # Add department users emails
+            for user in department_users:
+                if user.email:
+                    print("department.email", user.email)
+                    recipient_emails.add(user.email)
+            
+            # Add admin users emails
+            for user in admin_users:
+                if user.email:
+                    print("admin.email", user.email)
+                    recipient_emails.add(user.email)
+            
+            # Convert to list for sending
+            recipient_list = list(recipient_emails)
+            
             # Create email log entry
             email_log = EmailLog.objects.create(
                 email_type='COMPLAINT_REPLY',
+                subject=subject,
+                recipient_email=", ".join(recipient_list),  # Store all recipients
+                status='PENDING',
+                html_content=html_message,
+                text_content="", 
+            )
+
+            # Send email to all recipients
+            if recipient_list:
+                send_mail(
+                    subject=subject,
+                    message="",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=recipient_list,
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                # Update email log with success
+                email_log.status = 'SENT'
+                email_log.save()
+                
+            # Create email log entry
+            email_log = EmailLog.objects.create(
+                email_type='COMPLAINT',
                 subject=subject,
                 recipient_email=CHESS_FWC_2025_EMAIL,
                 status='PENDING',
                 html_content=html_message,
                 text_content="", 
             )
-
             send_mail(
                 subject=subject,
                 message="",
@@ -1717,4 +1847,171 @@ class SaveDeviceTokenAPI(APIView):
                 "success": False,
                 "error": "Failed to save device token",
                 "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+class SaveNotificationReadTimestampAPI(APIView):
+    """
+    API to save notification read timestamp for a player
+    POST: Save timestamp for player (using notification_read_timestamp field)
+    """
+    
+    def post(self, request):
+        # validate_email_and_device_with_token(request)
+        try:
+            data = request.data
+            
+            player_id = data.get('player_id')
+            email = data.get('email')
+            timestamp = data.get('timestamp')
+            
+            if not player_id or not email:
+                return Response({
+                    "success": False,
+                    "error": "Missing required fields",
+                    "message": "player_id and email are required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                player = Players.objects.get(id=player_id, status_flag=1)
+                
+                if player.email != email:
+                    return Response({
+                        "success": False,
+                        "error": "Email mismatch",
+                        "message": "Provided email does not match player record"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Players.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "error": "Player not found",
+                    "message": "Player with the provided ID does not exist or is inactive"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            if timestamp:
+                try:
+                    read_timestamp = timezone.datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+
+                    if read_timestamp.tzinfo is not None:
+                        local_tz = timezone.get_fixed_timezone(5.5 * 60)
+                        read_timestamp = read_timestamp.astimezone(local_tz).replace(tzinfo=None)
+                    else:
+                        pass
+                except (ValueError, AttributeError):
+                    return Response({
+                        "success": False,
+                        "error": "Invalid timestamp format",
+                        "message": "Timestamp should be in ISO format (e.g., 2024-01-01T12:00:00Z)"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                read_timestamp = datetime.datetime.now()
+            
+            player.notification_read_timestamp = read_timestamp
+            player.save()
+            
+            response_data = {
+                "success": True,
+                "message": "Notification read timestamp updated successfully",
+                "data": {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "timestamp": read_timestamp.isoformat(),
+                    "timestamp_display": read_timestamp.strftime("%B %d, %Y at %I:%M %p")
+                }
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"Error in SaveNotificationReadTimestampAPI: {str(e)}")
+            return Response({
+                "success": False,
+                "error": "Internal server error",
+                "message": "An error occurred while updating timestamp"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+        
+        
+class GetAnnouncementsCountAPI(APIView):
+    """
+    API to get count of announcements for a player
+    POST: Return count of announcements sent to player after their read timestamp
+    If no timestamp exists, return all announcements sent to the player
+    """
+    
+    def post(self, request):
+        validate_email_and_device_with_token(request)
+        try:
+            data = request.data
+            
+            player_id = data.get('player_id')
+            email = data.get('email')
+            
+            if not player_id or not email:
+                return Response({
+                    "success": False,
+                    "error": "Missing required fields",
+                    "message": "player_id and email are required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                player = Players.objects.get(id=player_id, status_flag=1)
+                
+                if player.email != email:
+                    return Response({
+                        "success": False,
+                        "error": "Email mismatch",
+                        "message": "Provided email does not match player record"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Players.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "error": "Player not found",
+                    "message": "Player with the provided ID does not exist or is inactive"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            read_timestamp = player.notification_read_timestamp
+            
+            player_announcements = AnnouncementRecipients.objects.filter(
+                player=player,
+                status_flag=1
+            ).select_related('announcement')
+            
+            total_count = player_announcements.count()
+            
+            if read_timestamp:
+                unread_count = player_announcements.filter(
+                    sent_on__gt=read_timestamp 
+                ).count()
+                
+                read_count = total_count - unread_count
+            else:
+                unread_count = total_count
+                read_count = 0
+            
+            
+            response_data = {
+                "success": True,
+                "data": {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "unread_announcements_count": unread_count,
+                    "total_announcements_for_player": total_count,
+                    "read_announcements": read_count,
+                    "last_read_timestamp": read_timestamp.isoformat() if read_timestamp else None,
+                    "last_read_display": read_timestamp.strftime("%B %d, %Y at %I:%M %p") if read_timestamp else "Never",
+                }
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"Error in GetAnnouncementsCountAPI: {str(e)}")
+            return Response({
+                "success": False,
+                "error": "Internal server error",
+                "message": "An error occurred while fetching announcement count"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

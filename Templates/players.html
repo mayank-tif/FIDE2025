@@ -812,11 +812,9 @@
             
             data.status_options.forEach(status => {
                 statusSelect.append(`
-                    <option value="${status.status_type}" 
-                            data-mapping-id="${status.mapping_id}"
-                            data-player-status="${status.player_status}"
-                            data-display-text="${status.display_text}">
-                        ${status.display_text}
+                    <option value="${status.player_status}" 
+                            data-player-status="${status.player_status}">
+                        ${status.player_status}
                     </option>
                 `);
             });
@@ -884,7 +882,6 @@ $(document).on('submit', '#transport-status-form', function(e) {
     
     const playerId = currentPlayerId;
     const statusType = $('#status-select').val();
-    const mapping_id = $('#status-select option:selected').attr('data-mapping-id');
     
     if (!statusType) {
         showMessage('Please select a status', 'error');
@@ -894,7 +891,6 @@ $(document).on('submit', '#transport-status-form', function(e) {
     const formData = new FormData();
     formData.append('status_type', statusType);
     formData.append('csrfmiddlewaretoken', $("input[name='csrfmiddlewaretoken']").val());
-    formData.append('mapping_id', mapping_id);
 
     // Show loading state
     $('#update-status-btn').prop('disabled', true).html('<span class="loader"></span> Updating...');

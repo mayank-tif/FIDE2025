@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>New Contact Form Submission - FWC 2025</title>
+  <title>New Announcement - FWC 2025</title>
 
   <style type="text/css">
     a, a[href], a:hover, a:link, a:visited {
@@ -61,11 +61,36 @@
       background-color: #f9f9f9;
       width: 30%;
     }
-    .message-box {
-      background-color: #f8f9fa;
+    .announcement-box {
+      background-color: #f0f8ff;
       padding: 15px;
       border-left: 4px solid #241A4F;
       margin: 20px 0;
+      border-radius: 4px;
+    }
+    .player-info {
+      background-color: #e8f4fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .announcement-badge {
+      background-color: #28a745;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .department-tag {
+      background-color: #241A4F;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -93,55 +118,62 @@
         <tr>
           <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
             
-            <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-bottom: 20px;">
-              New Contact Form Submission
+            <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #28a745; margin-bottom: 10px;">
+              📢 Important Announcement
             </h1>
+            <span class="announcement-badge">NEW ANNOUNCEMENT</span>
             
-            <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
-              You have received a new message through the FIDE World Cup 2025 contact form.
-            </p>
+            <!-- Player Information Box -->
+            <div class="player-info">
+              <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-top: 0;">
+                Player Details
+              </h2>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold; width: 40%;">Player Name:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ player_name }}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold;">FIDE ID:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{{ player_fide_id }}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; text-align: left; font-weight: bold;">Email:</td>
+                  <td style="padding: 8px 0; text-align: left;">{{ player_email }}</td>
+                </tr>
+              </table>
+            </div>
             
-            <!-- Contact Information Table -->
+            <!-- Announcement Details -->
             <table class="info-table">
               <tr>
-                <td class="label">Name:</td>
-                <td>{{ name }}</td>
+                <td class="label">Announcement Date:</td>
+                <td>{{ announcement_date }}</td>
               </tr>
               <tr>
-                <td class="label">Email:</td>
-                <td>{{ email }}</td>
-              </tr>
-              <tr>
-                <td class="label">Subject:</td>
-                <td>{{ subject }}</td>
-              </tr>
-              <tr>
-                <td class="label">Submitted On:</td>
-                <td>{{ submitted_date }}</td>
+                <td class="label">Priority:</td>
+                <td><strong style="color: #28a745;">{{ priority }}</strong></td>
               </tr>
             </table>
             
-            <!-- Message Section -->
+            <!-- Announcement Content Section -->
             <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; text-align: left; margin-top: 30px;">
-              Message:
+              Announcement Details:
             </h2>
             
-            <div class="message-box">
-              <p style="font-size: 15px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; text-align: left; margin: 0;">
-                {{ message }}
+            <div class="announcement-box">
+              <h3 style="font-size: 16px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; text-align: left; margin-top: 0;">
+                {{ announcement_title }}
+              </h3>
+              <p style="font-size: 15px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; text-align: left; margin: 10px 0 0 0;">
+                {{ announcement_details }}
               </p>
             </div>
-            
-            <!-- Action Section -->
-            <p style="font-size: 14px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #666666; margin-top: 30px; text-align: left;">
-              <strong>Next Steps:</strong><br>
-              Please respond to this inquiry. You can reply directly to: <a href="mailto:{{ email }}" style="color: #241A4F;">{{ email }}</a>
-            </p>
             
             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
             
             <p style="font-size: 12px; line-height: 16px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 300; text-decoration: none; color: #919293;">
-              This email was automatically generated by the FIDE World Cup 2025 contact form system.
+              This email was automatically generated by the FIDE World Cup 2025 announcement system.
             </p>
                
           </td>

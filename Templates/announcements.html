@@ -6,101 +6,237 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Announcements - FIDE World Cup 2025</title>
   <link rel="stylesheet" href="{% static 'assets/css/app.css' %}">
-
-  <!-- Select2 CSS for multi-select dropdown -->
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
-    .select2-container--default .select2-selection--multiple {
-      min-height: 38px;
-      padding: 4px 8px;
+    /* Custom Dropdown Styles */
+    .custom-dropdown {
+        position: relative;
+        width: 100%;
+        margin-bottom: 20px;
     }
+
+    .dropdown-button {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        background: white;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-button:hover {
+        border-color: #271F64;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        margin-top: 8px;
+        padding: 15px;
+    }
+
+    .dropdown-menu.show {
+        display: block !important;
+    }
+
+    .search-box {
+        margin-bottom: 15px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #271F64;
+    }
+
+    .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .checkbox-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+    }
+
+    .players-list {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 15px;
+    }
+
+    .player-option {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-radius: 4px;
+        margin-bottom: 4px;
+    }
+
+    .player-option:hover {
+        background: #f8f9fa;
+    }
+
+    .player-option input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .player-option label {
+        margin: 0;
+        cursor: pointer;
+        flex: 1;
+        font-weight: 400;
+        font-size: 14px;
+    }
+
+    .selected-count {
+        font-size: 12px;
+        color: #666;
+        margin-top: 10px;
+        text-align: center;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    /* Ensure modal has high z-index */
+    .modal {
+        z-index: 10000;
+    }
+
+    .modal-content {
+        z-index: 10001;
+    }
+
     /* Announcement Recipients Styles */
     .announcement-recipients {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid #e9ecef;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e9ecef;
     }
     
     .recipients-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 10px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
     }
     
     .player-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 8px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 12px;
-      font-size: 12px;
-      color: #495057;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        font-size: 12px;
+        color: #495057;
     }
     
     .player-tag[data-status="ACTIVE"] {
-      background: #d4edda;
-      border-color: #c3e6cb;
-      color: #155724;
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
     }
     
     .player-tag[data-status="DEPARTED"] {
-      background: #fff3cd;
-      border-color: #ffeaa7;
-      color: #856404;
+        background: #fff3cd;
+        border-color: #ffeaa7;
+        color: #856404;
     }
     
     .player-tag[data-status="KNOCKED_OUT"] {
-      background: #f8d7da;
-      border-color: #f5c6cb;
-      color: #721c24;
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
     }
     
     .player-tag small {
-      font-size: 10px;
-      opacity: 0.8;
+        font-size: 10px;
+        opacity: 0.8;
     }
     
     .recipients-count {
-      font-size: 12px;
-      color: #6c757d;
-      font-weight: 500;
+        font-size: 12px;
+        color: #6c757d;
+        font-weight: 500;
     }
     
     .no-recipients {
-      font-style: italic;
-      color: #6c757d;
-      font-size: 14px;
+        font-style: italic;
+        color: #6c757d;
+        font-size: 14px;
     }
     
-    /* Make announcement cards more spacious */
     .announcement-card {
-      padding: 20px;
-      margin-bottom: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .announcement-card h3 {
-      margin-bottom: 10px;
-      color: #2c3e50;
+        margin-bottom: 10px;
+        color: #2c3e50;
     }
     
     .announcement-meta {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 15px;
-      font-size: 14px;
-      color: #6c757d;
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: #6c757d;
     }
     
     .announcement-body {
-      line-height: 1.6;
-      color: #495057;
-      margin-bottom: 0;
+        line-height: 1.6;
+        color: #495057;
+        margin-bottom: 0;
     }
   </style>
 </head>
@@ -188,31 +324,50 @@
           <label for="announcement-title">Title</label>
           <input type="text" id="announcement-title" name="title" placeholder="e.g., New Venue Announcement" required>
         </div>
+        
         <div class="form-group">
           <label for="announcement-audience">Announcement for</label>
-          <select id="announcement-audience" name="audience" multiple="multiple" style="width:100%;">
-            <option value="all">Select All Players</option>
-            {% for player in players %}
-              <option value="{{ player.id }}" data-status="{{ player.status }}">
-                {{ player.name }}
-              </option>
-            {% endfor %}
-          </select>
-<div class="checkbox-group">
-            <label><input type="checkbox" class="status-checkbox" value="ALL_PLAYERS"> All Players</label>
-            <label><input type="checkbox" class="status-checkbox" value="ACTIVE"> Active</label>
-            <label><input type="checkbox" class="status-checkbox" value="KNOCKED_OUT"> Knocked Out</label>
-            <label><input type="checkbox" class="status-checkbox" value="DEPARTED"> Departed</label>
+          <!-- Custom Dropdown -->
+          <div class="custom-dropdown" id="playersDropdownWrapper">
+            <button type="button" class="dropdown-button" id="playersSelectButton">
+              <span id="selectedPlayersText">Select players</span> ▼
+            </button>
+            <div class="dropdown-menu" id="playersDropdownMenu">
+              <!-- Search Box -->
+              <div class="search-box">
+                <input type="text" id="playerSearch" placeholder="Search players...">
+              </div>
+              
+              <!-- Status Checkboxes -->
+              <div class="checkbox-group">
+                <label><input type="checkbox" class="status-checkbox" value="ALL_PLAYERS"> All Players</label>
+                <label><input type="checkbox" class="status-checkbox" value="ACTIVE"> Active Players</label>
+                <label><input type="checkbox" class="status-checkbox" value="KNOCKED_OUT"> Knocked Out Players</label>
+                <label><input type="checkbox" class="status-checkbox" value="DEPARTED"> Departed Players</label>
+              </div>
+              
+              <!-- Players List -->
+              <div class="players-list" id="playersList">
+                {% for player in players %}
+                  <div class="player-option" data-status="{{ player.status }}" data-name="{{ player.name|lower }}">
+                    <input type="checkbox" id="player-{{ player.id }}" name="players" value="{{ player.id }}">
+                    <label for="player-{{ player.id }}">{{ player.name }}</label>
+                  </div>
+                {% endfor %}
+              </div>
+              
+              <div class="selected-count" id="playerCounter">0 players selected</div>
+            </div>
           </div>
+          <!-- Hidden field to store selected player IDs -->
+          <input type="hidden" id="selectedPlayers" name="selected_players">
         </div>
-          
 
         <div class="form-group">
           <label for="announcement-details">Announcement Details</label>
           <textarea id="announcement-details" name="details" placeholder="e.g., Tournament details and updates" rows="5" required></textarea>
         </div>
-        <!-- Player Status Checkboxes -->
-        
+
         <div class="modal-footer">
           <button type="button" class="btn btn--secondary" data-modal-close>Cancel</button>
           <button type="submit" class="btn btn--primary">Create Announcement</button>
@@ -231,124 +386,120 @@
       <p class="announcement-body"></p>
     </article>
   </template>
-
-  <!-- JS Libraries -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <script src="{% static 'assets/js/app.js' %}"></script>
-  <script>
-  $(document).ready(function() {
-
-  // Toggle recipients list
-  $(document).on('click', '.btn-toggle-recipients', function() {
-    const announcementId = $(this).data('announcement-id');
-    const recipientsDiv = $('#recipients-' + announcementId);
-    const isVisible = recipientsDiv.is(':visible');
-
-    recipientsDiv.slideToggle();
-    $(this).text(isVisible ? 'Show List' : 'Hide List');
-  });
-
-  $(document).on("click", "[data-modal-open]", function() {
-      const modalId = $(this).data("modal-open");
-      $("#" + modalId).addClass("active");
-  });
-
-  $(document).on("click", "[data-modal-close], .modal", function(e) {
-      if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
-          $(this).closest(".modal").removeClass("active");
-      }
-  });
-
-  // Initialize Select2
-  $('#announcement-audience').select2({
-    placeholder: "Select players",
-    width: 'resolve',
-    closeOnSelect: false
-  });
-
-  // Handle Select All from dropdown option
-  $('#announcement-audience').on('select2:select', function(e) {
-    if(e.params.data.id === 'all') {
-      // Select all players
-      $('#announcement-audience option').prop('selected', true);
-      $('#announcement-audience').trigger('change');
-    }
-  });
-
-  $('#announcement-audience').on('select2:unselect', function(e) {
-    if(e.params.data.id === 'all') {
-      // Deselect all players
-      $('#announcement-audience option').prop('selected', false);
-      $('#announcement-audience').trigger('change');
-    }
-  });
-
-  // All Players Checkbox functionality
-  $('.status-checkbox').first().change(function() {
-    const isChecked = $(this).is(':checked');
-    
-    if (isChecked) {
-      // Select all players
-      $('#announcement-audience option').prop('selected', true);
-    } else {
-      // Deselect all players
-      $('#announcement-audience option').prop('selected', false);
-    }
-    $('#announcement-audience').trigger('change');
-  });
-
-  // Player Status Checkboxes Logic for Active, Knocked Out, Departed
-  $('.status-checkbox').not(':first').change(function() {
-    const status = $(this).val();
-    const checked = $(this).is(':checked');
-
-    $('#announcement-audience option').each(function() {
-      if ($(this).data('status') === status) {
-        $(this).prop('selected', checked);
-      }
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Modal functionality
+    $(document).on("click", "[data-modal-open]", function() {
+        const modalId = $(this).data("modal-open");
+        $("#" + modalId).addClass("active");
+        initializePlayersDropdown();
     });
-    $('#announcement-audience').trigger('change');
-    
-    // Update All Players checkbox state
-    updateAllPlayersCheckbox();
-  });
 
-  // Update All Players checkbox based on current selection
-  function updateAllPlayersCheckbox() {
-    const allOptions = $('#announcement-audience option[value!="all"]');
-    const selectedCount = allOptions.filter(':selected').length;
-    const totalCount = allOptions.length;
-    
-    const allPlayersCheckbox = $('.status-checkbox').first();
-    
-    if (selectedCount === totalCount) {
-      allPlayersCheckbox.prop('checked', true);
-      allPlayersCheckbox.prop('indeterminate', false);
-    } else if (selectedCount > 0) {
-      allPlayersCheckbox.prop('checked', false);
-      allPlayersCheckbox.prop('indeterminate', true);
-    } else {
-      allPlayersCheckbox.prop('checked', false);
-      allPlayersCheckbox.prop('indeterminate', false);
-    }
-  }
-
-  // Update All Players checkbox when dropdown changes
-  $('#announcement-audience').on('change', function() {
-    updateAllPlayersCheckbox();
-  });
-
-  // Announcement Search
-  $('#announcement-search').on('input', function() {
-    const filter = $(this).val().toLowerCase();
-    $('.announcement-card').each(function() {
-      const title = $(this).find('h3').text().toLowerCase();
-      $(this).toggle(title.includes(filter));
+    $(document).on("click", "[data-modal-close], .modal", function(e) {
+        if ($(e.target).is(".modal") || $(e.target).is("[data-modal-close]")) {
+            $(this).closest(".modal").removeClass("active");
+        }
     });
-  });
+
+    function initializePlayersDropdown() {
+        // Remove any existing event listeners
+        $('#playersSelectButton').off('click');
+        $('#playerSearch').off('input');
+        $('.status-checkbox').off('change');
+        
+        // Reset form state
+        $('.player-option input[type="checkbox"]').prop('checked', false);
+        $('.status-checkbox').prop('checked', false);
+        $('#playerSearch').val('');
+        $('#selectedPlayers').val('');
+        $('#selectedPlayersText').text('Select players');
+        $('#playerCounter').text('0 players selected');
+        $('.player-option').show();
+
+        // Add event listeners
+        $('#playersSelectButton').on('click', function(e) {
+            e.stopPropagation();
+            $('#playersDropdownMenu').toggleClass('show');
+            if ($('#playersDropdownMenu').hasClass('show')) {
+                setTimeout(() => $('#playerSearch').focus(), 100);
+            }
+        });
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#playersDropdownWrapper').length) {
+                $('#playersDropdownMenu').removeClass('show');
+            }
+        });
+
+        $('#playerSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            $('.player-option').each(function() {
+                const playerName = $(this).data('name') || $(this).find('label').text().toLowerCase();
+                $(this).toggle(playerName.includes(searchTerm));
+            });
+        });
+
+        $('.status-checkbox').on('change', function() {
+            const status = $(this).val();
+            const isChecked = $(this).is(':checked');
+
+            if (status === 'ALL_PLAYERS') {
+                $('.player-option input[type="checkbox"]').prop('checked', isChecked);
+            } else {
+                $(`.player-option[data-status="${status}"] input[type="checkbox"]`).prop('checked', isChecked);
+            }
+            updatePlayerSelection();
+            updateStatusCheckboxes();
+        });
+
+        updatePlayerSelection();
+    }
+
+    $(document).on('change', '.player-option input[type="checkbox"]', function() {
+        updatePlayerSelection();
+        updateStatusCheckboxes();
+    });
+
+    function updatePlayerSelection() {
+        const selectedPlayers = $('.player-option input[type="checkbox"]:checked');
+        const count = selectedPlayers.length;
+        const playerIds = selectedPlayers.map(function() { return this.value; }).get();
+        
+        $('#selectedPlayersText').text(count === 0 ? 'Select players' : `${count} player${count > 1 ? 's' : ''} selected`);
+        $('#playerCounter').text(`${count} player${count > 1 ? 's' : ''} selected`);
+        $('#selectedPlayers').val(playerIds.join(','));
+    }
+
+    function updateStatusCheckboxes() {
+        const allPlayers = $('.player-option input[type="checkbox"]');
+        const activePlayers = $('.player-option[data-status="ACTIVE"] input[type="checkbox"]');
+        const knockedPlayers = $('.player-option[data-status="KNOCKED_OUT"] input[type="checkbox"]');
+        const departedPlayers = $('.player-option[data-status="DEPARTED"] input[type="checkbox"]');
+
+        $('.status-checkbox[value="ALL_PLAYERS"]').prop('checked', allPlayers.length > 0 && allPlayers.length === allPlayers.filter(':checked').length);
+        $('.status-checkbox[value="ACTIVE"]').prop('checked', activePlayers.length > 0 && activePlayers.length === activePlayers.filter(':checked').length);
+        $('.status-checkbox[value="KNOCKED_OUT"]').prop('checked', knockedPlayers.length > 0 && knockedPlayers.length === knockedPlayers.filter(':checked').length);
+        $('.status-checkbox[value="DEPARTED"]').prop('checked', departedPlayers.length > 0 && departedPlayers.length === departedPlayers.filter(':checked').length);
+    }
+
+    $('#announcement-search').on('input', function() {
+        const filter = $(this).val().toLowerCase();
+        $('.announcement-card').each(function() {
+            const title = $(this).find('h3').text().toLowerCase();
+            const body = $(this).find('.announcement-body').text().toLowerCase();
+            $(this).toggle(title.includes(filter) || body.includes(filter));
+        });
+    });
+
+    $('#create-announcement-form').on('submit', function(e) {
+        if (!$('#selectedPlayers').val()) {
+            e.preventDefault();
+            alert('Please select at least one player for the announcement.');
+            $('#playersDropdownMenu').addClass('show');
+        }
+    });
 });
-  </script>
-
+</script>
 </body>
 </html>

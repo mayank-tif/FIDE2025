@@ -10,7 +10,7 @@ urlpatterns = [
     path('register-player/', RegisterPlayerAPIView.as_view(), name='register_player'),
     path("login/", PlayerLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
-    path("player-transport/", PlayerTransportationAPIView.as_view(), name="player_transport"),
+    path("player-transport-new/", PlayerTransportationAPIView.as_view(), name="player_transport"),
     path("fwc-departmentlist/", DepartmentListAPIView.as_view(), name="fwc-departmentlist"),
     path("change-password/", ChangePasswordAPIView.as_view(), name="change-password"),
     path("forgot-password/", ForgetPasswordAPIView.as_view(), name="forgot-password"),
@@ -26,4 +26,6 @@ urlpatterns = [
     path('fwc-dept-list/', get_departments, name='fwc-dept-list'),
     path('get-departure-details/', DepartureDetailsAPI.as_view(), name='departure-details'),
     path('save-device-token/', SaveDeviceTokenAPI.as_view(), name='save_device_token'),
+    path('save-notification-timestamp/', SaveNotificationReadTimestampAPI.as_view(), name='save_notification_timestamp'),
+    path('get-announcements-count/', GetAnnouncementsCountAPI.as_view(), name='get_announcements_count'),
 ]

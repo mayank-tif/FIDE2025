@@ -398,18 +398,16 @@ class PlayerTransportStatusView(View):
             player = get_object_or_404(Players, id=player_id, status_flag=1)
             
             # Get all status mappings for dropdown
-            status_mappings = TransportStatusMapping.objects.filter(status_flag=1)
+            status_mappings = TransportStatusMapping.objects.filter(status_flag=1).order_by('player_status').values('player_status').distinct()
+            print("status_mappings", status_mappings)
             
             status_options = []
             for mapping in status_mappings:
                 status_options.append({
-                    'status_type': mapping.status_type,
-                    'display_text': f"{mapping.get_status_type_display()} - {mapping.player_status}",
-                    'player_status': mapping.player_status,
-                    'pickup_location': mapping.pickup_location,
-                    'drop_location': mapping.drop_location,
-                    'mapping_id': mapping.id
+                    'player_status': mapping['player_status'],
                 })
+                
+            print("status_options", status_options)
             
             return JsonResponse({
                 'player_name': player.name,
@@ -424,14 +422,13 @@ class PlayerTransportStatusView(View):
         try:
             player = get_object_or_404(Players, id=player_id, status_flag=1)
             status_type = request.POST.get('status_type')
-            mapping_id = request.POST.get('mapping_id')
             
             if not status_type:
                 return JsonResponse({'success': False, 'error': 'Status type is required'})
             
             # Verify the status mapping exists
             mapping = TransportStatusMapping.objects.filter(
-                status_type=status_type,
+                player_status=status_type,
                 status_flag=1
             ).first()
             
@@ -441,10 +438,10 @@ class PlayerTransportStatusView(View):
             # Create a new transport entry without roaster
             PlayerTransportationDetails.objects.create(
                 playerId=player,
-                entry_status=status_type,
+                entry_status=mapping.status_type,
                 created_by=request.session.get('loginid'),
                 status_flag=1,
-                details=mapping_id
+                details=mapping.id
             )
             
             return JsonResponse({
@@ -1026,6 +1023,7 @@ class ComplaintUpdateView(View):
 
 class AnnouncementListView(View):
     def get(self, request):
+        # Your existing GET method code remains the same
         search_query = request.GET.get("q", "")
 
         announcements = Announcements.objects.select_related("created_by").prefetch_related(
@@ -1051,10 +1049,14 @@ class AnnouncementListView(View):
         """Create new announcement and assign recipients"""
         title = request.POST.get("title")
         details = request.POST.get("details")
-        audience_ids = request.POST.getlist("audience")  # list of player IDs
+        audience_ids = request.POST.get("selected_players", "").split(",") if request.POST.get("selected_players") else []
         current_user = request.session.get("loginid")
         print("title", title, "details", details, "audience_ids", audience_ids, "current_user", current_user)   
         logged_user=MstUserLogins.objects.get(id=current_user)
+        
+        if not audience_ids:
+            return JsonResponse({"success": False, "message": "Please select at least one player."})
+        audience_ids = [pid for pid in audience_ids if pid]
 
         announcement = Announcements.objects.create(
             title=title,
@@ -1062,11 +1064,8 @@ class AnnouncementListView(View):
             created_by=logged_user,
             created_on=timezone.now()
         )
-
-        if "all" in audience_ids:
-            recipients = Players.objects.filter(status_flag=1)
-        else:
-            recipients = Players.objects.filter(id__in=audience_ids)
+        
+        recipients = Players.objects.filter(id__in=audience_ids)
 
         AnnouncementRecipients.objects.bulk_create([
             AnnouncementRecipients(announcement=announcement, player=p, sent_on=timezone.now())
@@ -1074,6 +1073,10 @@ class AnnouncementListView(View):
         ])
         log_user_activity(request, "Create Announcement", f"Announcement '{title}' created successfully")
         
+        # Send emails to each recipient
+        self._send_announcement_emails(announcement, recipients)
+        
+        # Send push notifications
         try:
             device_tokens = UserDeviceToken.objects.filter(
                 user_email__in=[p.email for p in recipients],
@@ -1096,6 +1099,50 @@ class AnnouncementListView(View):
             print("Error sending push notifications:", e)
 
         return redirect("announcements")
+    
+    def _send_announcement_emails(self, announcement, recipients):
+        """Send announcement emails to each player individually"""
+        for player in recipients:
+            try:
+                context = {
+                    'player_name': player.name,
+                    'player_fide_id': player.fide_id,
+                    'player_email': player.email,
+                    'announcement_date': announcement.created_on.strftime("%B %d, %Y at %I:%M %p"),
+                    'announcement_id': announcement.id,
+                    'priority': 'Important',
+                    'announcement_title': announcement.title,
+                    'announcement_details': announcement.details
+                }
+
+                html_message = render_to_string('announcement_player_email.html', context)
+                subject = f"New Announcement: {announcement.title} - FWC 2025"
+
+                email_log = EmailLog.objects.create(
+                    email_type='ANNOUNCEMENT',
+                    subject=subject,
+                    recipient_email=player.email,
+                    status='PENDING',
+                    html_content=html_message,
+                    text_content=f"New announcement: {announcement.title}",
+                )
+
+                send_mail(
+                    subject=subject,
+                    message="",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[player.email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+
+                email_log.status = 'SENT'
+                email_log.save()
+                print(f"Announcement email sent to {player.email}")
+
+            except Exception as e:
+                print(f"Failed to send announcement email to {player.email}: {str(e)}")
+
     
     
 class ManageUsersView(View):
