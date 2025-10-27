@@ -20,29 +20,29 @@ try {
   console.log('[Service Worker] Firebase Messaging initialized');
 
   messaging.onBackgroundMessage((payload) => {
-  console.log('[Service Worker] Background message:', payload);
+    console.log('[Service Worker] Background message:', payload);
 
-  // If message contains `notification`, it’s already displayed by Firebase
-  // (especially needed for iOS).
-  if (payload.notification) {
-    console.log('[Service Worker] Skipping showNotification - Firebase will handle it');
-    return;
-  }
+    // If message contains `notification`, it’s already displayed by Firebase
+    // (especially needed for iOS).
+    if (payload.notification) {
+      console.log('[Service Worker] Skipping showNotification - Firebase will handle it');
+      return;
+    }
 
-  // Otherwise, it’s a data-only message — handle manually
-  const title = payload.data?.title || 'FWC 2025';
-  const body = payload.data?.body || 'You have a new notification';
+    // Otherwise, it’s a data-only message — handle manually
+    const title = payload.data?.title || 'FWC 2025';
+    const body = payload.data?.body || 'You have a new notification';
 
-  const baseUrl = self.location.origin;
-  const iconUrl = `${baseUrl}/static/assets/images/fide-world-cup-logo.png`;
+    const baseUrl = self.location.origin;
+    const iconUrl = `${baseUrl}/static/assets/images/notification-icon-bg.png`;
 
-  return self.registration.showNotification(title, {
-    body,
-    icon: iconUrl,
-    badge: iconUrl,
-    data: payload.data,
+    return self.registration.showNotification(title, {
+      body,
+      icon: iconUrl,
+      badge: iconUrl,
+      data: payload.data,
+    });
   });
-});
 
 
 } catch (error) {

@@ -603,11 +603,14 @@ class PlayerTransportView(View):
 
             transport_data = []
             for transport in transport_details:
-                username = "logistics team"
+                username = ""
+                team = ""
                 if transport.created_by:
                     user = MstUserLogins.objects.filter(id=transport.created_by).first()
                     if user:
                         username = user.name
+                    if user.roleid_id == 2:
+                        team = "from the logistics team"
 
                 transport_type = ""
                 vehicle_no = ""
@@ -643,7 +646,7 @@ class PlayerTransportView(View):
                 else:
                     # Use the player_status_display property from the model
                     status_display = transport.player_status_display
-                    status_text = f"Your status was marked as {status_display} by {username} from the logistics team.<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+                    status_text = f"Your status was marked as {status_display} by {username} {team}.<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
 
                 transport_data.append({
                     'id': transport.id,
@@ -662,8 +665,6 @@ class PlayerTransportView(View):
                     'driver_phone': driver_phone,
                 })
                 
-            print("transport_data", transport_data)
-
             return JsonResponse(transport_data, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -960,15 +961,17 @@ class ComplaintUpdateView(View):
                 device_tokens = UserDeviceToken.objects.filter(
                     user_email=complaint.player.email,
                     status_flag=1
-                ).values_list("device_token", flat=True)
+                ).values("device_token", "device_type")
 
                 title = f"Complaint #{complaint.id} Updated"
                 body = notification_message.strip()
 
-                for token in device_tokens:
-                    if token:
+                for token_data in device_tokens:
+                    if token_data:
                         try:
-                            send_push_notification(request, token, title, body)
+                            token = token_data.get('device_token')
+                            device_type = token_data.get('device_type')
+                            send_push_notification(request, token, title, body, device_type)
                             print(f"Push sent to token: {token}")
                         except Exception as e:
                             print(f"Failed to send push to token {token}: {str(e)}")
@@ -1073,75 +1076,32 @@ class AnnouncementListView(View):
         ])
         log_user_activity(request, "Create Announcement", f"Announcement '{title}' created successfully")
         
-        # Send emails to each recipient
-        self._send_announcement_emails(announcement, recipients)
-        
         # Send push notifications
         try:
             device_tokens = UserDeviceToken.objects.filter(
                 user_email__in=[p.email for p in recipients],
                 status_flag=1
-            ).values_list("device_token", flat=True)
+            ).values("device_token", "device_type")
             print("sending notification for announcement",)
 
             notification_title = f"New Announcement: {title}"
             notification_body = details[:100] + "..." if len(details) > 100 else details
 
-            for token in device_tokens:
-                if token:
+            for token_data in device_tokens:
+                if token_data:
                     try:
-                        send_push_notification(request, token, notification_title, notification_body)
+                        token = token_data.get('device_token')
+                        device_type = token_data.get('device_type')
+                        send_push_notification(request, token, notification_title, notification_body, device_type)
                         print(f"Push sent to token: {token}")
                     except Exception as e:
                         print(f"Failed to send push to token {token}: {str(e)}")
 
         except Exception as e:
             print("Error sending push notifications:", e)
-
+        messages.success(request, f"Announcement '{title}' created successfully!")
         return redirect("announcements")
     
-    def _send_announcement_emails(self, announcement, recipients):
-        """Send announcement emails to each player individually"""
-        for player in recipients:
-            try:
-                context = {
-                    'player_name': player.name,
-                    'player_fide_id': player.fide_id,
-                    'player_email': player.email,
-                    'announcement_date': announcement.created_on.strftime("%B %d, %Y at %I:%M %p"),
-                    'announcement_id': announcement.id,
-                    'priority': 'Important',
-                    'announcement_title': announcement.title,
-                    'announcement_details': announcement.details
-                }
-
-                html_message = render_to_string('announcement_player_email.html', context)
-                subject = f"New Announcement: {announcement.title} - FWC 2025"
-
-                email_log = EmailLog.objects.create(
-                    email_type='ANNOUNCEMENT',
-                    subject=subject,
-                    recipient_email=player.email,
-                    status='PENDING',
-                    html_content=html_message,
-                    text_content=f"New announcement: {announcement.title}",
-                )
-
-                send_mail(
-                    subject=subject,
-                    message="",
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[player.email],
-                    html_message=html_message,
-                    fail_silently=False,
-                )
-
-                email_log.status = 'SENT'
-                email_log.save()
-                print(f"Announcement email sent to {player.email}")
-
-            except Exception as e:
-                print(f"Failed to send announcement email to {player.email}: {str(e)}")
 
     
     
@@ -1465,6 +1425,8 @@ class RoasterAddView(View):
                 mobile_no = int(mobile_no)
             except (ValueError, TypeError):
                 mobile_no = None
+        if number_of_seats == '':
+            number_of_seats = None
 
         roaster = Roaster.objects.create(
             vechicle_type=vehicle_type,
@@ -1490,9 +1452,80 @@ class RoasterAddView(View):
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 created_by=request.session.get('loginid')
             )
+            try:
+                device_tokens = UserDeviceToken.objects.filter(
+                    user_email=player.email,
+                    status_flag=1
+                ).values('device_token', "device_type")
+                pickup = pickup_location_custom if pickup_location == Roaster.LOCATION_OTHER else pickup_location
+                dropoff = drop_location_custom if drop_location == Roaster.LOCATION_OTHER else drop_location,
+                title = f"Transport sheduled for {player.name}"
+                body = f"Transport scheduled for {travel_date} in {vehicle_type} no. {vehicle_number} from {pickup} to {dropoff} | Driver: {driver_name} | Phone: {mobile_no}"
+                for token_data in device_tokens:
+                    if token_data:
+                        try:
+                            token = token_data.get('device_token')
+                            device_type = token_data.get('device_type')
+                            send_push_notification(request, token, title, body, device_type)
+                            print(f"Push sent to token: {token}")
+                        except Exception as e:
+                            print(f"Failed to send push to token {token}: {str(e)}")
+    
+            except Exception as e:
+                print(f"Error sending push notifications: {str(e)}")
 
         messages.success(request, "Roaster and player travel details added successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
+    
+    def _send_roaster_email(self, enquiry, response_text, admin_user):
+        """Send email notification to player about enquiry reply"""
+        try:
+            player = enquiry.player
+            context = {
+                'player_name': player.name,
+                'enquiry_id': enquiry.id,
+                'admin_message': response_text,
+                'admin_name': admin_user.name if hasattr(admin_user, 'name') else "Admin Team",
+                'reply_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+                'original_enquiry': enquiry.message[:100] + "..." if len(enquiry.message) > 100 else enquiry.message
+            }
+            
+            html_message = render_to_string('enquiry_reply_to_player.html', context)
+            
+            subject = f"Reply to Your Enquiry #E{enquiry.id} - FWC 2025"
+            
+            email_log = EmailLog.objects.create(
+                email_type='ENQ_REPLY_TO_PLAYER',
+                subject=subject,
+                recipient_email=player.email,
+                status='PENDING',
+                html_content=html_message,
+                text_content=f"Reply to your enquiry #{enquiry.id}. Message: {response_text[:100]}...",
+            )
+
+            send_mail(
+                subject=subject,
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[player.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+            # Update email log with success
+            email_log.status = 'SENT'
+            email_log.save()
+            
+            print(f"Enquiry reply email sent successfully to {player.email}")
+            
+        except Exception as e:
+            # Log the error but don't break the main functionality
+            print(f"Failed to send enquiry reply email: {str(e)}")
+            # If email log was created, update its status to failed
+            if 'email_log' in locals():
+                email_log.status = 'FAILED'
+                email_log.save()
+
     
 
 class RoasterEditView(View):
@@ -1553,6 +1586,9 @@ class RoasterEditView(View):
                 mobile_no = int(mobile_no)
             except (ValueError, TypeError):
                 mobile_no = None
+                
+        if number_of_seats == '':
+            number_of_seats = None
         
 
         # Update roaster with mobile number
@@ -1598,6 +1634,27 @@ class RoasterEditView(View):
                 entry_status=PlayerTransportationDetails.ENTRY_SCHEDULED,
                 created_by=request.session.get('loginid')
             )
+            try:
+                device_tokens = UserDeviceToken.objects.filter(
+                    user_email=player.email,
+                    status_flag=1
+                ).values('device_token', "device_type")
+                pickup = pickup_location_custom if pickup_location == Roaster.LOCATION_OTHER else pickup_location
+                dropoff = drop_location_custom if drop_location == Roaster.LOCATION_OTHER else drop_location,
+                title = f"Transport sheduled Updated for {player.name}"
+                body = f"Transport scheduled for {travel_date} in {vehicle_type} no. {vehicle_number} from {pickup} to {dropoff} | Driver: {driver_name} | Phone: {mobile_no}"
+                for token_data in device_tokens:
+                    if token_data:
+                        try:
+                            token = token_data.get('device_token')
+                            device_type = token_data.get('device_type')
+                            send_push_notification(request, token, title, body, device_type)
+                            print(f"Push sent to token: {token}")
+                        except Exception as e:
+                            print(f"Failed to send push to token {token}: {str(e)}")
+    
+            except Exception as e:
+                print(f"Error sending push notifications: {str(e)}")
 
         messages.success(request, "Roaster updated successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
@@ -1621,6 +1678,29 @@ class StartTransportView(View):
                     entry_status=PlayerTransportationDetails.ENTRY_STARTED,
                     created_by=user_id
                 )
+                player = Players.objects.get(id=transport.playerId.id)
+                try:
+                    device_tokens = UserDeviceToken.objects.filter(
+                        user_email=player.email,
+                        status_flag=1
+                    ).values('device_token', "device_type")
+                    
+                    pickup = roaster.pickup_location_custom if roaster.pickup_location == Roaster.LOCATION_OTHER else roaster.pickup_location
+                    dropoff = roaster.drop_location_custom if roaster.drop_location == Roaster.LOCATION_OTHER else roaster.drop_location,
+                    title = "Transport Started"
+                    body = f"Your journey has begun! You're on your way from {pickup} to {dropoff} in {roaster.vechicle_type} ({roaster.vechicle_no}). Driver: {roaster.driver_name} ({roaster.mobile_no})"
+                    for token_data in device_tokens:
+                        if token_data:
+                            try:
+                                token = token_data.get('device_token')
+                                device_type = token_data.get('device_type')
+                                send_push_notification(request, token, title, body, device_type)
+                                print(f"Push sent to token: {token}")
+                            except Exception as e:
+                                print(f"Failed to send push to token {token}: {str(e)}")
+
+                except Exception as e:
+                    print(f"Error sending push notifications: {str(e)}")
             
             return JsonResponse({
                 'success': True,
@@ -1654,6 +1734,29 @@ class EndTransportView(View):
                     entry_status=PlayerTransportationDetails.ENTRY_ENDED,
                     created_by=user_id
                 )
+                player = Players.objects.get(id=transport.playerId.id)
+                try:
+                    device_tokens = UserDeviceToken.objects.filter(
+                        user_email=player.email,
+                        status_flag=1
+                    ).values('device_token', "device_type")
+                    
+                    pickup = roaster.pickup_location_custom if roaster.pickup_location == Roaster.LOCATION_OTHER else roaster.pickup_location
+                    dropoff = roaster.drop_location_custom if roaster.drop_location == Roaster.LOCATION_OTHER else roaster.drop_location,
+                    title = "Journey Completed"
+                    body = f"You have successfully reached your destination! Transport from {pickup} to {dropoff} has been completed. Thank you for traveling with us!"
+                    for token_data in device_tokens:
+                        if token_data:
+                            try:
+                                token = token_data.get('device_token')
+                                device_type = token_data.get('device_type')
+                                send_push_notification(request, token, title, body, device_type)
+                                print(f"Push sent to token: {token}")
+                            except Exception as e:
+                                print(f"Failed to send push to token {token}: {str(e)}")
+
+                except Exception as e:
+                    print(f"Error sending push notifications: {str(e)}")
             
             return JsonResponse({
                 'success': True,
@@ -1756,16 +1859,18 @@ class EnquiryListView(View):
                 device_tokens = UserDeviceToken.objects.filter(
                     user_email=enquiry.player.email,
                     status_flag=1
-                ).values_list('device_token', flat=True)
+                ).values('device_token', "device_type")
 
                 title = f"Enquiry #{enquiry.id} Replied"
                 body = response_text[:100] + "..." if len(response_text) > 100 else response_text
                 print("sending notification for enquiry", enquiry.id)
 
-                for token in device_tokens:
-                    if token:
+                for token_data in device_tokens:
+                    if token_data:
                         try:
-                            send_push_notification(request, token, title, body)
+                            token = token_data.get('device_token')
+                            device_type = token_data.get('device_type')
+                            send_push_notification(request, token, title, body, device_type)
                             print(f"Push sent to token: {token}")
                         except Exception as e:
                             print(f"Failed to send push to token {token}: {str(e)}")

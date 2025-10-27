@@ -571,8 +571,8 @@ class PlayerTransportationAPIView(APIView):
                     route = "Arrival"
                 elif transport.entry_status == "REACHED_AIRPORT_DEPARTURE":
                     route = "Departure"
-                else:
-                    route = transport.player_status_display or "Transport"
+                elif transport.details:
+                     route = "Status Update"
                 
                 standalone_entry = {
                     'id': transport.id,
@@ -869,16 +869,17 @@ def notify_admins(request, title, body):
         tokens = UserDeviceToken.objects.filter(
             user_email__in=[a.email for a in admins],
             status_flag=1
-        ).values_list('device_token', flat=True)
+        ).values_list('device_token', "device_type")
 
-        for token in tokens:
-            if token: 
+        for token_data in tokens:
+            if token_data:
                 try:
-                    send_push_notification(request, token, title, body)
+                    token = token_data.get('device_token')
+                    device_type = token_data.get('device_type')
+                    send_push_notification(request, token, title, body, device_type)
                 except Exception as e:
                     print(f"Failed to send notification to {token}: {str(e)}")
-            else:
-                print("Skipping empty token")
+            
             
 
 class EnquiryCreateOrReplyAPI(APIView):
@@ -1227,22 +1228,26 @@ class ComplaintListView(APIView):
             
             
 def notify_department_users(request, department_id, title, body):
-    users = MstUserLogins.objects.filter(department_id=department_id, status_flag=1)
+    users = MstUserLogins.objects.filter(Q(department_id=department_id) | Q(roleid=1), status_flag=1)
+    print("sending notification to department users", users.count())
     
     tokens = UserDeviceToken.objects.filter(
         user_email__in=[u.email for u in users],
         status_flag=1
-    ).values_list('device_token', flat=True)
+    ).values('device_token', "device_type")
     print("sending notification to department users", tokens.count())
     
-    for token in tokens:
-        if token:
+    for token_data in tokens:
+        print("token_data", token_data)
+        if token_data:
             try:
-                send_push_notification(request, token, title, body)
+                token = token_data.get('device_token')
+                device_type = token_data.get('device_type')
+                print(123)
+                send_push_notification(request, token, title, body, device_type)
             except Exception as e:
                 print(f"Failed to send notification to {token}: {str(e)}")
-        else:
-            print("Skipping empty token")
+        
 
             
             
@@ -1825,6 +1830,7 @@ class SaveDeviceTokenAPI(APIView):
         data = serializer.validated_data
         email = data['email']
         token = data['device_token']
+        device_type = data['device_type']
         
         try:
             obj, created = UserDeviceToken.objects.update_or_create(
@@ -1832,6 +1838,7 @@ class SaveDeviceTokenAPI(APIView):
                 defaults={
                     "device_token":token,
                     "updated_on": timezone.now(),
+                    "device_type": device_type,
                     "status_flag": 1
                 }
             )
@@ -1857,7 +1864,7 @@ class SaveNotificationReadTimestampAPI(APIView):
     """
     
     def post(self, request):
-        # validate_email_and_device_with_token(request)
+        validate_email_and_device_with_token(request)
         try:
             data = request.data
             

@@ -1,0 +1,423 @@
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.utils import timezone
+from .models import *
+import logging
+from FWC2025.env_details import *
+
+
+
+scheduler_logger = logging.getLogger(SCHEDULE_LOGGER_NAME)
+
+
+
+def send_pending_announcement_emails():
+    """
+    Check for announcements where email_sent is False and send emails to their recipients
+    """
+    try:
+        # Get announcements that haven't had emails sent yet
+        pending_announcements = Announcements.objects.filter(
+            email_sent=False, 
+            status_flag=1
+        ).prefetch_related('recipients__player')
+        
+        if not pending_announcements.exists():
+            print("No pending announcements found.")
+            return {
+                'success': True,
+                'message': 'No pending announcements found.',
+                'announcements_processed': 0,
+                'emails_sent': 0
+            }
+        
+        total_emails_sent = 0
+        announcements_processed = 0
+        
+        for announcement in pending_announcements:
+            try:
+                # Get all recipients for this announcement
+                recipients = AnnouncementRecipients.objects.filter(
+                    announcement=announcement,
+                    status_flag=1
+                ).select_related('player')
+                
+                if not recipients.exists():
+                    scheduler_logger.info(f"No recipients found for announcement: {announcement.title}")
+                    print(f"No recipients found for announcement: {announcement.title}")
+                    continue
+                
+                emails_sent_for_announcement = 0
+                
+                # Send email to each recipient
+                for recipient in recipients:
+                    if recipient.player and recipient.player.email:
+                        success = _send_single_announcement_email(announcement, recipient.player)
+                        if success:
+                            emails_sent_for_announcement += 1
+                            total_emails_sent += 1
+                
+                # Mark announcement as email_sent if we sent at least one email
+                if emails_sent_for_announcement > 0:
+                    announcement.email_sent = True
+                    announcement.updated_on = timezone.now()
+                    announcement.save()
+                    announcements_processed += 1
+                    scheduler_logger.info(f"Successfully processed announcement '{announcement.title}': {emails_sent_for_announcement} emails sent")
+                    
+                    print(f"Successfully processed announcement '{announcement.title}': {emails_sent_for_announcement} emails sent")
+                else:
+                    print(f"No emails sent for announcement: {announcement.title}")
+                    scheduler_logger.info(f"No emails sent for announcement: {announcement.title}")
+                    
+            except Exception as e:
+                scheduler_logger.info(f"Error processing announcement {announcement.id}: {str(e)}")
+                print(f"Error processing announcement {announcement.id}: {str(e)}")
+                continue
+        
+        return {
+            'success': True,
+            'message': f'Processed {announcements_processed} announcements, sent {total_emails_sent} emails',
+            'announcements_processed': announcements_processed,
+            'emails_sent': total_emails_sent
+        }
+        
+    except Exception as e:
+        scheduler_logger.info(f"Error in send_pending_announcement_emails: {str(e)}")
+        print(f"Error in send_pending_announcement_emails: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error: {str(e)}',
+            'announcements_processed': 0,
+            'emails_sent': 0
+        }
+
+
+def _send_single_announcement_email(announcement, player):
+    """
+    Send announcement email to a single player using direct HTML
+    """
+    try:
+        # Prepare context variables
+        player_name = player.name or "Player"
+        player_fide_id = player.fide_id or "N/A"
+        player_email = player.email
+        announcement_date = announcement.created_on.strftime("%B %d, %Y at %I:%M %p")
+        announcement_id = announcement.id
+        announcement_title = announcement.title
+        announcement_details = announcement.details
+
+        # Create HTML content directly
+        html_message = f"""
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>New Announcement - FWC 2025</title>
+
+  <style type="text/css">
+    a, a[href], a:hover, a:link, a:visited {{
+      text-decoration: none!important;
+      color: #0000EE;
+    }}
+    .link {{
+      text-decoration: underline!important;
+    }}
+    p, p:visited {{
+      font-size: 15px;
+      line-height: 24px;
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-weight: 300;
+      text-decoration: none;
+      color: #000000;
+    }}
+    h1 {{
+      font-size: 22px;
+      line-height: 24px;
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-weight: normal;
+      text-decoration: none;
+      color: #000000;
+    }}
+    h2 {{
+      font-size: 18px;
+      line-height: 22px;
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-weight: 600;
+      text-decoration: none;
+      color: #241A4F;
+    }}
+    .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td {{
+      line-height: 100%;
+    }}
+    .ExternalClass {{
+      width: 100%;
+    }}
+    .info-table {{
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }}
+    .info-table td {{
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }}
+    .info-table .label {{
+      font-weight: bold;
+      background-color: #f9f9f9;
+      width: 30%;
+    }}
+    .announcement-box {{
+      background-color: #f0f8ff;
+      padding: 15px;
+      border-left: 4px solid #241A4F;
+      margin: 20px 0;
+      border-radius: 4px;
+    }}
+    .player-info {{
+      background-color: #e8f4fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }}
+    .announcement-badge {{
+      background-color: #28a745;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+      margin-left: 10px;
+    }}
+    .department-tag {{
+      background-color: #241A4F;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }}
+  </style>
+</head>
+
+<body style="text-align: center; margin: 0; padding-top: 10px; padding-bottom: 10px; padding-left: 0; padding-right: 0; -webkit-text-size-adjust: 100%;background-color: #241A4F; color: #000000" align="center">
+  
+  <!-- Fallback force center content -->
+  <div style="text-align: center;">
+    
+    <!-- Start container for logo -->
+    <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
+      <tbody>
+        <tr>
+          <td style="width: 596px; vertical-align: top; padding-left: 0; padding-right: 0; padding-top: 15px; padding-bottom: 15px;" width="596">
+            <img style="width: 600px; max-width: 595px; height: 350px; max-height: 350px; text-align: center;" alt="FWC image" src="https://dashboard.fwc2025.in/static/email/new_email_logo.jpg" align="center" width="600" height="350">
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- End container for logo -->
+    
+    <!-- Start single column section -->
+    <table align="center" style="text-align: center; vertical-align: top; width: 600px; max-width: 600px; background-color: #ffffff;" width="600">
+      <tbody>
+        <tr>
+          <td style="width: 596px; vertical-align: top; padding-left: 30px; padding-right: 30px; padding-top: 30px; padding-bottom: 40px;" width="596">
+            
+            <h1 style="font-size: 24px; line-height: 28px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #28a745; margin-bottom: 10px;">
+              📢 Important Announcement
+            </h1>
+            <span class="announcement-badge">NEW ANNOUNCEMENT</span>
+            
+            <p style="font-size: 16px; line-height: 24px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; margin-bottom: 30px;">
+              Please review the following important announcement from the FWC 2025 organizing committee.
+            </p>
+            
+            <!-- Player Information Box -->
+            <div class="player-info">
+              <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; margin-top: 0;">
+                Player Details
+              </h2>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold; width: 40%;">Player Name:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{player_name}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left; font-weight: bold;">FIDE ID:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #cce7ff; text-align: left;">{player_fide_id}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; text-align: left; font-weight: bold;">Email:</td>
+                  <td style="padding: 8px 0; text-align: left;">{player_email}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <!-- Announcement Details -->
+            <table class="info-table">
+              <tr>
+                <td class="label">Announcement Date:</td>
+                <td>{announcement_date}</td>
+              </tr>
+              <tr>
+                <td class="label">Announcement ID:</td>
+                <td>#{announcement_id}</td>
+              </tr>
+              <tr>
+                <td class="label">Priority:</td>
+                <td><strong style="color: #28a745;">Important</strong></td>
+              </tr>
+            </table>
+            
+            <!-- Announcement Content Section -->
+            <h2 style="font-size: 18px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; text-align: left; margin-top: 30px;">
+              Announcement Details:
+            </h2>
+            
+            <div class="announcement-box">
+              <h3 style="font-size: 16px; line-height: 20px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 600; text-decoration: none; color: #241A4F; text-align: left; margin-top: 0;">
+                {announcement_title}
+              </h3>
+              <p style="font-size: 15px; line-height: 22px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 400; text-decoration: none; color: #333333; text-align: left; margin: 10px 0 0 0;">
+                {announcement_details}
+              </p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+            
+            <p style="font-size: 12px; line-height: 16px; font-family: 'Helvetica', Arial, sans-serif; font-weight: 300; text-decoration: none; color: #919293;">
+              This email was automatically generated by the FIDE World Cup 2025 announcement system.
+            </p>
+               
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- End single column section -->  
+  </div>
+</body>
+</html>
+        """
+
+        subject = f"New Announcement: {announcement_title} - FWC 2025"
+
+        # Create email log
+        try:
+            email_log = EmailLog.objects.create(
+                email_type='ANNOUNCEMENT',
+                subject=subject,
+                recipient_email=player_email,
+                status='PENDING',
+                html_content=html_message,
+                text_content=f"New announcement: {announcement_title}",
+            )
+        except Exception as log_error:
+            print(f"WARNING: Failed to create email log for {player_email}: {str(log_error)}")
+            scheduler_logger.info(f"WARNING: Failed to create email log for {player_email}: {str(log_error)}")
+
+        # Send email
+        send_mail(
+            subject=subject,
+            message=f"New Announcement: {announcement_title}\n\n{announcement_details}\n\nThis is an automated message from FWC 2025.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[player_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+        # Update email log status if it was created
+        if 'email_log' in locals():
+            email_log.status = 'SENT'
+            email_log.sent_at = timezone.now()
+            email_log.save()
+        
+        print(f"SUCCESS: Announcement email sent to {player_email}")
+        scheduler_logger.info(f"SUCCESS: Announcement email sent to {player_email}")
+        return True
+
+    except Exception as e:
+        scheduler_logger.info(f"FAILED to send announcement email to {player_email}: {str(e)}")
+        print(f"FAILED to send announcement email to {player_email}: {str(e)}")
+        
+        # Update email log status to failed if it exists
+        if 'email_log' in locals():
+            email_log.status = 'FAILED'
+            email_log.error_message = str(e)
+            email_log.save()
+            
+        return False
+
+# def _send_single_announcement_email(announcement, player):
+#     """
+#     Send announcement email to a single player
+#     """
+#     try:
+#         context = {
+#             'player_name': player.name,
+#             'player_fide_id': player.fide_id or 'N/A',
+#             'player_email': player.email,
+#             'announcement_date': announcement.created_on.strftime("%B %d, %Y at %I:%M %p"),
+#             'announcement_id': announcement.id,
+#             'priority': 'Important',
+#             'announcement_title': announcement.title,
+#             'announcement_details': announcement.details
+#         }
+
+#         html_message = render_to_string('announcement_player_email.html', context)
+#         subject = f"New Announcement: {announcement.title} - FWC 2025"
+
+#         # Create email log
+#         email_log = EmailLog.objects.create(
+#             email_type='ANNOUNCEMENT',
+#             subject=subject,
+#             recipient_email=player.email,
+#             status='PENDING',
+#             html_content=html_message,
+#             text_content=f"New announcement: {announcement.title}",
+#         )
+
+#         # Send email
+#         send_mail(
+#             subject=subject,
+#             message="",  # Empty message since we're using html_message
+#             from_email=settings.DEFAULT_FROM_EMAIL,
+#             recipient_list=[player.email],
+#             html_message=html_message,
+#             fail_silently=False,
+#         )
+
+#         # Update email log status
+#         email_log.status = 'SENT'
+#         email_log.sent_at = timezone.now()
+#         email_log.save()
+        
+#         print(f"Announcement email sent to {player.email}")
+#         scheduler_logger.info(f"Announcement email sent to {player.email}")
+#         return True
+
+#     except Exception as e:
+#         scheduler_logger.info(f"Failed to send announcement email to {player.email}: {str(e)}")
+#         print(f"Failed to send announcement email to {player.email}: {str(e)}")
+        
+#         # Log the failure
+#         try:
+#             EmailLog.objects.create(
+#                 email_type='ANNOUNCEMENT',
+#                 subject=f"New Announcement: {announcement.title} - FWC 2025",
+#                 recipient_email=player.email,
+#                 status='FAILED',
+#                 error_message=str(e),
+#                 html_content="",
+#                 text_content=f"New announcement: {announcement.title}",
+#             )
+#         except:
+#             pass
+            
+#         return False

@@ -484,14 +484,15 @@
               <div class="form-row">
                 <div class="form-group full-width">
                   <label for="profile-food-allergies">Food Allergies & Dietary Restrictions</label>
-                  <textarea id="profile-food-allergies" name="food_allergies" rows="3" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'." required>{{ player.details|default:'' }}</textarea>
+                  <textarea id="profile-food-allergies" name="food_allergies" rows="3" placeholder="Enter any food allergies or dietary restrictions. If none, please write 'None'.">{{ player.details|default:'' }}</textarea>
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
                   <label for="profile-room-cleaning">Room Cleaning Preference</label>
-                  <select id="profile-room-cleaning" name="room_cleaning_preference" required>
+                  <select id="profile-room-cleaning" name="room_cleaning_preference">
+                    <option value="">Select</option>
                     <option value="MORNING" {% if player.room_cleaning_preference == 'MORNING' %}selected{% endif %}>Morning slot (while you are likely to be in the room)</option>
                     <option value="AFTERNOON" {% if player.room_cleaning_preference == 'AFTERNOON' %}selected{% endif %}>Between 3:00 PM – 6:00 PM (during game hours)</option>
                     <option value="EVENING" {% if player.room_cleaning_preference == 'EVENING' %}selected{% endif %}>Evening slot (after games, while you are likely to be in the room)</option>

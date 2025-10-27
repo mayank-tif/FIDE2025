@@ -260,7 +260,7 @@ class Roaster(models.Model):
     id = models.AutoField(primary_key=True)
     vechicle_no = models.CharField(max_length=100, null=False)
     vechicle_type = models.TextField(null=False)
-    number_of_seats = models.IntegerField(null=False)
+    number_of_seats = models.IntegerField(null=True, blank=True)
     driver_name = models.CharField(max_length=100, null=False)
     mobile_no = models.BigIntegerField(null=True, blank=True)
     transportationTypeId = models.ForeignKey('TransportationType', on_delete=models.DO_NOTHING, db_column='transportationTypeId', null=True, blank=True)
@@ -443,6 +443,7 @@ class Announcements(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True)
     status_flag = models.IntegerField(default=1)
+    email_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'Announcements'
@@ -675,6 +676,7 @@ class UserDeviceToken(models.Model):
     updated_by = models.IntegerField(null=True)
     created_on = models.DateTimeField(default=timezone.now)
     status_flag = models.IntegerField(default=1)
+    device_type = models.CharField(max_length=50, null=True)
     
     def __int__(self):
         return self.id

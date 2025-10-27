@@ -387,8 +387,14 @@
     </article>
   </template>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{% static 'assets/js/app.js' %}"></script>
 <script>
 $(document).ready(function() {
+    {% if messages %}
+      {% for message in messages %}
+        showMessage("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    {% endif %}
     // Modal functionality
     $(document).on("click", "[data-modal-open]", function() {
         const modalId = $(this).data("modal-open");

@@ -1,6 +1,8 @@
 from django.conf import settings
+import uuid
 import firebase_admin
 from firebase_admin import credentials, messaging
+from FWC2025 import env_details as env
 
 
 firebase_creds = {
@@ -23,7 +25,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 
-def send_push_notification(request, token, title, body):
+def send_push_notification(request, token, title, body, device_type):
     if settings.NOTIFICATION_STATUS:
         print("sent notification", token)
         # message = messaging.Message(
@@ -34,16 +36,20 @@ def send_push_notification(request, token, title, body):
         #     token=token
         # )
         base_url = f"{request.scheme}://{request.get_host()}"
-        icon_url = "https://dashboard.fwc2025.in/static/email/new_email_logo.jpg"
+        icon_url = "https://staging.fwc2025.in/static/assets/images/notification-icon-bg.png"
+        notification_id = str(uuid.uuid4())
         message = messaging.Message(
             notification=messaging.Notification(
                 title=title,
                 body=body,
-                image=icon_url
+                image=icon_url,
             ),
             data={
-                "click_action": "/notifications",
-                "extra_info": "1234"
+                "click_action": env.NOTIFICATION_ON_CLICK,
+                "notification_id": notification_id,
+                "title": title,
+                "body": body
+
             },
             token=token
         )
