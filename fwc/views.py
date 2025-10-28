@@ -1476,55 +1476,6 @@ class RoasterAddView(View):
 
         messages.success(request, "Roaster and player travel details added successfully!")
         return redirect(f"{reverse('roaster_list')}?page={current_page}")
-    
-    def _send_roaster_email(self, enquiry, response_text, admin_user):
-        """Send email notification to player about enquiry reply"""
-        try:
-            player = enquiry.player
-            context = {
-                'player_name': player.name,
-                'enquiry_id': enquiry.id,
-                'admin_message': response_text,
-                'admin_name': admin_user.name if hasattr(admin_user, 'name') else "Admin Team",
-                'reply_date': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
-                'original_enquiry': enquiry.message[:100] + "..." if len(enquiry.message) > 100 else enquiry.message
-            }
-            
-            html_message = render_to_string('enquiry_reply_to_player.html', context)
-            
-            subject = f"Reply to Your Enquiry #E{enquiry.id} - FWC 2025"
-            
-            email_log = EmailLog.objects.create(
-                email_type='ENQ_REPLY_TO_PLAYER',
-                subject=subject,
-                recipient_email=player.email,
-                status='PENDING',
-                html_content=html_message,
-                text_content=f"Reply to your enquiry #{enquiry.id}. Message: {response_text[:100]}...",
-            )
-
-            send_mail(
-                subject=subject,
-                message="",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[player.email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-            
-            # Update email log with success
-            email_log.status = 'SENT'
-            email_log.save()
-            
-            print(f"Enquiry reply email sent successfully to {player.email}")
-            
-        except Exception as e:
-            # Log the error but don't break the main functionality
-            print(f"Failed to send enquiry reply email: {str(e)}")
-            # If email log was created, update its status to failed
-            if 'email_log' in locals():
-                email_log.status = 'FAILED'
-                email_log.save()
 
     
 

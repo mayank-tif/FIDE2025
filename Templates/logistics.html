@@ -324,8 +324,10 @@
         });
       });
 
-      closeBtn.addEventListener('click', () => {
-        playersModal.style.display = 'none';
+      document.querySelectorAll('.players-modal-close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', () => {
+          closeBtn.closest('.players-modal').style.display = 'none';
+        });
       });
 
       window.addEventListener('click', (event) => {

@@ -170,7 +170,7 @@ class Players(models.Model):
     name = models.CharField(max_length=500, null=True)
     address = models.CharField(max_length=250, null=True)
     email = models.CharField(max_length=50, null=True)
-    loginname = models.CharField(max_length=20)
+    loginname = models.CharField(max_length=20, null=True, blank=True)
     securepassword = models.CharField(max_length=200, null=True)
     cityid = models.IntegerField(null=True)
     stateid = models.IntegerField(null=True)
@@ -274,6 +274,7 @@ class Roaster(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     updated_on = models.DateTimeField(null=True, blank=True)
     updated_by = models.IntegerField(null=True, blank=True)
+    is_email_sent = models.BooleanField(default=False)
     
     def __str__(self):
         return f"Roaster {self.id} - {self.vechicle_no}"

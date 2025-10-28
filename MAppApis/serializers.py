@@ -373,6 +373,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 class AnnouncementNotificationSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     is_read = serializers.SerializerMethodField()
+    notification_type = serializers.SerializerMethodField()
     
     class Meta:
         model = Announcements
@@ -384,11 +385,75 @@ class AnnouncementNotificationSerializer(serializers.ModelSerializer):
             'created_by_name',
             'created_on',
             'updated_on',
-            'is_read'
+            'is_read',
+            'notification_type'
         ]
     
     def get_is_read(self, obj):
         return False
+    
+    def get_notification_type(self, obj):
+        return "ANNOUNCEMENT"
+
+
+class TransportNotificationSerializer(serializers.ModelSerializer):
+    player_status_display = serializers.CharField(read_only=True)
+    transport_details = serializers.SerializerMethodField()
+    notification_type = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PlayerTransportationDetails
+        fields = [
+            'id',
+            'entry_status',
+            'player_status_display',
+            'details',
+            'remarks',
+            'created_on',
+            'updated_on',
+            'transport_details',
+            'notification_type',
+            'created_by_name'
+        ]
+    
+    def get_notification_type(self, obj):
+        return "TRANSPORT"
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            try:
+                user = MstUserLogins.objects.get(id=obj.created_by)
+                return user.name
+            except MstUserLogins.DoesNotExist:
+                return ""
+        return ""
+    
+    def get_transport_details(self, obj):
+        """Get formatted transport details similar to your notification format"""
+        transport = obj
+        
+        if transport.entry_status == PlayerTransportationDetails.ENTRY_SCHEDULED:
+            if transport.roasterId:
+                roaster = transport.roasterId
+                travel_date = roaster.travel_date.strftime('%d %b %Y at %I:%M %p') if roaster.travel_date else "N/A"
+                transport_type = roaster.vechicle_type if roaster.vechicle_type else "N/A"
+                vehicle_no = roaster.vechicle_no if roaster.vechicle_no else "N/A"
+                pickup = roaster.get_pickup_location_display() if roaster.pickup_location else "N/A"
+                dropoff = roaster.get_drop_location_display() if roaster.drop_location else "N/A"
+                driver_name = roaster.driver_name if roaster.driver_name else "N/A"
+                driver_phone = str(roaster.mobile_no) if roaster.mobile_no else "N/A"
+                
+                return f"Transport scheduled for {travel_date} in {transport_type} no. {vehicle_no} from {pickup} to {dropoff}|Driver: {driver_name} | Phone: {driver_phone}|Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+            else:
+                return f"Transport scheduled<br>Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
+        else:
+            status_display = transport.player_status_display
+            user = MstUserLogins.objects.filter(id=obj.created_by).first()
+            username = user.name if user else "" 
+            team = ""
+            
+            return f"Your status was marked as {status_display} by {username} {team}.|Updated at: {transport.created_on.strftime('%d %b %Y at %I:%M %p')}"
     
     
 class ContactFormSerializer(serializers.Serializer):
@@ -589,4 +654,4 @@ class DepartureDetailsSerializer(serializers.ModelSerializer):
 class DeviceTokenSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     device_token = serializers.CharField(required=True, max_length=500)
-    device_type = serializers.CharField(required=True, max_length=50)
+    device_type = serializers.CharField(required=False, max_length=50)

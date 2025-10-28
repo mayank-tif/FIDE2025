@@ -709,7 +709,7 @@ class ForgetPasswordAPIView(APIView):
 
 class PlayerNotificationListView(APIView):
     """
-    POST API to get all announcements where the player has been tagged/recipient
+    POST API to get all announcements and transport notifications where the player has been tagged/recipient
     """
     
     def post(self, request):
@@ -726,34 +726,57 @@ class PlayerNotificationListView(APIView):
         player = serializer.validated_data['player_id']
         
         try:
-            # Validate player exists and is active
             player = get_object_or_404(Players, id=player.id, status_flag=1)
             
-            # Get announcements where player is a recipient
             recipient_announcements = AnnouncementRecipients.objects.filter(
                 player=player,
                 status_flag=1
             ).select_related('announcement', 'announcement__created_by')
             
-            # Get the actual announcements
             announcements = Announcements.objects.filter(
                 id__in=recipient_announcements.values_list('announcement_id', flat=True),
                 status_flag=1
             ).select_related('created_by').order_by('-created_on')
             
-            # Serialize data
-            serializer = AnnouncementNotificationSerializer(announcements, many=True)
+            transport_notifications = PlayerTransportationDetails.objects.filter(
+                playerId=player,
+                status_flag=1
+            ).select_related('roasterId', 'transportationTypeId').order_by('-created_on')
             
-            # Calculate total count
-            total_count = announcements.count()
+            announcement_serializer = AnnouncementNotificationSerializer(announcements, many=True)
+            transport_serializer = TransportNotificationSerializer(transport_notifications, many=True)
+            
+            all_notifications = []
+            
+            for announcement in announcement_serializer.data:
+                all_notifications.append({
+                    **announcement,
+                    'created_on': announcement['created_on'] 
+                })
+            
+            for transport in transport_serializer.data:
+                all_notifications.append({
+                    **transport,
+                    'title': 'Transport Update',
+                    'details': transport['transport_details'],
+                    'created_on': transport['created_on']
+                })
+            
+            all_notifications.sort(key=lambda x: x['created_on'], reverse=True)
+            
+            total_announcements = announcements.count()
+            total_transports = transport_notifications.count()
+            total_notifications = total_announcements + total_transports
             
             # Prepare response
             response_data = {
                 "success": True,
                 "notifications_summary": {
-                    "total_notifications": total_count
+                    "total_notifications": total_notifications,
+                    "announcement_count": total_announcements,
+                    "transport_count": total_transports
                 },
-                "notifications": serializer.data
+                "notifications": all_notifications
             }
             
             return Response(response_data, status=status.HTTP_200_OK)
@@ -869,7 +892,7 @@ def notify_admins(request, title, body):
         tokens = UserDeviceToken.objects.filter(
             user_email__in=[a.email for a in admins],
             status_flag=1
-        ).values_list('device_token', "device_type")
+        ).values('device_token', "device_type")
 
         for token_data in tokens:
             if token_data:
@@ -1830,7 +1853,7 @@ class SaveDeviceTokenAPI(APIView):
         data = serializer.validated_data
         email = data['email']
         token = data['device_token']
-        device_type = data['device_type']
+        device_type = data.get('device_type', '')
         
         try:
             obj, created = UserDeviceToken.objects.update_or_create(
